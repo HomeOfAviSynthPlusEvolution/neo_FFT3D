@@ -57,7 +57,7 @@ struct FFTFunctionPointers {
     void fftw3_close() { FreeLibrary(library); }
     func_t fftw3_address(LPCSTR func) { return GetProcAddress(library, func); }
   #else
-    void fftw3_open() { library = dlopen("libfftw3f.so.3", RTLD_NOW); }
+    void fftw3_open() { library = dlopen("libfftw3f_threads.so.3", RTLD_NOW); }
     void fftw3_close() { dlclose(library); }
     func_t fftw3_address(const char * func) { return dlsym(library, func); }
   #endif

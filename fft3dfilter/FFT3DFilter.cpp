@@ -482,8 +482,15 @@ FFT3DFilter::FFT3DFilter(PClip _child, float _sigma, float _beta, int _plane, in
     || fftfp.fftwf_plan_many_dft_c2r == NULL
     || fftfp.fftwf_destroy_plan == NULL
     || fftfp.fftwf_execute_dft_r2c == NULL
-    || fftfp.fftwf_execute_dft_c2r == NULL)
-    env->ThrowError("FFT3DFilter: libfftw3f-3.dll or fftw3.dll not found. Please put in PATH or use LoadDll() plugin");
+    || fftfp.fftwf_execute_dft_c2r == NULL
+    || fftfp.fftwf_init_threads == NULL
+    || fftfp.fftwf_plan_with_nthreads == NULL
+    )
+    #ifdef _WIN32
+      env->ThrowError("FFT3DFilter: libfftw3f-3.dll or fftw3.dll not found. Please put in PATH or use LoadDll() plugin");
+    #else
+      env->ThrowError("FFT3DFilter: libfftw3f_threads.so.3 not found. Please install libfftw3-single3 (deb) or fftw-devel (rpm) package");
+    #endif
 
   istat = fftfp.fftwf_init_threads();
 
