@@ -65,7 +65,7 @@ struct FilterFunctionPointers {
         fftwf_complex *outnext2,
         SharedFunctionParams sfp);
 
-    // Pattern
+  // Pattern
     void (*ApplyPattern2D)(
         fftwf_complex *outcur,
         SharedFunctionParams sfp);
@@ -92,7 +92,7 @@ struct FilterFunctionPointers {
         fftwf_complex *outnext2,
         SharedFunctionParams sfp);
 
-    // Pattern Degrid
+  // Pattern Degrid
     void (*ApplyPattern2D_degrid)(
         fftwf_complex *outcur,
         SharedFunctionParams sfp);
@@ -112,6 +112,33 @@ struct FilterFunctionPointers {
         fftwf_complex *outnext,
         SharedFunctionParams sfp);
     void (*ApplyPattern3D5_degrid)(
+        fftwf_complex *outcur,
+        fftwf_complex *outprev2,
+        fftwf_complex *outprev,
+        fftwf_complex *outnext,
+        fftwf_complex *outnext2,
+        SharedFunctionParams sfp);
+
+  // Dispatcher
+    void (*Apply2D)(
+        fftwf_complex *outcur,
+        SharedFunctionParams sfp);
+    void (*Apply3D2)(
+        fftwf_complex *outcur,
+        fftwf_complex *outprev,
+        SharedFunctionParams sfp);
+    void (*Apply3D3)(
+        fftwf_complex *outcur,
+        fftwf_complex *outprev,
+        fftwf_complex *outnext,
+        SharedFunctionParams sfp);
+    void (*Apply3D4)(
+        fftwf_complex *outcur,
+        fftwf_complex *outprev2,
+        fftwf_complex *outprev,
+        fftwf_complex *outnext,
+        SharedFunctionParams sfp);
+    void (*Apply3D5)(
         fftwf_complex *outcur,
         fftwf_complex *outprev2,
         fftwf_complex *outprev,
@@ -177,6 +204,43 @@ struct FilterFunctionPointers {
       ApplyWiener3D3_degrid = ApplyWiener3D3_degrid_SSE2;
       ApplyKalman = ApplyKalman_SSE2_simd;
       Sharpen_degrid = Sharpen_degrid_SSE_simd;
+    }
+  }
+
+  void set_ffp2(float degrid, float pfactor)
+  {
+    if (degrid != 0 && pfactor == 0) {
+      // Default Dispatcher
+      Apply2D = ApplyWiener2D_degrid;
+      Apply3D2 = ApplyWiener3D2_degrid;
+      Apply3D3 = ApplyWiener3D3_degrid;
+      Apply3D4 = ApplyWiener3D4_degrid;
+      Apply3D5 = ApplyWiener3D5_degrid;
+      Apply3D3 = ApplyWiener3D3_degrid;
+    }
+    else if (degrid == 0 && pfactor == 0) {
+      Apply2D = ApplyWiener2D;
+      Apply3D2 = ApplyWiener3D2;
+      Apply3D3 = ApplyWiener3D3;
+      Apply3D4 = ApplyWiener3D4;
+      Apply3D5 = ApplyWiener3D5;
+      Apply3D3 = ApplyWiener3D3;
+    }
+    else if (degrid != 0 && pfactor != 0) {
+      Apply2D = ApplyPattern2D_degrid;
+      Apply3D2 = ApplyPattern3D2_degrid;
+      Apply3D3 = ApplyPattern3D3_degrid;
+      Apply3D4 = ApplyPattern3D4_degrid;
+      Apply3D5 = ApplyPattern3D5_degrid;
+      Apply3D3 = ApplyPattern3D3_degrid;
+    }
+    else if (degrid == 0 && pfactor != 0) {
+      Apply2D = ApplyPattern2D;
+      Apply3D2 = ApplyPattern3D2;
+      Apply3D3 = ApplyPattern3D3;
+      Apply3D4 = ApplyPattern3D4;
+      Apply3D5 = ApplyPattern3D5;
+      Apply3D3 = ApplyPattern3D3;
     }
   }
 };

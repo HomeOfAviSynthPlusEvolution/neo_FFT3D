@@ -735,6 +735,7 @@ FFT3DFilter::FFT3DFilter(PClip _child, float _sigma, float _beta, int _plane, in
 
   CPUFlags = env->GetCPUFlags(); //re-enabled in v.1.9
   ffp.set_ffp(CPUFlags);
+  ffp.set_ffp2(degrid, pfactor);
   mean = (float*)malloc(nox*noy * sizeof(float));
 
   pwin = (float*)malloc(bh*outpitch * sizeof(float)); // pattern window array
@@ -2371,25 +2372,20 @@ PVideoFrame __stdcall FFT3DFilter::GetFrame(int n, IScriptEnvironment* env) {
       //			FFT3DFilter::InitOverlapPlaneWin(in, coverbuf,  coverpitch, planeBase, fullwinan); // slower
             // make FFT 2D
       fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
+      ffp.Apply2D(outrez, sfp);
       if (degrid != 0)
       {
         if (pfactor != 0)
         {
-          ffp.ApplyPattern2D_degrid(outrez, sfp);
           ffp.Sharpen_degrid(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, degrid, gridsample, dehalo, wdehalo, ht2n);
         }
-        else
-          ffp.ApplyWiener2D_degrid(outrez, sfp);
       }
       else
       {
         if (pfactor != 0)
         {
-          ffp.ApplyPattern2D(outrez, sfp);
           ffp.Sharpen(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, dehalo, wdehalo, ht2n);
         }
-        else
-          ffp.ApplyWiener2D(outrez, sfp);
       }
 
       // do inverse FFT 2D, get filtered 'in' array
@@ -2441,22 +2437,11 @@ PVideoFrame __stdcall FFT3DFilter::GetFrame(int n, IScriptEnvironment* env) {
         cachefft[cachecur - 1] = outtemp;
         cachewhat[cachecur - 1] = -1; // will be destroyed
       }
+      ffp.Apply3D2(out, outrez, sfp);
       if (degrid != 0)
-      {
-        if (pfactor != 0)
-          ffp.ApplyPattern3D2_degrid(out, outrez, sfp);
-        else
-          ffp.ApplyWiener3D2_degrid(out, outrez, sfp);
         ffp.Sharpen_degrid(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, degrid, gridsample, dehalo, wdehalo, ht2n);
-      }
       else
-      {
-        if (pfactor != 0)
-          ffp.ApplyPattern3D2(out, outrez, sfp);
-        else
-          ffp.ApplyWiener3D2(out, outrez, sfp); // get result in outpret
         ffp.Sharpen(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, dehalo, wdehalo, ht2n);
-      }
       // do inverse FFT 3D, get filtered 'in' array
       // note: input "outrez" array is destroyed by execute algo.
       fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
@@ -2523,22 +2508,11 @@ PVideoFrame __stdcall FFT3DFilter::GetFrame(int n, IScriptEnvironment* env) {
         fftfp.fftwf_execute_dft_r2c(plan, in, outnext);
         cachewhat[cachecur + 1] = n + 1;
       }
+      ffp.Apply3D3(out, outrez, outnext, sfp);
       if (degrid != 0)
-      {
-        if (pfactor != 0)
-          ffp.ApplyPattern3D3_degrid(out, outrez, outnext, sfp);
-        else
-          ffp.ApplyWiener3D3_degrid(out, outrez, outnext, sfp);
         ffp.Sharpen_degrid(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, degrid, gridsample, dehalo, wdehalo, ht2n);
-      }
       else
-      {
-        if (pfactor != 0)
-          ffp.ApplyPattern3D3(out, outrez, outnext, sfp);
-        else
-          ffp.ApplyWiener3D3(out, outrez, outnext, sfp);
         ffp.Sharpen(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, dehalo, wdehalo, ht2n);
-      }
       // do inverse FFT 2D, get filtered 'in' array
       // note: input "outrez" array is destroyed by execute algo.
       fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
@@ -2622,22 +2596,11 @@ PVideoFrame __stdcall FFT3DFilter::GetFrame(int n, IScriptEnvironment* env) {
         fftfp.fftwf_execute_dft_r2c(plan, in, outnext);
         cachewhat[cachecur + 1] = n + 1;
       }
+      ffp.Apply3D4(out, outrez, outprev, outnext, sfp);
       if (degrid != 0)
-      {
-        if (pfactor != 0)
-          ffp.ApplyPattern3D4_degrid(out, outrez, outprev, outnext, sfp);
-        else
-          ffp.ApplyWiener3D4_degrid(out, outrez, outprev, outnext, sfp);
         ffp.Sharpen_degrid(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, degrid, gridsample, dehalo, wdehalo, ht2n);
-      }
       else
-      {
-        if (pfactor != 0)
-          ffp.ApplyPattern3D4(out, outrez, outprev, outnext, sfp);
-        else
-          ffp.ApplyWiener3D4(out, outrez, outprev, outnext, sfp);
         ffp.Sharpen(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, dehalo, wdehalo, ht2n);
-      }
       // do inverse FFT 2D, get filtered 'in' array
       // note: input "outrez" array is destroyed by execute algo.
       fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
@@ -2729,22 +2692,11 @@ PVideoFrame __stdcall FFT3DFilter::GetFrame(int n, IScriptEnvironment* env) {
         fftfp.fftwf_execute_dft_r2c(plan, in, outnext2);
         cachewhat[cachecur + 2] = n + 2;
       }
+      ffp.Apply3D5(out, outrez, outprev, outnext, outnext2, sfp);
       if (degrid != 0)
-      {
-        if (pfactor != 0)
-          ffp.ApplyPattern3D5_degrid(out, outrez, outprev, outnext, outnext2, sfp);
-        else
-          ffp.ApplyWiener3D5_degrid(out, outrez, outprev, outnext, outnext2, sfp);
         ffp.Sharpen_degrid(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, degrid, gridsample, dehalo, wdehalo, ht2n);
-      }
       else
-      {
-        if (pfactor != 0)
-          ffp.ApplyPattern3D5(out, outrez, outprev, outnext, outnext2, sfp);
-        else
-          ffp.ApplyWiener3D5(out, outrez, outprev, outnext, outnext2, sfp);
         ffp.Sharpen(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, dehalo, wdehalo, ht2n);
-      }
       // do inverse FFT 2D, get filtered 'in' array
       // note: input "outrez" array is destroyed by execute algo.
       fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
