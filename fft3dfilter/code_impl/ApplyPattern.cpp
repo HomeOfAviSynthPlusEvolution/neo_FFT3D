@@ -1,5 +1,6 @@
 #include "code_impl.h"
 
+template <bool degrid>
 void ApplyPattern2D_C(
   fftwf_complex *outcur,
   SharedFunctionParams sfp)
@@ -11,34 +12,60 @@ void ApplyPattern2D_C(
   // float pfactor
   // float *pattern2d
   // float beta
+  // if template<degrid=true>
+  //   float degrid
+  //   fftwf_complex *gridsample
 
   int h,w, block;
   float psd;
-  float patternfactor;
+  float WienerFactor;
   float *pattern2d;
   float lowlimit = (sfp.beta-1)/sfp.beta; //     (beta-1)/beta>=0
 
-  if (sfp.pfactor != 0)
+  // Degrid
+  fftwf_complex *gridsample = NULL;
+  float gridfraction = 0.0f;
+  float gridcorrection0 = 0.0f;
+  float gridcorrection1 = 0.0f;
+
+  if (sfp.pfactor == 0)
+    return;
+
+  for (block =0; block <sfp.howmanyblocks; block++)
   {
-    for (block =0; block <sfp.howmanyblocks; block++)
+    pattern2d = sfp.pattern2d;
+
+    if (degrid) {
+      gridsample = sfp.gridsample;
+      gridfraction = sfp.degrid*outcur[0][0]/gridsample[0][0];
+    }
+
+    for (h=0; h<sfp.bh; h++) // middle
     {
-      pattern2d = sfp.pattern2d;
-      for (h=0; h<sfp.bh; h++) // middle
+      for (w=0; w<sfp.outwidth; w++)
       {
-        for (w=0; w<sfp.outwidth; w++)
-        {
-          psd = (outcur[w][0]*outcur[w][0] + outcur[w][1]*outcur[w][1]) + 1e-15f;
-          patternfactor = MAX((psd - sfp.pfactor*pattern2d[w])/psd, lowlimit);
-          outcur[w][0] *= patternfactor;
-          outcur[w][1] *= patternfactor;
+        if (degrid) {
+          gridcorrection0 = gridfraction*gridsample[w][0];
+          gridcorrection1 = gridfraction*gridsample[w][1];
         }
-        outcur += sfp.outpitch;
-        pattern2d += sfp.outpitch;
+
+        float corrected0 = outcur[w][0] - gridcorrection0;
+        float corrected1 = outcur[w][1] - gridcorrection1;
+        psd = (corrected0*corrected0 + corrected1*corrected1 ) + 1e-15f;// power spectrum density
+        WienerFactor = MAX((psd - sfp.pfactor*pattern2d[w])/psd, lowlimit); // limited Wiener filter
+        corrected0 *= WienerFactor; // apply filter on real part
+        corrected1 *= WienerFactor; // apply filter on imaginary part
+        outcur[w][0] = corrected0 + gridcorrection0;
+        outcur[w][1] = corrected1 + gridcorrection1;
       }
+      outcur += sfp.outpitch;
+      pattern2d += sfp.outpitch;
+      gridsample += sfp.outpitch;
     }
   }
 }
 
+template <bool degrid>
 void ApplyPattern3D2_C(
   fftwf_complex *outcur,
   fftwf_complex *outprev,
@@ -50,6 +77,9 @@ void ApplyPattern3D2_C(
   // int howmanyblocks
   // float *pattern3d
   // float beta
+  // if template<degrid=true>
+  //   float degrid
+  //   fftwf_complex *gridsample
 
   // this function take 25% CPU time and may be easy optimized for AMD Athlon 3DNOW assembler
   // return result in outprev
@@ -61,16 +91,33 @@ void ApplyPattern3D2_C(
   int block;
   int h,w;
 
+  // Degrid
+  fftwf_complex *gridsample = NULL;
+  float gridfraction = 0.0f;
+  float gridcorrection0_2 = 0.0f;
+  float gridcorrection1_2 = 0.0f;
+
   for (block=0; block <sfp.howmanyblocks; block++)
   {
     pattern3d = sfp.pattern3d;
+
+    if (degrid) {
+      gridsample = sfp.gridsample;
+      gridfraction = sfp.degrid*outcur[0][0]/gridsample[0][0];
+    }
+
     for (h=0; h<sfp.bh; h++)
     {
       for (w=0; w<sfp.outwidth; w++)
       {
+        if (degrid) {
+          gridcorrection0_2 = gridfraction*gridsample[w][0]*2; // grid correction
+          gridcorrection1_2 = gridfraction*gridsample[w][1]*2;
+        }
+
         // dft 3d (very short - 2 points)
-        f3d0r =  outcur[w][0] + outprev[w][0]; // real 0 (sum)
-        f3d0i =  outcur[w][1] + outprev[w][1]; // im 0 (sum)
+        f3d0r =  outcur[w][0] + outprev[w][0] - gridcorrection0_2; // real 0 (sum)
+        f3d0i =  outcur[w][1] + outprev[w][1] - gridcorrection1_2; // im 0 (sum)
         f3d1r =  outcur[w][0] - outprev[w][0]; // real 1 (dif)
         f3d1i =  outcur[w][1] - outprev[w][1]; // im 1 (dif)
         psd = f3d0r*f3d0r + f3d0i*f3d0i + 1e-15f; // power spectrum density 0
@@ -82,17 +129,19 @@ void ApplyPattern3D2_C(
         f3d1r *= WienerFactor; // apply filter on real part
         f3d1i *= WienerFactor; // apply filter on imaginary part
         // reverse dft for 2 points
-        outprev[w][0] = (f3d0r + f3d1r)*0.5f; // get  real part
-        outprev[w][1] = (f3d0i + f3d1i)*0.5f; // get imaginary part
+        outprev[w][0] = (f3d0r + f3d1r + gridcorrection0_2)*0.5f; // get real part
+        outprev[w][1] = (f3d0i + f3d1i + gridcorrection1_2)*0.5f; // get imaginary part
         // Attention! return filtered "out" in "outprev" to preserve "out" for next step
       }
       outcur += sfp.outpitch;
       outprev += sfp.outpitch;
       pattern3d += sfp.outpitch;
+      gridsample += sfp.outpitch;
     }
   }
 }
 
+template <bool degrid>
 void ApplyPattern3D3_C(
   fftwf_complex *outcur,
   fftwf_complex *outprev,
@@ -105,6 +154,9 @@ void ApplyPattern3D3_C(
   // int howmanyblocks
   // float *pattern3d
   // float beta
+  // if template<degrid=true>
+  //   float degrid
+  //   fftwf_complex *gridsample
 
   // this function take 25% CPU time and may be easy optimized for AMD Athlon 3DNOW assembler
   // return result in outprev
@@ -118,18 +170,37 @@ void ApplyPattern3D3_C(
   int block;
   int h,w;
 
+  // Degrid
+  fftwf_complex *gridsample = NULL;
+  float gridfraction = 0.0f;
+  float gridcorrection0_3 = 0.0f;
+  float gridcorrection1_3 = 0.0f;
+
   for (block=0; block <sfp.howmanyblocks; block++)
   {
     pattern3d = sfp.pattern3d;
+
+    if (degrid) {
+      gridsample = sfp.gridsample;
+      gridfraction = sfp.degrid*outcur[0][0]/gridsample[0][0];
+    }
+
     for (h=0; h<sfp.bh; h++) // first half
     {
       for (w=0; w<sfp.outwidth; w++) //
       {
+        if (degrid) {
+          gridcorrection0_3 = gridfraction*gridsample[w][0]*3;
+          gridcorrection1_3 = gridfraction*gridsample[w][1]*3;
+        }
+
         // dft 3d (very short - 3 points)
         float pnr = outprev[w][0] + outnext[w][0];
         float pni = outprev[w][1] + outnext[w][1];
         fcr = outcur[w][0] + pnr; // real cur
+        fcr -= gridcorrection0_3;
         fci = outcur[w][1] + pni; // im cur
+        fci -= gridcorrection1_3;
         float di = sin120*(outprev[w][1]-outnext[w][1]);
         float dr = sin120*(outnext[w][0]-outprev[w][0]);
         fpr = outcur[w][0] - 0.5f*pnr + di; // real prev
@@ -149,18 +220,20 @@ void ApplyPattern3D3_C(
         fnr *= WienerFactor; // apply filter on real part
         fni *= WienerFactor; // apply filter on imaginary part
         // reverse dft for 3 points
-        outprev[w][0] = (fcr + fpr + fnr)*0.33333333333f; // get  real part
-        outprev[w][1] = (fci + fpi + fni)*0.33333333333f; // get imaginary part
+        outprev[w][0] = (fcr + fpr + fnr + gridcorrection0_3)*0.33333333333f; // get real part
+        outprev[w][1] = (fci + fpi + fni + gridcorrection1_3)*0.33333333333f; // get imaginary part
         // Attention! return filtered "out" in "outprev" to preserve "out" for next step
       }
       outcur += sfp.outpitch;
       outprev += sfp.outpitch;
       outnext += sfp.outpitch;
       pattern3d += sfp.outpitch;
+      gridsample += sfp.outpitch;
     }
   }
 }
 
+template <bool degrid>
 void ApplyPattern3D4_C(
   fftwf_complex *outcur,
   fftwf_complex *outprev2,
@@ -174,6 +247,9 @@ void ApplyPattern3D4_C(
   // int howmanyblocks
   // float *pattern3d
   // float beta
+  // if template<degrid=true>
+  //   float degrid
+  //   fftwf_complex *gridsample
 
   // dft with 4 points
   // this function take 25% CPU time and may be easy optimized for AMD Athlon 3DNOW assembler
@@ -187,20 +263,39 @@ void ApplyPattern3D4_C(
   int block;
   int h,w;
 
+  // Degrid
+  fftwf_complex *gridsample = NULL;
+  float gridfraction = 0.0f;
+  float gridcorrection0_4 = 0.0f;
+  float gridcorrection1_4 = 0.0f;
+
   for (block=0; block <sfp.howmanyblocks; block++)
   {
     pattern3d = sfp.pattern3d;
+
+    if (degrid) {
+      gridsample = sfp.gridsample;
+      gridfraction = sfp.degrid*outcur[0][0]/gridsample[0][0];
+    }
+
     for (h=0; h<sfp.bh; h++) // first half
     {
       for (w=0; w<sfp.outwidth; w++) //
       {
+        if (degrid) {
+          gridcorrection0_4 = gridfraction*gridsample[w][0]*4;
+          gridcorrection1_4 = gridfraction*gridsample[w][1]*4;
+        }
+
         // dft 3d (very short - 4 points)
         fp2r = outprev2[w][0] - outprev[w][0] + outcur[w][0] - outnext[w][0]; // real prev2
         fp2i = outprev2[w][1] - outprev[w][1] + outcur[w][1] - outnext[w][1]; // im cur
         fpr = -outprev2[w][0] + outprev[w][1] + outcur[w][0] - outnext[w][1]; // real prev
         fpi = -outprev2[w][1] - outprev[w][0] + outcur[w][1] + outnext[w][0]; // im cur
         fcr = outprev2[w][0] + outprev[w][0] + outcur[w][0] + outnext[w][0]; // real cur
+        fcr -= gridcorrection0_4;
         fci = outprev2[w][1] + outprev[w][1] + outcur[w][1] + outnext[w][1]; // im cur
+        fci -= gridcorrection1_4;
         fnr = -outprev2[w][0] - outprev[w][1] + outcur[w][0] + outnext[w][1]; // real next
         fni = -outprev2[w][1] + outprev[w][0] + outcur[w][1] - outnext[w][0]; // im next
 
@@ -225,8 +320,8 @@ void ApplyPattern3D4_C(
         fni *= WienerFactor; // apply filter on imaginary part
 
         // reverse dft for 4 points
-        outprev2[w][0] = (fp2r + fpr + fcr + fnr)*0.25f; // get  real part
-        outprev2[w][1] = (fp2i + fpi + fci + fni)*0.25f; // get imaginary part
+        outprev2[w][0] = (fp2r + fpr + fcr + fnr + gridcorrection0_4)*0.25f; // get real part
+        outprev2[w][1] = (fp2i + fpi + fci + fni + gridcorrection1_4)*0.25f; // get imaginary part
         // Attention! return filtered "out" in "outprev2" to preserve "out" for next step
       }
       outcur += sfp.outpitch;
@@ -234,10 +329,12 @@ void ApplyPattern3D4_C(
       outprev += sfp.outpitch;
       outnext += sfp.outpitch;
       pattern3d += sfp.outpitch;
+      gridsample += sfp.outpitch;
     }
   }
 }
 
+template <bool degrid>
 void ApplyPattern3D5_C(
   fftwf_complex *outcur,
   fftwf_complex *outprev2,
@@ -252,6 +349,10 @@ void ApplyPattern3D5_C(
   // int howmanyblocks
   // float *pattern3d
   // float beta
+  // if template<degrid=true>
+  //   float degrid
+  //   fftwf_complex *gridsample
+
   // dft with 5 points
   // return result in outprev2
   float fcr, fci, fpr, fpi, fnr, fni, fp2r, fp2i, fn2r, fn2i;
@@ -267,15 +368,32 @@ void ApplyPattern3D5_C(
   int block;
   int h,w;
 
+  // Degrid
+  fftwf_complex *gridsample = NULL;
+  float gridfraction = 0.0f;
+  float gridcorrection0_5 = 0.0f;
+  float gridcorrection1_5 = 0.0f;
+
   for (block=0; block <sfp.howmanyblocks; block++)
   {
     pattern3d = sfp.pattern3d;
+
+    if (degrid) {
+      gridsample = sfp.gridsample;
+      gridfraction = sfp.degrid*outcur[0][0]/gridsample[0][0];
+    }
+
     for (h=0; h<sfp.bh; h++) // first half
     {
       for (w=0; w<sfp.outwidth; w++) //
       {
+        if (degrid) {
+          gridcorrection0_5 = gridfraction*gridsample[w][0]*5;
+          gridcorrection1_5 = gridfraction*gridsample[w][1]*5;
+        }
+
         // dft 3d (very short - 5 points)
-        float sum = (outprev2[w][0] + outnext2[w][0])*cos72 + (outprev[w][0] + outnext[w][0])*cos144 + + outcur[w][0];
+        float sum = (outprev2[w][0] + outnext2[w][0])*cos72 + (outprev[w][0] + outnext[w][0])*cos144 + outcur[w][0];
         float dif = (- outprev2[w][1] + outnext2[w][1])*sin72 + (outprev[w][1]  - outnext[w][1])*sin144;
         fp2r = sum + dif; // real prev2
         fn2r = sum - dif; // real next2
@@ -292,7 +410,9 @@ void ApplyPattern3D5_C(
         fpi = sum + dif; // im prev
         fni = sum - dif; // im next
         fcr = outprev2[w][0] + outprev[w][0] + outcur[w][0] + outnext[w][0] + outnext2[w][0]; // real cur
+        fcr -= gridcorrection0_5;
         fci = outprev2[w][1] + outprev[w][1] + outcur[w][1] + outnext[w][1] + outnext2[w][1]; // im cur
+        fci -= gridcorrection1_5;
 
         psd = fp2r*fp2r + fp2i*fp2i + 1e-15f; // power spectrum density prev2
         WienerFactor = MAX((psd - pattern3d[w])/psd, lowlimit); // limited Wiener filter
@@ -320,8 +440,8 @@ void ApplyPattern3D5_C(
         fn2i *= WienerFactor; // apply filter on imaginary part
 
         // reverse dft for 5 points
-        outprev2[w][0] = (fp2r + fpr + fcr + fnr + fn2r)*0.2f ; // get  real part
-        outprev2[w][1] = (fp2i + fpi + fci + fni + fn2i)*0.2f; // get imaginary part
+        outprev2[w][0] = (fp2r + fpr + fcr + fnr + fn2r + gridcorrection0_5)*0.2f; // get real part
+        outprev2[w][1] = (fp2i + fpi + fci + fni + fn2i + gridcorrection1_5)*0.2f; // get imaginary part
         // Attention! return filtered "out" in "outprev2" to preserve "out" for next step
       }
       outcur += sfp.outpitch;
@@ -329,7 +449,19 @@ void ApplyPattern3D5_C(
       outprev += sfp.outpitch;
       outnext += sfp.outpitch;
       outnext2 += sfp.outpitch;
+      gridsample += sfp.outpitch;
       pattern3d += sfp.outpitch;
     }
   }
 }
+
+template void ApplyPattern2D_C<true>(fftwf_complex*, SharedFunctionParams);
+template void ApplyPattern2D_C<false>(fftwf_complex*, SharedFunctionParams);
+template void ApplyPattern3D2_C<true>(fftwf_complex*, fftwf_complex*, SharedFunctionParams);
+template void ApplyPattern3D2_C<false>(fftwf_complex*, fftwf_complex*, SharedFunctionParams);
+template void ApplyPattern3D3_C<true>(fftwf_complex*, fftwf_complex*, fftwf_complex*, SharedFunctionParams);
+template void ApplyPattern3D3_C<false>(fftwf_complex*, fftwf_complex*, fftwf_complex*, SharedFunctionParams);
+template void ApplyPattern3D4_C<true>(fftwf_complex*, fftwf_complex*, fftwf_complex*, fftwf_complex*, SharedFunctionParams);
+template void ApplyPattern3D4_C<false>(fftwf_complex*, fftwf_complex*, fftwf_complex*, fftwf_complex*, SharedFunctionParams);
+template void ApplyPattern3D5_C<true>(fftwf_complex*, fftwf_complex*, fftwf_complex*, fftwf_complex*, fftwf_complex*, SharedFunctionParams);
+template void ApplyPattern3D5_C<false>(fftwf_complex*, fftwf_complex*, fftwf_complex*, fftwf_complex*, fftwf_complex*, SharedFunctionParams);
