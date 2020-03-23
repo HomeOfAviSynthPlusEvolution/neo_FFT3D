@@ -17,7 +17,7 @@ void ApplyWiener2D_C(
   // float dehalo
   // float *wdehalo
   // float ht2n
-  
+
   float lowlimit = (sfp.beta-1)/sfp.beta; //     (beta-1)/beta>=0
   int h,w, block;
   float psd;
@@ -70,7 +70,7 @@ void ApplyWiener2D_C(
         {
           psd = (outcur[w][0]*outcur[w][0] + outcur[w][1]*outcur[w][1]) + 1e-15f;// power spectrum density
           WienerFactor = MAX((psd - sfp.sigmaSquaredNoiseNormed)/psd, lowlimit); // limited Wiener filter
-          WienerFactor *= (psd + sfp.ht2n)/((psd + sfp.ht2n) + sfp.dehalo*sfp.wdehalo[w] * psd ); 
+          WienerFactor *= (psd + sfp.ht2n)/((psd + sfp.ht2n) + sfp.dehalo*sfp.wdehalo[w] * psd );
           outcur[w][0] *= WienerFactor; // apply filter on real part
           outcur[w][1] *= WienerFactor; // apply filter on imaginary part
         }
@@ -91,7 +91,7 @@ void ApplyWiener2D_C(
           psd = (outcur[w][0]*outcur[w][0] + outcur[w][1]*outcur[w][1]) + 1e-15f;// power spectrum density
           WienerFactor = MAX((psd - sfp.sigmaSquaredNoiseNormed)/psd, lowlimit); // limited Wiener filter
           WienerFactor *= 1 + sfp.sharpen*sfp.wsharpen[w]*sqrt( psd*sfp.sigmaSquaredSharpenMaxNormed/((psd + sfp.sigmaSquaredSharpenMinNormed)*(psd + sfp.sigmaSquaredSharpenMaxNormed)) ) *
-            (psd + sfp.ht2n)/((psd + sfp.ht2n) + sfp.dehalo*sfp.wdehalo[w] * psd ); 
+            (psd + sfp.ht2n)/((psd + sfp.ht2n) + sfp.dehalo*sfp.wdehalo[w] * psd );
           outcur[w][0] *= WienerFactor; // apply filter on real part
           outcur[w][1] *= WienerFactor; // apply filter on imaginary part
         }
@@ -128,9 +128,9 @@ void ApplyWiener3D2_C(
 
   for (block=0; block <sfp.howmanyblocks; block++)
   {
-    for (h=0; h<sfp.bh; h++)  
+    for (h=0; h<sfp.bh; h++)
     {
-      for (w=0; w<sfp.outwidth; w++) 
+      for (w=0; w<sfp.outwidth; w++)
       {
         // dft 3d (very short - 2 points)
         f3d0r =  outcur[w][0] + outprev[w][0]; // real 0 (sum)
@@ -184,7 +184,7 @@ void ApplyWiener3D3_C(
   {
     for (h=0; h<sfp.bh; h++) // first half
     {
-      for (w=0; w<sfp.outwidth; w++) // 
+      for (w=0; w<sfp.outwidth; w++) //
       {
         // dft 3d (very short - 3 points)
         float pnr = outprev[w][0] + outnext[w][0];
@@ -249,7 +249,7 @@ void ApplyWiener3D4_C(
   {
     for (h=0; h<sfp.bh; h++) // first half
     {
-      for (w=0; w<sfp.outwidth; w++) // 
+      for (w=0; w<sfp.outwidth; w++) //
       {
         // dft 3d (very short - 4 points)
         fpr = -outprev2[w][0] + outprev[w][1] + outcur[w][0] - outnext[w][1]; // real prev
@@ -301,7 +301,7 @@ void ApplyWiener3D5_C(
   fftwf_complex *outnext,
   fftwf_complex *outnext2,
   SharedFunctionParams sfp)
-  
+
 {
   // int outwidth
   // int outpitch
@@ -318,7 +318,7 @@ void ApplyWiener3D5_C(
   float lowlimit = (sfp.beta-1)/sfp.beta; //     (beta-1)/beta>=0
   float sin72 = 0.95105651629515357211643933337938f;// 2*pi/5
   float cos72 = 0.30901699437494742410229341718282f;
-  float sin144 = 0.58778525229247312916870595463907f; 
+  float sin144 = 0.58778525229247312916870595463907f;
   float cos144 = -0.80901699437494742410229341718282f;
 
   int block;
@@ -328,7 +328,7 @@ void ApplyWiener3D5_C(
   {
     for (h=0; h<sfp.bh; h++) // first half
     {
-      for (w=0; w<sfp.outwidth; w++) // 
+      for (w=0; w<sfp.outwidth; w++) //
       {
         // dft 3d (very short - 5 points)
         float sum = (outprev2[w][0] + outnext2[w][0])*cos72 + (outprev[w][0] + outnext[w][0])*cos144 + + outcur[w][0];

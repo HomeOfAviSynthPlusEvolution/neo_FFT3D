@@ -143,6 +143,18 @@ struct SharedFunctionParams {
     fftwf_complex *outnext2,
     SharedFunctionParams sfp);
 
+// Sharpen
+  void Sharpen_C(
+    fftwf_complex *outcur,
+    SharedFunctionParams sfp);
+  void Sharpen_degrid_C(
+    fftwf_complex *outcur,
+    SharedFunctionParams sfp);
+
+  void Sharpen_degrid_SSE2(
+    fftwf_complex *outcur,
+    SharedFunctionParams sfp);
+
 // declarations of filtering functions:
 void ApplyKalman_SSE2_simd(fftwf_complex *out, fftwf_complex *outLast, fftwf_complex *covar, fftwf_complex *covarProcess, int outwidth, int outpitch, int bh, int howmanyblocks, float covarNoiseNormed, float kratio2);
 // SSE
@@ -153,12 +165,8 @@ void Sharpen_SSE(fftwf_complex *out, int outwidth, int outpitch, int bh, int how
 // C
 void ApplyKalmanPattern_C(fftwf_complex *out, fftwf_complex *outLast, fftwf_complex *covar, fftwf_complex *covarProcess, int outwidth, int outpitch, int bh, int howmanyblocks, float *covarNoiseNormed, float kratio2);
 void ApplyKalman_C(fftwf_complex *out, fftwf_complex *outLast, fftwf_complex *covar, fftwf_complex *covarProcess, int outwidth, int outpitch, int bh, int howmanyblocks, float covarNoiseNormed, float kratio2);
-void Sharpen_C(fftwf_complex *out, int outwidth, int outpitch, int bh, int howmanyblocks, float sharpen, float sigmaSquaredSharpenMin, float sigmaSquaredSharpenMax, float *wsharpen, float dehalo, float *wdehalo, float ht2n);
-// degrid_C
-void Sharpen_degrid_C(fftwf_complex *out, int outwidth, int outpitch, int bh, int howmanyblocks, float sharpen, float sigmaSquaredSharpenMin, float sigmaSquaredSharpenMax, float *wsharpen, float degrid, fftwf_complex *gridsample, float dehalo, float *wdehalo, float ht2n);
 // degrid_SSE
 void ApplyPattern3D3_degrid_SSE(fftwf_complex *out, fftwf_complex *outprev, fftwf_complex *outnext, int outwidth, int outpitch, int bh, int howmanyblocks, float *pattern3d, float beta, float degrid, fftwf_complex *gridsample);
-void Sharpen_degrid_SSE_simd(fftwf_complex *out, int outwidth, int outpitch, int bh, int howmanyblocks, float sharpen, float sigmaSquaredSharpenMin, float sigmaSquaredSharpenMax, float *wsharpen, float degrid, fftwf_complex *gridsample, float dehalo, float *wdehalo, float ht2n);
 void ApplyWiener3D4_degrid_SSE(fftwf_complex *out, fftwf_complex *outprev2, fftwf_complex *outprev, fftwf_complex *outnext, int outwidth, int outpitch, int bh, int howmanyblocks, float sigmaSquaredNoiseNormed, float beta, float degrid, fftwf_complex *gridsample);
 void ApplyPattern3D4_degrid_SSE(fftwf_complex *out, fftwf_complex *outprev2, fftwf_complex *outprev, fftwf_complex *outnext, int outwidth, int outpitch, int bh, int howmanyblocks, float *pattern3d, float beta, float degrid, fftwf_complex *gridsample);
 

@@ -1,7 +1,7 @@
 // Lite version of fftw header on base of fftw3.h
 // some needed fftwf typedefs added  for delayed loading
 // (by Fizick)
-// 
+//
 #ifndef __FFTWLITE_H__
 #define __FFTWLITE_H__
 
@@ -20,7 +20,7 @@
 
 typedef float fftwf_complex[2];
 typedef struct fftwf_plan_s  *fftwf_plan;
-typedef fftwf_complex* (*fftwf_malloc_proc)(size_t n); 
+typedef fftwf_complex* (*fftwf_malloc_proc)(size_t n);
 typedef void (*fftwf_free_proc) (void *ppp);
 typedef fftwf_plan (*fftwf_plan_dft_r2c_2d_proc) (int winy, int winx, float *realcorrel, fftwf_complex *correl, int flags);
 typedef fftwf_plan (*fftwf_plan_dft_c2r_2d_proc) (int winy, int winx, fftwf_complex *correl, float *realcorrel, int flags);

@@ -721,16 +721,16 @@ finish:			emms;
 }
 //-------------------------------------------------------------------------------------------
 //
-void Sharpen_C(fftwf_complex *outcur, int outwidth, int outpitch, int bh, 
-				 int howmanyblocks, float sharpen, float sigmaSquaredSharpenMin, 
-				 float sigmaSquaredSharpenMax, float *wsharpen, float dehalo, float *wdehalo, float ht2n);
+// void Sharpen_C(fftwf_complex *outcur, int outwidth, int outpitch, int bh, 
+// 				 int howmanyblocks, float sharpen, float sigmaSquaredSharpenMin, 
+// 				 float sigmaSquaredSharpenMax, float *wsharpen, float dehalo, float *wdehalo, float ht2n);
 
 void Sharpen_SSE(fftwf_complex *outcur, int outwidth, int outpitch, int bh, 
 				 int howmanyblocks, float sharpen, float sigmaSquaredSharpenMin, 
 				 float sigmaSquaredSharpenMax, float *wsharpen, float dehalo, float *wdehalo, float ht2n)
 {
 	if(dehalo != 0) {
-		Sharpen_C(outcur, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMin, sigmaSquaredSharpenMax, wsharpen, dehalo, wdehalo, ht2n);
+		// Sharpen_C(outcur, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMin, sigmaSquaredSharpenMax, wsharpen, dehalo, wdehalo, ht2n);
 		return;
 	}
 //	int h,w, block;

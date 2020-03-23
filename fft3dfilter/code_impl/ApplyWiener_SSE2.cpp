@@ -1,6 +1,4 @@
-#include "code_impl.h"
-#include <avs/config.h> // x64
-#include <emmintrin.h>
+#include "code_impl_SSE2.h"
 
 // PF 170302 simd, SSE2 x64 C -> x64 simd: 11.37 -> 13.26
 void ApplyWiener3D2_SSE2(
@@ -20,9 +18,9 @@ void ApplyWiener3D2_SSE2(
 
   //  for (block=0; block <howmanyblocks; block++)
   //  {
-  //    for (h=0; h<bh; h++)  
+  //    for (h=0; h<bh; h++)
   //    {
-  //      for (w=0; w<outwidth; w++) 
+  //      for (w=0; w<outwidth; w++)
   //      {
 
   __m128 lowlimit = _mm_set1_ps((sfp.beta - 1) / sfp.beta); //     (beta-1)/beta>=0
@@ -34,7 +32,7 @@ void ApplyWiener3D2_SSE2(
   for (int n = 0; n < totalbytes; n += 16) {
     // take two complex numbers
     __m128 prev = _mm_load_ps(reinterpret_cast<float *>((uint8_t *)outprev + n)); // prev real | img
-    __m128 cur = _mm_load_ps(reinterpret_cast<float *>((uint8_t *)outcur + n)); // cur real | img 
+    __m128 cur = _mm_load_ps(reinterpret_cast<float *>((uint8_t *)outcur + n)); // cur real | img
 
     // f3d0r =  outcur[w][0] + outprev[w][0]; // real 0 (sum)
     // f3d0i =  outcur[w][1] + outprev[w][1]; // im 0 (sum)

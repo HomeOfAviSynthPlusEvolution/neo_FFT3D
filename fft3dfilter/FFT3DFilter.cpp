@@ -2360,8 +2360,6 @@ PVideoFrame __stdcall FFT3DFilter::GetFrame(int n, IScriptEnvironment* env) {
 
     // get power spectral density (abs quadrat) for every block and apply filter
 
-//		env->MakeWritable(&src);
-
     // put source bytes to float array of overlapped blocks
 
     if (btcur == 1) // 2D
@@ -2373,20 +2371,8 @@ PVideoFrame __stdcall FFT3DFilter::GetFrame(int n, IScriptEnvironment* env) {
             // make FFT 2D
       fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
       ffp.Apply2D(outrez, sfp);
-      if (degrid != 0)
-      {
-        if (pfactor != 0)
-        {
-          ffp.Sharpen_degrid(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, degrid, gridsample, dehalo, wdehalo, ht2n);
-        }
-      }
-      else
-      {
-        if (pfactor != 0)
-        {
-          ffp.Sharpen(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, dehalo, wdehalo, ht2n);
-        }
-      }
+      if (pfactor != 0)
+        ffp.Sharpen_dispatcher(outrez, sfp);
 
       // do inverse FFT 2D, get filtered 'in' array
       fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
@@ -2438,10 +2424,7 @@ PVideoFrame __stdcall FFT3DFilter::GetFrame(int n, IScriptEnvironment* env) {
         cachewhat[cachecur - 1] = -1; // will be destroyed
       }
       ffp.Apply3D2(out, outrez, sfp);
-      if (degrid != 0)
-        ffp.Sharpen_degrid(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, degrid, gridsample, dehalo, wdehalo, ht2n);
-      else
-        ffp.Sharpen(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, dehalo, wdehalo, ht2n);
+      ffp.Sharpen_dispatcher(outrez, sfp);
       // do inverse FFT 3D, get filtered 'in' array
       // note: input "outrez" array is destroyed by execute algo.
       fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
@@ -2509,10 +2492,7 @@ PVideoFrame __stdcall FFT3DFilter::GetFrame(int n, IScriptEnvironment* env) {
         cachewhat[cachecur + 1] = n + 1;
       }
       ffp.Apply3D3(out, outrez, outnext, sfp);
-      if (degrid != 0)
-        ffp.Sharpen_degrid(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, degrid, gridsample, dehalo, wdehalo, ht2n);
-      else
-        ffp.Sharpen(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, dehalo, wdehalo, ht2n);
+      ffp.Sharpen_dispatcher(outrez, sfp);
       // do inverse FFT 2D, get filtered 'in' array
       // note: input "outrez" array is destroyed by execute algo.
       fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
@@ -2597,10 +2577,7 @@ PVideoFrame __stdcall FFT3DFilter::GetFrame(int n, IScriptEnvironment* env) {
         cachewhat[cachecur + 1] = n + 1;
       }
       ffp.Apply3D4(out, outrez, outprev, outnext, sfp);
-      if (degrid != 0)
-        ffp.Sharpen_degrid(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, degrid, gridsample, dehalo, wdehalo, ht2n);
-      else
-        ffp.Sharpen(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, dehalo, wdehalo, ht2n);
+      ffp.Sharpen_dispatcher(outrez, sfp);
       // do inverse FFT 2D, get filtered 'in' array
       // note: input "outrez" array is destroyed by execute algo.
       fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
@@ -2693,10 +2670,7 @@ PVideoFrame __stdcall FFT3DFilter::GetFrame(int n, IScriptEnvironment* env) {
         cachewhat[cachecur + 2] = n + 2;
       }
       ffp.Apply3D5(out, outrez, outprev, outnext, outnext2, sfp);
-      if (degrid != 0)
-        ffp.Sharpen_degrid(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, degrid, gridsample, dehalo, wdehalo, ht2n);
-      else
-        ffp.Sharpen(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, dehalo, wdehalo, ht2n);
+      ffp.Sharpen_dispatcher(outrez, sfp);
       // do inverse FFT 2D, get filtered 'in' array
       // note: input "outrez" array is destroyed by execute algo.
       fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
@@ -2735,10 +2709,7 @@ PVideoFrame __stdcall FFT3DFilter::GetFrame(int n, IScriptEnvironment* env) {
 
     // copy outLast to outrez
     env->BitBlt((BYTE*)&outrez[0][0], outsize * sizeof(fftwf_complex), (BYTE*)&outLast[0][0], outsize * sizeof(fftwf_complex), outsize * sizeof(fftwf_complex), 1);  //v.0.9.2
-    if (degrid != 0)
-      ffp.Sharpen_degrid(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, degrid, gridsample, dehalo, wdehalo, ht2n);
-    else
-      ffp.Sharpen(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, dehalo, wdehalo, ht2n);
+    ffp.Sharpen_dispatcher(outrez, sfp);
     // do inverse FFT 2D, get filtered 'in' array
     // note: input "out" array is destroyed by execute algo.
     // that is why we must have its copy in "outLast" array
@@ -2756,10 +2727,7 @@ PVideoFrame __stdcall FFT3DFilter::GetFrame(int n, IScriptEnvironment* env) {
     FFT3DFilter::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
     // make FFT 2D
     fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
-    if (degrid != 0)
-      ffp.Sharpen_degrid(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, degrid, gridsample, dehalo, wdehalo, ht2n);
-    else
-      ffp.Sharpen(outrez, outwidth, outpitch, bh, howmanyblocks, sharpen, sigmaSquaredSharpenMinNormed, sigmaSquaredSharpenMaxNormed, wsharpen, dehalo, wdehalo, ht2n);
+    ffp.Sharpen_dispatcher(outrez, sfp);
     // do inverse FFT 2D, get filtered 'in' array
     fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
     // make destination frame plane from current overlaped blocks

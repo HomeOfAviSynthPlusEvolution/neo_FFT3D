@@ -71,7 +71,7 @@ struct FilterFunctionPointers {
         SharedFunctionParams sfp);
     void (*ApplyPattern3D2)(
         fftwf_complex *outcur,
-        fftwf_complex *outprev, 
+        fftwf_complex *outprev,
         SharedFunctionParams sfp);
     void (*ApplyPattern3D3)(
         fftwf_complex *outcur,
@@ -153,10 +153,16 @@ struct FilterFunctionPointers {
         (fftwf_complex *out, fftwf_complex *outLast, fftwf_complex *covar, fftwf_complex *covarProcess, int outwidth, int outpitch, int bh, int howmanyblocks, float *covarNoiseNormed, float kratio2);
 
   // Sharpen
-    void (*Sharpen)
-        (fftwf_complex *out, int outwidth, int outpitch, int bh, int howmanyblocks, float sharpen, float sigmaSquaredSharpenMin, float sigmaSquaredSharpenMax, float *wsharpen, float dehalo, float *wdehalo, float ht2n);
-    void (*Sharpen_degrid)
-        (fftwf_complex *out, int outwidth, int outpitch, int bh, int howmanyblocks, float sharpen, float sigmaSquaredSharpenMin, float sigmaSquaredSharpenMax, float *wsharpen, float degrid, fftwf_complex *gridsample, float dehalo, float *wdehalo, float ht2n);
+    void (*Sharpen)(
+      fftwf_complex *outcur,
+      SharedFunctionParams sfp);
+    void (*Sharpen_degrid)(
+      fftwf_complex *outcur,
+      SharedFunctionParams sfp);
+  // Sharpen Dispatcher
+    void (*Sharpen_dispatcher)(
+      fftwf_complex *outcur,
+      SharedFunctionParams sfp);
 
   void set_ffp(int CPUFlags)
   {
@@ -203,7 +209,7 @@ struct FilterFunctionPointers {
       ApplyWiener3D2 = ApplyWiener3D2_SSE2;
       ApplyWiener3D3_degrid = ApplyWiener3D3_degrid_SSE2;
       ApplyKalman = ApplyKalman_SSE2_simd;
-      Sharpen_degrid = Sharpen_degrid_SSE_simd;
+      Sharpen_degrid = Sharpen_degrid_SSE2;
     }
   }
 
@@ -241,6 +247,13 @@ struct FilterFunctionPointers {
       Apply3D4 = ApplyPattern3D4;
       Apply3D5 = ApplyPattern3D5;
       Apply3D3 = ApplyPattern3D3;
+    }
+
+    if (degrid != 0) {
+      Sharpen_dispatcher = Sharpen_degrid;
+    }
+    else {
+      Sharpen_dispatcher = Sharpen;
     }
   }
 };
