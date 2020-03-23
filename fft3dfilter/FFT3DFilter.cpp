@@ -734,8 +734,7 @@ FFT3DFilter::FFT3DFilter(PClip _child, float _sigma, float _beta, int _plane, in
   }
 
   CPUFlags = env->GetCPUFlags(); //re-enabled in v.1.9
-  ffp.set_ffp(CPUFlags);
-  ffp.set_ffp2(degrid, pfactor);
+  ffp.set_ffp(CPUFlags, degrid, pfactor);
   mean = (float*)malloc(nox*noy * sizeof(float));
 
   pwin = (float*)malloc(bh*outpitch * sizeof(float)); // pattern window array
