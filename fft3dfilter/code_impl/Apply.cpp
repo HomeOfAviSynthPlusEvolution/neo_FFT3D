@@ -97,14 +97,14 @@ void Apply3D4_C(
       }
 
       // dft 3d (very short - 4 points)
-      fp2r = outprev2[lfp.w][0] - outprev[lfp.w][0] + outcur[lfp.w][0] - outnext[lfp.w][0]; // real prev2
-      fp2i = outprev2[lfp.w][1] - outprev[lfp.w][1] + outcur[lfp.w][1] - outnext[lfp.w][1]; // im cur
-      fpr = -outprev2[lfp.w][0] + outprev[lfp.w][1] + outcur[lfp.w][0] - outnext[lfp.w][1]; // real prev
-      fpi = -outprev2[lfp.w][1] - outprev[lfp.w][0] + outcur[lfp.w][1] + outnext[lfp.w][0]; // im cur
-      fcr = outprev2[lfp.w][0] + outprev[lfp.w][0] + outcur[lfp.w][0] + outnext[lfp.w][0] - gridcorrection0;
-      fci = outprev2[lfp.w][1] + outprev[lfp.w][1] + outcur[lfp.w][1] + outnext[lfp.w][1] - gridcorrection1;
-      fnr = -outprev2[lfp.w][0] - outprev[lfp.w][1] + outcur[lfp.w][0] + outnext[lfp.w][1]; // real next
-      fni = -outprev2[lfp.w][1] + outprev[lfp.w][0] + outcur[lfp.w][1] - outnext[lfp.w][0]; // im next
+      fp2r = (outcur[lfp.w][0] + outprev2[lfp.w][0]) - (outprev[lfp.w][0] + outnext[lfp.w][0]); // real prev2
+      fp2i = (outcur[lfp.w][1] + outprev2[lfp.w][1]) - (outprev[lfp.w][1] + outnext[lfp.w][1]); // im cur
+      fpr  = (outcur[lfp.w][0] - outprev2[lfp.w][0]) + (outprev[lfp.w][1] - outnext[lfp.w][1]); // real prev
+      fpi  = (outcur[lfp.w][1] - outprev2[lfp.w][1]) - (outprev[lfp.w][0] - outnext[lfp.w][0]); // im cur
+      fcr  = (outcur[lfp.w][0] + outprev2[lfp.w][0]) + (outprev[lfp.w][0] + outnext[lfp.w][0]) - gridcorrection0;
+      fci  = (outcur[lfp.w][1] + outprev2[lfp.w][1]) + (outprev[lfp.w][1] + outnext[lfp.w][1]) - gridcorrection1;
+      fnr  = (outcur[lfp.w][0] - outprev2[lfp.w][0]) - (outprev[lfp.w][1] - outnext[lfp.w][1]); // real next
+      fni  = (outcur[lfp.w][1] - outprev2[lfp.w][1]) + (outprev[lfp.w][0] - outnext[lfp.w][0]); // im next
 
       lfp.wiener_factor_3d<pattern>(fp2r, fp2i);
       lfp.wiener_factor_3d<pattern>(fpr, fpi);
@@ -112,8 +112,8 @@ void Apply3D4_C(
       lfp.wiener_factor_3d<pattern>(fnr, fni);
 
       // reverse dft for 4 points
-      outprev2[lfp.w][0] = (fp2r + fpr + fcr + fnr + gridcorrection0) * 0.25f; // get real part
-      outprev2[lfp.w][1] = (fp2i + fpi + fci + fni + gridcorrection1) * 0.25f; // get imaginary part
+      outprev2[lfp.w][0] = ((fp2r + fpr) + (fcr + fnr) + gridcorrection0) * 0.25f; // get real part
+      outprev2[lfp.w][1] = ((fp2i + fpi) + (fci + fni) + gridcorrection1) * 0.25f; // get imaginary part
       // Attention! return filtered "out" in "outprev2" to preserve "out" for next step
     }, sfp, outcur, outprev2, outprev, outnext
   );

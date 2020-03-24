@@ -139,6 +139,12 @@ struct FilterFunctionPointers {
       Apply3D3_C_Dispatch = Apply3D3_C<false, true>;
       Apply3D4_C_Dispatch = Apply3D4_C<false, true>;
       Apply3D5_C_Dispatch = Apply3D5_C<false, true>;
+
+      // Apply2D_SSE2_Dispatch = ApplyWiener2D_degrid_SSE2;
+      Apply3D2_SSE2_Dispatch = Apply3D2_SSE2<false, true>;
+      Apply3D3_SSE2_Dispatch = Apply3D3_SSE2<false, true>;
+      Apply3D4_SSE2_Dispatch = Apply3D4_SSE2<false, true>;
+      Apply3D5_SSE2_Dispatch = Apply3D5_SSE2<false, true>;
     }
     else if (degrid == 0 && pfactor == 0) {
       Apply2D_C_Dispatch = ApplyWiener2D_C;
@@ -146,6 +152,12 @@ struct FilterFunctionPointers {
       Apply3D3_C_Dispatch = Apply3D3_C<false, false>;
       Apply3D4_C_Dispatch = Apply3D4_C<false, false>;
       Apply3D5_C_Dispatch = Apply3D5_C<false, false>;
+
+      // Apply2D_SSE2_Dispatch = ApplyWiener2D_SSE2;
+      Apply3D2_SSE2_Dispatch = Apply3D2_SSE2<false, false>;
+      Apply3D3_SSE2_Dispatch = Apply3D3_SSE2<false, false>;
+      Apply3D4_SSE2_Dispatch = Apply3D4_SSE2<false, false>;
+      Apply3D5_SSE2_Dispatch = Apply3D5_SSE2<false, false>;
     }
     else if (degrid != 0 && pfactor != 0) {
       Apply2D_C_Dispatch = ApplyPattern2D_C<true>;
@@ -153,6 +165,12 @@ struct FilterFunctionPointers {
       Apply3D3_C_Dispatch = Apply3D3_C<true, true>;
       Apply3D4_C_Dispatch = Apply3D4_C<true, true>;
       Apply3D5_C_Dispatch = Apply3D5_C<true, true>;
+
+      // Apply2D_SSE2_Dispatch = ApplyPattern2D_SSE2<true>;
+      Apply3D2_SSE2_Dispatch = Apply3D2_SSE2<true, true>;
+      Apply3D3_SSE2_Dispatch = Apply3D3_SSE2<true, true>;
+      Apply3D4_SSE2_Dispatch = Apply3D4_SSE2<true, true>;
+      Apply3D5_SSE2_Dispatch = Apply3D5_SSE2<true, true>;
     }
     else if (degrid == 0 && pfactor != 0) {
       Apply2D_C_Dispatch = ApplyPattern2D_C<false>;
@@ -160,6 +178,12 @@ struct FilterFunctionPointers {
       Apply3D3_C_Dispatch = Apply3D3_C<true, false>;
       Apply3D4_C_Dispatch = Apply3D4_C<true, false>;
       Apply3D5_C_Dispatch = Apply3D5_C<true, false>;
+
+      // Apply2D_SSE2_Dispatch = ApplyPattern2D_SSE2<false>;
+      Apply3D2_SSE2_Dispatch = Apply3D2_SSE2<true, false>;
+      Apply3D3_SSE2_Dispatch = Apply3D3_SSE2<true, false>;
+      Apply3D4_SSE2_Dispatch = Apply3D4_SSE2<true, false>;
+      Apply3D5_SSE2_Dispatch = Apply3D5_SSE2<true, false>;
     }
 
     if (degrid != 0) {
@@ -191,7 +215,11 @@ struct FilterFunctionPointers {
     Apply3D4 = Apply3D4_C_Dispatch;
     Apply3D5 = Apply3D5_C_Dispatch;
 
-    if (CPUFlags & CPUF_SSE2) { // 170302 simd, SSE2
+    if (CPUFlags & CPUF_SSE2) {
+      Apply3D2 = Apply3D2_SSE2_Dispatch;
+      Apply3D3 = Apply3D3_SSE2_Dispatch;
+      Apply3D4 = Apply3D4_SSE2_Dispatch;
+      Apply3D5 = Apply3D5_SSE2_Dispatch;
       // ApplyWiener3D2 = ApplyWiener3D2_SSE2;
       // ApplyWiener3D3_degrid = ApplyWiener3D3_degrid_SSE2;
       // ApplyKalman = ApplyKalman_SSE2_simd;

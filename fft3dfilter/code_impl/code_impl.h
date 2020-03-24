@@ -52,25 +52,41 @@ struct SharedFunctionParams {
     fftwf_complex *outnext2,
     SharedFunctionParams sfp);
 
+  template <bool pattern, bool degrid>
+  void Apply3D2_SSE2(
+    fftwf_complex *outcur,
+    fftwf_complex *outprev,
+    SharedFunctionParams sfp);
+  template <bool pattern, bool degrid>
+  void Apply3D3_SSE2(
+    fftwf_complex *outcur,
+    fftwf_complex *outprev,
+    fftwf_complex *outnext,
+    SharedFunctionParams sfp);
+  template <bool pattern, bool degrid>
+  void Apply3D4_SSE2(
+    fftwf_complex *outcur,
+    fftwf_complex *outprev2,
+    fftwf_complex *outprev,
+    fftwf_complex *outnext,
+    SharedFunctionParams sfp);
+  template <bool pattern, bool degrid>
+  void Apply3D5_SSE2(
+    fftwf_complex *outcur,
+    fftwf_complex *outprev2,
+    fftwf_complex *outprev,
+    fftwf_complex *outnext,
+    fftwf_complex *outnext2,
+    SharedFunctionParams sfp);
+
 // Wiener
   void ApplyWiener2D_C(
     fftwf_complex *outcur,
     SharedFunctionParams sfp);
 
-  void ApplyWiener3D2_SSE2(
-    fftwf_complex *outcur,
-    fftwf_complex *outprev,
-    SharedFunctionParams sfp);
-
 // Wiener Degrid
   void ApplyWiener2D_degrid_C(
     fftwf_complex *outcur,
-    SharedFunctionParams sfp);
-
-  void ApplyWiener3D3_degrid_SSE2(
-    fftwf_complex *outcur,
-    fftwf_complex *outprev,
-    fftwf_complex *outnext,
     SharedFunctionParams sfp);
 
 // Pattern
