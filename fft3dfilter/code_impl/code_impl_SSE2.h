@@ -5,41 +5,6 @@
 #include <avs/config.h> // x64
 #include <emmintrin.h>
 
-struct LambdaFunctionParams {
-  // Progress
-  int block;
-  int pos;
-  // Pattern
-  __m128 m_pattern2d;
-  __m128 m_pattern3d;
-  // Wiener
-  __m128 m_sigmaSquaredNoiseNormed;
-  __m128 m_wsharpen;
-  __m128 m_wdehalo;
-  // Grid
-  __m128 m_gridsample;
-  __m128 m_gridcorrection;
-
-  __m128 m_lowlimit;
-
-  template <bool pattern>
-  inline void wiener_factor_3d(__m128 &data) {
-    // [dr0, di0, dr1, di1]
-    __m128 _square = data * data;
-    __m128 _shuffle = _mm_swap_ri(_square);
-    __m128 _psd = _square + _shuffle + epsilon; // power spectrum density
-
-    __m128 _sigma = pattern ? m_pattern3d : m_sigmaSquaredNoiseNormed;
-    __m128 _wiener_factor = (_psd - _sigma) / _psd;
-    _wiener_factor = _mm_max_ps(_wiener_factor, m_lowlimit); // limited Wiener filter
-
-    data *= _wiener_factor;
-  }
-
-  private:
-    const __m128 epsilon = _mm_set1_ps(1e-15f);
-};
-
 inline __m128 _mm_sign_r(__m128 data) {
   return _mm_xor_ps(data, _mm_set_ps(0.0f, -0.0f, 0.0f, -0.0f));
 }
@@ -57,6 +22,44 @@ inline __m128 &operator+=(__m128 &a, const __m128 &b) { return a = _mm_add_ps(a,
 inline __m128 &operator-=(__m128 &a, const __m128 &b) { return a = _mm_sub_ps(a, b); }
 inline __m128 &operator*=(__m128 &a, const __m128 &b) { return a = _mm_mul_ps(a, b); }
 inline __m128 &operator/=(__m128 &a, const __m128 &b) { return a = _mm_div_ps(a, b); }
+
+struct LambdaFunctionParams {
+  // Progress
+  int block;
+  int pos;
+  // Pattern
+  __m128 m_pattern2d;
+  __m128 m_pattern3d;
+  // Wiener
+  __m128 m_sigmaSquaredNoiseNormed;
+  __m128 m_wsharpen;
+  __m128 m_wdehalo;
+  // Grid
+  __m128 m_gridsample;
+  __m128 m_gridcorrection;
+
+  __m128 m_lowlimit;
+
+  inline __m128 psd(const __m128 &data) {
+    // [dr0, di0, dr1, di1]
+    __m128 _square = data * data;
+    __m128 _shuffle = _mm_swap_ri(_square);
+    return _square + _shuffle + epsilon; // power spectrum density
+  }
+
+  template <bool pattern>
+  inline void wiener_factor_3d(__m128 &data) {
+    __m128 _psd = psd(data);
+    __m128 _sigma = pattern ? m_pattern3d : m_sigmaSquaredNoiseNormed;
+    __m128 _wiener_factor = (_psd - _sigma) / _psd;
+    _wiener_factor = _mm_max_ps(_wiener_factor, m_lowlimit); // limited Wiener filter
+
+    data *= _wiener_factor;
+  }
+
+  private:
+    const __m128 epsilon = _mm_set1_ps(1e-15f);
+};
 
 template<typename ... T>
 inline void loop_wrapper_SSE2_advance(int pitch, fftwf_complex* &fft_data, T&&... other_fft_data) {

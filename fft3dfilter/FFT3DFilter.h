@@ -57,8 +57,11 @@ struct FilterFunctionPointers {
         fftwf_complex *outnext,
         fftwf_complex *outnext2,
         SharedFunctionParams sfp);
+    void (*Sharpen_C_Dispatch)(
+      fftwf_complex *outcur,
+      SharedFunctionParams sfp);
 
-  // SSE
+  // SSE2
     void (*Apply2D_SSE2_Dispatch)(
         fftwf_complex *outcur,
         SharedFunctionParams sfp);
@@ -84,8 +87,11 @@ struct FilterFunctionPointers {
         fftwf_complex *outnext,
         fftwf_complex *outnext2,
         SharedFunctionParams sfp);
+    void (*Sharpen_SSE2_Dispatch)(
+      fftwf_complex *outcur,
+      SharedFunctionParams sfp);
 
-  // Dispatcher
+  // Dispatcher -> [C / SSE2 / AVX]
     void (*Apply2D)(
         fftwf_complex *outcur,
         SharedFunctionParams sfp);
@@ -111,6 +117,9 @@ struct FilterFunctionPointers {
         fftwf_complex *outnext,
         fftwf_complex *outnext2,
         SharedFunctionParams sfp);
+    void (*Sharpen)(
+      fftwf_complex *outcur,
+      SharedFunctionParams sfp);
 
   // Kalman
     void (*ApplyKalman)
@@ -118,17 +127,6 @@ struct FilterFunctionPointers {
     void (*ApplyKalmanPattern)
         (fftwf_complex *out, fftwf_complex *outLast, fftwf_complex *covar, fftwf_complex *covarProcess, int outwidth, int outpitch, int bh, int howmanyblocks, float *covarNoiseNormed, float kratio2);
 
-  // Sharpen
-    void (*Sharpen)(
-      fftwf_complex *outcur,
-      SharedFunctionParams sfp);
-    void (*Sharpen_degrid)(
-      fftwf_complex *outcur,
-      SharedFunctionParams sfp);
-  // Sharpen Dispatcher
-    void (*Sharpen_dispatcher)(
-      fftwf_complex *outcur,
-      SharedFunctionParams sfp);
 
   void set_ffp(int CPUFlags, float degrid, float pfactor)
   {
@@ -187,43 +185,30 @@ struct FilterFunctionPointers {
     }
 
     if (degrid != 0) {
-      Sharpen_dispatcher = Sharpen_C<true>;
+      Sharpen_C_Dispatch = Sharpen_C<true>;
+      Sharpen_SSE2_Dispatch = Sharpen_SSE2<true>;
     }
     else {
-      Sharpen_dispatcher = Sharpen_C;
+      Sharpen_C_Dispatch = Sharpen_C<false>;
+      Sharpen_SSE2_Dispatch = Sharpen_SSE2<false>;
     }
 
     ApplyKalman = ApplyKalman_C;
     ApplyKalmanPattern = ApplyKalmanPattern_C;
-
-    #ifndef X86_64
-      if (CPUFlags & CPUF_SSE) {
-        ApplyWiener3D3 = ApplyWiener3D3_SSE;
-        ApplyWiener3D3_degrid = ApplyWiener3D3_degrid_SSE_simd;
-        ApplyWiener3D4_degrid = ApplyWiener3D4_degrid_SSE;
-        ApplyPattern3D2 = ApplyPattern3D2_SSE;
-        ApplyPattern3D3 = ApplyPattern3D3_SSE;
-        ApplyPattern3D3_degrid = ApplyPattern3D3_degrid_SSE;
-        ApplyPattern3D4_degrid = ApplyPattern3D4_degrid_SSE;
-        Sharpen = Sharpen_SSE;
-      }
-    #endif
 
     Apply2D = Apply2D_C_Dispatch;
     Apply3D2 = Apply3D2_C_Dispatch;
     Apply3D3 = Apply3D3_C_Dispatch;
     Apply3D4 = Apply3D4_C_Dispatch;
     Apply3D5 = Apply3D5_C_Dispatch;
+    Sharpen = Sharpen_C_Dispatch;
 
     if (CPUFlags & CPUF_SSE2) {
       Apply3D2 = Apply3D2_SSE2_Dispatch;
       Apply3D3 = Apply3D3_SSE2_Dispatch;
       Apply3D4 = Apply3D4_SSE2_Dispatch;
       Apply3D5 = Apply3D5_SSE2_Dispatch;
-      // ApplyWiener3D2 = ApplyWiener3D2_SSE2;
-      // ApplyWiener3D3_degrid = ApplyWiener3D3_degrid_SSE2;
-      // ApplyKalman = ApplyKalman_SSE2_simd;
-      // Sharpen_degrid = Sharpen_degrid_SSE2;
+      Sharpen = Sharpen_SSE2_Dispatch;
     }
   }
 };
