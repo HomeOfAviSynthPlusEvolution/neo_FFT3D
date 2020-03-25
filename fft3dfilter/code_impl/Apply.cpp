@@ -1,5 +1,63 @@
 #include "code_impl_C.h"
 
+template <bool pattern, bool degrid, bool sharpen, bool dehalo>
+static void Apply2D_C_impl(
+  fftwf_complex *outcur,
+  SharedFunctionParams sfp)
+{
+
+  loop_wrapper_C(
+    [&](LambdaFunctionParams lfp) {
+      float gridcorrection0 = 0.0f;
+      float gridcorrection1 = 0.0f;
+
+      if (degrid) {
+        gridcorrection0 = lfp.gridfraction * lfp.gridsample[lfp.w][0]; // grid correction
+        gridcorrection1 = lfp.gridfraction * lfp.gridsample[lfp.w][1];
+      }
+
+      float cr = outcur[lfp.w][0] - gridcorrection0;
+      float ci = outcur[lfp.w][1] - gridcorrection1;
+
+      float psd = cr * cr + ci * ci + 1e-15f;
+      float factor = MAX((psd - (pattern ? lfp.pattern2d[lfp.w] : sfp.sigmaSquaredNoiseNormed) ) / psd, lfp.lowlimit); // limited Wiener filter
+
+      if (!pattern) {
+        // Skip sharpen and dehalo for ApplyPattern family
+        float s_fact = 1 + sfp.sharpen * lfp.wsharpen[lfp.w] * sqrt(
+          psd * sfp.sigmaSquaredSharpenMaxNormed / ((psd + sfp.sigmaSquaredSharpenMinNormed) * (psd + sfp.sigmaSquaredSharpenMaxNormed))
+          );
+        float d_fact = (psd + sfp.ht2n) / ((psd + sfp.ht2n) + sfp.dehalo * lfp.wdehalo[lfp.w] * psd);
+
+        if (sharpen && !dehalo)
+          factor *= s_fact;
+        else if (!sharpen && dehalo)
+          factor *= d_fact;
+        else if (sharpen && dehalo)
+          factor *= s_fact * d_fact;
+      }
+
+      outcur[lfp.w][0] = cr * factor + gridcorrection0;
+      outcur[lfp.w][1] = ci * factor + gridcorrection1;
+    }, sfp, outcur
+  );
+}
+
+template <bool pattern, bool degrid>
+void Apply2D_C(
+  fftwf_complex *outcur,
+  SharedFunctionParams sfp)
+{
+  if (sfp.sharpen == 0 && sfp.dehalo == 0)
+    Apply2D_C_impl<pattern, degrid, true, false>(outcur, sfp);
+  else if (sfp.sharpen != 0 && sfp.dehalo == 0)
+    Apply2D_C_impl<pattern, degrid, true, false>(outcur, sfp);
+  else if (sfp.sharpen == 0 && sfp.dehalo != 0)
+    Apply2D_C_impl<pattern, degrid, false, true>(outcur, sfp);
+  else if (sfp.sharpen != 0 && sfp.dehalo != 0)
+    Apply2D_C_impl<pattern, degrid, true, true>(outcur, sfp);
+}
+
 template <bool pattern, bool degrid>
 void Apply3D2_C(
   fftwf_complex *outcur,
@@ -178,6 +236,7 @@ void Apply3D5_C(
 }
 
 #define DECLARE(pattern, degrid) \
+  template void Apply2D_C<pattern, degrid>(fftwf_complex*, SharedFunctionParams);\
   template void Apply3D2_C<pattern, degrid>(fftwf_complex*, fftwf_complex*, SharedFunctionParams);\
   template void Apply3D3_C<pattern, degrid>(fftwf_complex*, fftwf_complex*, fftwf_complex*, SharedFunctionParams);\
   template void Apply3D4_C<pattern, degrid>(fftwf_complex*, fftwf_complex*, fftwf_complex*, fftwf_complex*, SharedFunctionParams);\

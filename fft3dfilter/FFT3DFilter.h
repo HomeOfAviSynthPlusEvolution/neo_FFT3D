@@ -132,7 +132,7 @@ struct FilterFunctionPointers {
   {
     if (degrid != 0 && pfactor == 0) {
       // Default Dispatcher
-      Apply2D_C_Dispatch = ApplyWiener2D_degrid_C;
+      Apply2D_C_Dispatch = Apply2D_C<false, true>;;
       Apply3D2_C_Dispatch = Apply3D2_C<false, true>;
       Apply3D3_C_Dispatch = Apply3D3_C<false, true>;
       Apply3D4_C_Dispatch = Apply3D4_C<false, true>;
@@ -145,7 +145,7 @@ struct FilterFunctionPointers {
       Apply3D5_SSE2_Dispatch = Apply3D5_SSE2<false, true>;
     }
     else if (degrid == 0 && pfactor == 0) {
-      Apply2D_C_Dispatch = ApplyWiener2D_C;
+      Apply2D_C_Dispatch = Apply2D_C<false, false>;;
       Apply3D2_C_Dispatch = Apply3D2_C<false, false>;
       Apply3D3_C_Dispatch = Apply3D3_C<false, false>;
       Apply3D4_C_Dispatch = Apply3D4_C<false, false>;
@@ -158,7 +158,7 @@ struct FilterFunctionPointers {
       Apply3D5_SSE2_Dispatch = Apply3D5_SSE2<false, false>;
     }
     else if (degrid != 0 && pfactor != 0) {
-      Apply2D_C_Dispatch = ApplyPattern2D_C<true>;
+      Apply2D_C_Dispatch = Apply2D_C<true, true>;;
       Apply3D2_C_Dispatch = Apply3D2_C<true, true>;
       Apply3D3_C_Dispatch = Apply3D3_C<true, true>;
       Apply3D4_C_Dispatch = Apply3D4_C<true, true>;
@@ -171,7 +171,7 @@ struct FilterFunctionPointers {
       Apply3D5_SSE2_Dispatch = Apply3D5_SSE2<true, true>;
     }
     else if (degrid == 0 && pfactor != 0) {
-      Apply2D_C_Dispatch = ApplyPattern2D_C<false>;
+      Apply2D_C_Dispatch = Apply2D_C<true, false>;;
       Apply3D2_C_Dispatch = Apply3D2_C<true, false>;
       Apply3D3_C_Dispatch = Apply3D3_C<true, false>;
       Apply3D4_C_Dispatch = Apply3D4_C<true, false>;
