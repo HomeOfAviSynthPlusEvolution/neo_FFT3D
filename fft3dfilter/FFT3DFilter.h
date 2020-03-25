@@ -11,26 +11,6 @@
 #include "code_impl/code_impl.h"
 
 struct FilterFunctionPointers {
-  // Wiener
-    void (*ApplyWiener2D)(
-        fftwf_complex *outcur,
-        SharedFunctionParams sfp);
-
-  // Wiener Degrid
-    void (*ApplyWiener2D_degrid)(
-        fftwf_complex *outcur,
-        SharedFunctionParams sfp);
-
-  // Pattern
-    void (*ApplyPattern2D)(
-        fftwf_complex *outcur,
-        SharedFunctionParams sfp);
-
-  // Pattern Degrid
-    void (*ApplyPattern2D_degrid)(
-        fftwf_complex *outcur,
-        SharedFunctionParams sfp);
-
   // C
     void (*Apply2D_C_Dispatch)(
         fftwf_complex *outcur,
