@@ -187,7 +187,7 @@ struct FilterFunctionPointers {
     }
 
     if (degrid != 0) {
-      Sharpen_dispatcher = Sharpen_degrid_C;
+      Sharpen_dispatcher = Sharpen_C<true>;
     }
     else {
       Sharpen_dispatcher = Sharpen_C;

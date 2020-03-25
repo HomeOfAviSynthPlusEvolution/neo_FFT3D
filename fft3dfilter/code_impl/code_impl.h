@@ -96,10 +96,8 @@ struct SharedFunctionParams {
     SharedFunctionParams sfp);
 
 // Sharpen
+  template <bool degrid>
   void Sharpen_C(
-    fftwf_complex *outcur,
-    SharedFunctionParams sfp);
-  void Sharpen_degrid_C(
     fftwf_complex *outcur,
     SharedFunctionParams sfp);
 
