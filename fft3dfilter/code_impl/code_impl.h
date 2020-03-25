@@ -62,6 +62,10 @@ struct SharedFunctionParams {
 
 // SSE2
   template <bool pattern, bool degrid>
+  void Apply2D_SSE2(
+    fftwf_complex *outcur,
+    SharedFunctionParams sfp);
+  template <bool pattern, bool degrid>
   void Apply3D2_SSE2(
     fftwf_complex *outcur,
     fftwf_complex *outprev,

@@ -138,7 +138,7 @@ struct FilterFunctionPointers {
       Apply3D4_C_Dispatch = Apply3D4_C<false, true>;
       Apply3D5_C_Dispatch = Apply3D5_C<false, true>;
 
-      // Apply2D_SSE2_Dispatch = ApplyWiener2D_degrid_SSE2;
+      Apply2D_SSE2_Dispatch = Apply2D_SSE2<false, true>;
       Apply3D2_SSE2_Dispatch = Apply3D2_SSE2<false, true>;
       Apply3D3_SSE2_Dispatch = Apply3D3_SSE2<false, true>;
       Apply3D4_SSE2_Dispatch = Apply3D4_SSE2<false, true>;
@@ -151,7 +151,7 @@ struct FilterFunctionPointers {
       Apply3D4_C_Dispatch = Apply3D4_C<false, false>;
       Apply3D5_C_Dispatch = Apply3D5_C<false, false>;
 
-      // Apply2D_SSE2_Dispatch = ApplyWiener2D_SSE2;
+      Apply2D_SSE2_Dispatch = Apply2D_SSE2<false, false>;
       Apply3D2_SSE2_Dispatch = Apply3D2_SSE2<false, false>;
       Apply3D3_SSE2_Dispatch = Apply3D3_SSE2<false, false>;
       Apply3D4_SSE2_Dispatch = Apply3D4_SSE2<false, false>;
@@ -164,7 +164,7 @@ struct FilterFunctionPointers {
       Apply3D4_C_Dispatch = Apply3D4_C<true, true>;
       Apply3D5_C_Dispatch = Apply3D5_C<true, true>;
 
-      // Apply2D_SSE2_Dispatch = ApplyPattern2D_SSE2<true>;
+      Apply2D_SSE2_Dispatch = Apply2D_SSE2<true, true>;
       Apply3D2_SSE2_Dispatch = Apply3D2_SSE2<true, true>;
       Apply3D3_SSE2_Dispatch = Apply3D3_SSE2<true, true>;
       Apply3D4_SSE2_Dispatch = Apply3D4_SSE2<true, true>;
@@ -177,7 +177,7 @@ struct FilterFunctionPointers {
       Apply3D4_C_Dispatch = Apply3D4_C<true, false>;
       Apply3D5_C_Dispatch = Apply3D5_C<true, false>;
 
-      // Apply2D_SSE2_Dispatch = ApplyPattern2D_SSE2<false>;
+      Apply2D_SSE2_Dispatch = Apply2D_SSE2<true, false>;
       Apply3D2_SSE2_Dispatch = Apply3D2_SSE2<true, false>;
       Apply3D3_SSE2_Dispatch = Apply3D3_SSE2<true, false>;
       Apply3D4_SSE2_Dispatch = Apply3D4_SSE2<true, false>;
@@ -204,6 +204,7 @@ struct FilterFunctionPointers {
     Sharpen = Sharpen_C_Dispatch;
 
     if (CPUFlags & CPUF_SSE2) {
+      Apply2D = Apply2D_SSE2_Dispatch;
       Apply3D2 = Apply3D2_SSE2_Dispatch;
       Apply3D3 = Apply3D3_SSE2_Dispatch;
       Apply3D4 = Apply3D4_SSE2_Dispatch;
