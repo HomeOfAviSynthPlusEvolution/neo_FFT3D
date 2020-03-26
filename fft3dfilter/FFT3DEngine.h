@@ -35,7 +35,7 @@ struct EngineParams {
   int l, t, r, b; // cropping
 };
 
-template <class Interface>
+template <typename Interface>
 class FFT3DEngine {
   EngineParams* ep;
   typename Interface* super;
@@ -134,7 +134,7 @@ class FFT3DEngine {
   void store_buffer(int plane, const byte *coverbuf, int coverwidth, int coverheight, int coverpitch, typename Interface::AFrame &dst, int mirw, int mirh, bool interlaced, int bits_per_pixel);
 
 public:
-  FFT3DEngine(typename Interface*, EngineParams, int);
+  FFT3DEngine(Interface*, EngineParams, int);
   ~FFT3DEngine();
 
   typename Interface::AFrame GetFrame(int n);

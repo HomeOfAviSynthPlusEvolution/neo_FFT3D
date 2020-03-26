@@ -39,7 +39,7 @@ void FFT3DEngine<Interface>::store_buffer(int plane, const byte *coverbuf, int c
 }
 
 template <class Interface>
-FFT3DEngine<Interface>::FFT3DEngine(typename Interface* _super, EngineParams _ep, int _plane) :
+FFT3DEngine<Interface>::FFT3DEngine(Interface* _super, EngineParams _ep, int _plane) :
   super(_super), ep(new EngineParams(_ep)), plane(_plane) {
 
   static int id = 0; _instance_id = id++;
