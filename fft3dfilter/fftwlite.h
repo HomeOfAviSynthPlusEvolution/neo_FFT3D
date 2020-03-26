@@ -34,7 +34,7 @@ typedef void (*fftwf_execute_dft_c2r_proc) (fftwf_plan, fftwf_complex *fftsrc, f
 typedef int (*fftwf_init_threads_proc) ();
 typedef void (*fftwf_plan_with_nthreads_proc)(int nthreads);
 
-#define LOAD_FFT_FUNC(name) name = reinterpret_cast<name ## _proc>((void*)fftw3_address(#name))
+#define LOAD_FFT_FUNC(name) do {name = reinterpret_cast<name ## _proc>((void*)fftw3_address(#name)); if (name == NULL) throw "Library function is missing: " #name; } while(0)
 
 struct FFTFunctionPointers {
   lib_t library;
@@ -53,6 +53,12 @@ struct FFTFunctionPointers {
       library = LoadLibraryW(L"libfftw3f-3");
       if (library == NULL)
         library = LoadLibraryW(L"fftw3");
+      if (library == NULL)
+        #ifdef _WIN32
+          throw("libfftw3f-3.dll or fftw3.dll not found. Please put in PATH or use LoadDll() plugin");
+        #else
+          throw("libfftw3f_threads.so.3 not found. Please install libfftw3-single3 (deb) or fftw-devel (rpm) package");
+        #endif
     }
     void fftw3_close() { FreeLibrary(library); }
     func_t fftw3_address(LPCSTR func) { return GetProcAddress(library, func); }

@@ -132,22 +132,6 @@ FFT3DEngine<Interface>::FFT3DEngine(Interface* _super, EngineParams _ep, int _pl
   int istat;
 
   fftfp.load();
-  if (fftfp.library == NULL
-    || fftfp.fftwf_free == NULL
-    || fftfp.fftwf_malloc == NULL
-    || fftfp.fftwf_plan_many_dft_r2c == NULL
-    || fftfp.fftwf_plan_many_dft_c2r == NULL
-    || fftfp.fftwf_destroy_plan == NULL
-    || fftfp.fftwf_execute_dft_r2c == NULL
-    || fftfp.fftwf_execute_dft_c2r == NULL
-    || fftfp.fftwf_init_threads == NULL
-    || fftfp.fftwf_plan_with_nthreads == NULL
-    )
-    #ifdef _WIN32
-      throw("FFT3DFilter: libfftw3f-3.dll or fftw3.dll not found. Please put in PATH or use LoadDll() plugin");
-    #else
-      throw("FFT3DFilter: libfftw3f_threads.so.3 not found. Please install libfftw3-single3 (deb) or fftw-devel (rpm) package");
-    #endif
 
   istat = fftfp.fftwf_init_threads();
 
