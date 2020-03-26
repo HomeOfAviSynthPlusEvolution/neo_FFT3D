@@ -2236,7 +2236,7 @@ PVideoFrame __stdcall FFT3DFilter::GetFrame(int n, IScriptEnvironment* env) {
     psrc = child->GetFrame(pframe, env); // get noise pattern frame
 
     // put source bytes to float array of overlapped blocks
-    FramePlaneToCoverbuf(plane, psrc, vi, coverbuf, coverwidth, coverheight, coverpitch * pixelsize, mirw, mirh, interlaced, bits_per_pixel, env);
+    FramePlaneToCoverbuf(plane, psrc, vi, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, interlaced, bits_per_pixel, env);
     FFT3DFilter::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
     // make FFT 2D
     fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
