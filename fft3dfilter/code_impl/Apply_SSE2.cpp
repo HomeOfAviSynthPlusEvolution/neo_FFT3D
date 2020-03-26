@@ -214,8 +214,6 @@ void Apply3D5_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
       __m128 prev2 = _mm_load_ps((const float*)in[0]);
       __m128 next2 = _mm_load_ps((const float*)in[4]);
 
-      __m128 p_n = _mm_swap_ri(_mm_sign_r(_mm_sub_ps(prev, next)));
-
       __m128 sum2 = (next2 + prev2) * cos72
                   + (prev + next) * cos144
                   + cur;

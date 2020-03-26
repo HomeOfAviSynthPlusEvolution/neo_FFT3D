@@ -16,8 +16,8 @@ protected:
   EngineParams* ep;
 
 public:
-  virtual const char* name() const { return "neo_FFT3D"; }
-  virtual void initialize() {
+  virtual const char* name() const override { return "neo_FFT3D"; }
+  virtual void initialize() override {
     engine_count = 0;
     copy_count = 0;
     planes = 3;
@@ -92,7 +92,7 @@ public:
     }
   }
 
-  virtual typename Interface::AFrame get(int n) {
+  virtual typename Interface::AFrame get(int n) override {
   // virtual auto get(int n) -> decltype(Interface::get(n)) {
     if (engine_count == 1 && copy_count == 0)
       for (int i = 0; i < planes; i++)
@@ -113,18 +113,7 @@ public:
       else
         continue;
       auto idx = plane_index[i];
-      auto x = frame->GetPitch(idx);
-      auto y = frame->GetRowSize(idx);
-      auto z = frame->GetHeight(idx);
-      memcpy(dst->GetWritePtr(idx), frame->GetReadPtr(idx), x * z);
-      // _env->BitBlt(
-      //   dst->GetWritePtr(idx),
-      //   dst->GetPitch(idx),
-      //   frame->GetReadPtr(idx),
-      //   frame->GetPitch(idx),
-      //   frame->GetRowSize(idx),
-      //   frame->GetHeight(idx)
-      //   );
+      memcpy(dst->GetWritePtr(idx), frame->GetReadPtr(idx), frame->GetPitch(idx) * frame->GetHeight(idx));
       if (frame != src)
         this->FreeFrame(frame);
     }

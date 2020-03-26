@@ -140,5 +140,3 @@ public:
   typename Interface::AFrame GetFrame(int n);
 
 };
-
-template class FFT3DEngine<AVSFilter>;

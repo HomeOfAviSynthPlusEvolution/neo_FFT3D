@@ -14,14 +14,19 @@ inline __m128 _mm_sign_i(__m128 data) {
 inline __m128 _mm_swap_ri(__m128 data) {
   return _mm_shuffle_ps(data, data, 177); // 10 11 00 01
 }
-inline __m128 operator+(const __m128 &a, const __m128 &b) { return _mm_add_ps(a, b); }
-inline __m128 operator-(const __m128 &a, const __m128 &b) { return _mm_sub_ps(a, b); }
-inline __m128 operator*(const __m128 &a, const __m128 &b) { return _mm_mul_ps(a, b); }
-inline __m128 operator/(const __m128 &a, const __m128 &b) { return _mm_div_ps(a, b); }
-inline __m128 &operator+=(__m128 &a, const __m128 &b) { return a = _mm_add_ps(a, b); }
-inline __m128 &operator-=(__m128 &a, const __m128 &b) { return a = _mm_sub_ps(a, b); }
-inline __m128 &operator*=(__m128 &a, const __m128 &b) { return a = _mm_mul_ps(a, b); }
-inline __m128 &operator/=(__m128 &a, const __m128 &b) { return a = _mm_div_ps(a, b); }
+
+#ifdef _MSC_VER
+  #ifndef __clang__
+    inline __m128 operator+(const __m128 &a, const __m128 &b) { return _mm_add_ps(a, b); }
+    inline __m128 operator-(const __m128 &a, const __m128 &b) { return _mm_sub_ps(a, b); }
+    inline __m128 operator*(const __m128 &a, const __m128 &b) { return _mm_mul_ps(a, b); }
+    inline __m128 operator/(const __m128 &a, const __m128 &b) { return _mm_div_ps(a, b); }
+    inline __m128 &operator+=(__m128 &a, const __m128 &b) { return a = _mm_add_ps(a, b); }
+    inline __m128 &operator-=(__m128 &a, const __m128 &b) { return a = _mm_sub_ps(a, b); }
+    inline __m128 &operator*=(__m128 &a, const __m128 &b) { return a = _mm_mul_ps(a, b); }
+    inline __m128 &operator/=(__m128 &a, const __m128 &b) { return a = _mm_div_ps(a, b); }
+  #endif
+#endif
 
 struct LambdaFunctionParams {
   // Progress

@@ -2,6 +2,8 @@
 
 #include "FFT3DEngine.h"
 
+template class FFT3DEngine<AVSFilter>;
+
 template <class Interface>
 void FFT3DEngine<Interface>::load_buffer(int plane, typename Interface::AFrame &src, byte *coverbuf, int coverwidth, int coverheight, int coverpitch, int mirw, int mirh, bool interlaced, int bits_per_pixel)
 {
