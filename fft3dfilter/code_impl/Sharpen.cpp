@@ -1,7 +1,7 @@
 #include "code_impl_C.h"
 
 template <bool degrid, bool sharpen, bool dehalo>
-static void Sharpen_C_impl(fftwf_complex *out, SharedFunctionParams sfp)
+static inline void Sharpen_C_impl(fftwf_complex *out, SharedFunctionParams sfp)
 {
   fftwf_complex * dummy[5] = {0, 0, out, 0, 0};
   loop_wrapper_C(dummy, out, sfp,

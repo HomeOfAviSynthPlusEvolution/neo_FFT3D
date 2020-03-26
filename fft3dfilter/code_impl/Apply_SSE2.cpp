@@ -9,7 +9,7 @@
 // 2D SSE2 Profiling
 // Profiling time: 15,909ms -> 3,517ms
 template <bool pattern, bool degrid, bool sharpen, bool dehalo>
-static void Apply2D_SSE2_impl(fftwf_complex *out, SharedFunctionParams sfp)
+static inline void Apply2D_SSE2_impl(fftwf_complex *out, SharedFunctionParams sfp)
 {
   fftwf_complex * dummy[5] = {0, 0, out, 0, 0};
   loop_wrapper_SSE2(dummy, out, sfp,

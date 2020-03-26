@@ -9,7 +9,7 @@
 // Sharpen Profiling
 // 13,958 ms -> 3,484 ms
 template <bool degrid, bool sharpen, bool dehalo>
-void Sharpen_SSE2_impl(fftwf_complex *out, SharedFunctionParams sfp)
+static inline void Sharpen_SSE2_impl(fftwf_complex *out, SharedFunctionParams sfp)
 {
   fftwf_complex * dummy[5] = {0, 0, out, 0, 0};
   loop_wrapper_SSE2(dummy, out, sfp,

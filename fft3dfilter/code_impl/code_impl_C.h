@@ -22,7 +22,7 @@ struct LambdaFunctionParams {
   float lowlimit;
 
   template <bool pattern>
-  void wiener_factor_3d(float &dr, float &di) {
+  inline void wiener_factor_3d(float &dr, float &di) {
     float _psd = dr * dr + di * di + 1e-15f; // power spectrum density 0
     float _wiener_factor = MAX((_psd - (pattern ? pattern3d[w] : sigmaSquaredNoiseNormed) ) / _psd, lowlimit); // limited Wiener filter
     dr *= _wiener_factor;
