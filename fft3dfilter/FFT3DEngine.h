@@ -3,6 +3,7 @@
 #include "FFT3DFilter.h"
 #include "helper.h"
 #include "wrapper/avs_filter.hpp"
+#include "cache.hpp"
 
 struct EngineParams {
   float sigma; // noise level (std deviation) for high frequncies ***
@@ -38,7 +39,7 @@ struct EngineParams {
 template <typename Interface>
 class FFT3DEngine {
   EngineParams* ep;
-  typename Interface* super;
+  Interface* super;
   int plane; // color plane
 
   // additional parameterss
@@ -109,9 +110,8 @@ class FFT3DEngine {
   int pixelsize;
   int bits_per_pixel;
 
-  fftwf_complex ** cachefft; //v1.8
-  int * cachewhat;//v1.8
   int cachesize;//v1.8
+  cache<fftwf_complex> *fftcache;
 
   int _instance_id; // debug unique id
   std::atomic<bool> reentrancy_check;

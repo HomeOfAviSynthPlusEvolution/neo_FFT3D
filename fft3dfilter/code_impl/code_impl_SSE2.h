@@ -61,17 +61,8 @@ struct LambdaFunctionParams {
     const __m128 epsilon = _mm_set1_ps(1e-15f);
 };
 
-template<typename ... T>
-inline void loop_wrapper_SSE2_advance(int pitch, fftwf_complex* &fft_data, T&&... other_fft_data) {
-  fft_data += pitch;
-  loop_wrapper_SSE2_advance(pitch, other_fft_data...);
-}
-
-inline void loop_wrapper_SSE2_advance(int pitch) {}
-
-// Note, MSVC requires parameter pack to be the last to work
 template<typename ... T, typename Func>
-inline void loop_wrapper_SSE2(Func f, SharedFunctionParams sfp, fftwf_complex* &outcur, T&&... fft_data) {
+inline void loop_wrapper_SSE2(fftwf_complex** in, fftwf_complex* &out, SharedFunctionParams sfp, Func f) {
   LambdaFunctionParams lfp;
 
   lfp.m_lowlimit = _mm_set1_ps((sfp.beta - 1) / sfp.beta);
@@ -89,7 +80,7 @@ inline void loop_wrapper_SSE2(Func f, SharedFunctionParams sfp, fftwf_complex* &
     float* wdehalo = sfp.wdehalo;
     // Grid
     fftwf_complex* gridsample = sfp.gridsample;
-    __m128 gridfraction = _mm_set1_ps(sfp.degrid * outcur[0][0] / gridsample[0][0]);
+    __m128 gridfraction = _mm_set1_ps(sfp.degrid * in[2][0][0] / gridsample[0][0]);
 
     for (lfp.pos = 0; lfp.pos < itemsperblock; lfp.pos += 2)
     {
@@ -110,8 +101,12 @@ inline void loop_wrapper_SSE2(Func f, SharedFunctionParams sfp, fftwf_complex* &
       f(lfp);
 
       // Data
-      outcur += step;
-      loop_wrapper_SSE2_advance(step, fft_data...);
+      in[0] += step;
+      in[1] += step;
+      in[2] += step;
+      in[3] += step;
+      in[4] += step;
+      out += step;
       // Pattern
       pattern2d += step;
       pattern3d += step;

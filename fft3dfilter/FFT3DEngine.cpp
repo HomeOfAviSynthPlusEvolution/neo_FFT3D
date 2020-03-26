@@ -161,16 +161,8 @@ FFT3DEngine<Interface>::FFT3DEngine(Interface* _super, EngineParams _ep, int _pl
   outrez = (fftwf_complex *)fftfp.fftwf_malloc(sizeof(fftwf_complex) * outsize); //v1.8
   gridsample = (fftwf_complex *)fftfp.fftwf_malloc(sizeof(fftwf_complex) * outsize); //v1.8
 
-  // fft cache - added in v1.8
-  cachesize = ep->bt + 2;
-  cachewhat = (int *)malloc(sizeof(int)*cachesize);
-  cachefft = (fftwf_complex **)fftfp.fftwf_malloc(sizeof(fftwf_complex *)*cachesize);
-  for (i = 0; i < cachesize; i++)
-  {
-    cachefft[i] = (fftwf_complex *)fftfp.fftwf_malloc(sizeof(fftwf_complex) * outsize);
-    cachewhat[i] = -1; // init as notexistant
-  }
-
+  cachesize = ep->bt + 4;
+  fftcache = new cache<fftwf_complex>(cachesize, outsize, fftfp.fftwf_malloc, fftfp.fftwf_free);
 
   int planFlags;
   // use FFTW_ESTIMATE or FFTW_MEASURE (more optimal plan, but with time calculation at load stage)
@@ -375,7 +367,7 @@ FFT3DEngine<Interface>::FFT3DEngine(Interface* _super, EngineParams _ep, int _pl
   }
 
   CPUFlags = GetCPUFlags(); //re-enabled in v.1.9
-  ffp.set_ffp(CPUFlags, ep->degrid, ep->pfactor);
+  ffp.set_ffp(CPUFlags, ep->degrid, ep->pfactor, ep->bt);
   mean = (float*)malloc(nox*noy * sizeof(float));
 
   pwin = (float*)malloc(ep->bh*outpitch * sizeof(float)); // pattern window array
@@ -477,12 +469,7 @@ FFT3DEngine<Interface>::~FFT3DEngine() {
     fftfp.fftwf_free(covarProcess);
   }
   free(coverbuf);
-  free(cachewhat);
-  for (int i = 0; i < cachesize; i++)
-  {
-    fftfp.fftwf_free(cachefft[i]);
-  }
-  fftfp.fftwf_free(cachefft);
+  delete fftcache;
   fftfp.fftwf_free(gridsample); //fixed memory leakage in v1.8.5
 //	fftfp.fftwf_free(fullwinan);
 //	fftfp.fftwf_free(fullwinsyn);
@@ -990,7 +977,6 @@ typename Interface::AFrame FFT3DEngine<Interface>::GetFrame(int n) {
   typename Interface::AFrame prev2, prev, src, next, psrc, dst, next2;
   int pxf, pyf;
   int i;
-  int cachecur, cachestart, cachestartold;
   //	char debugbuf[1536];
   //	wsprintf(debugbuf,"FFT3DFilter: n=%d \n", n);
   //	OutputDebugString(debugbuf);
@@ -1026,7 +1012,6 @@ typename Interface::AFrame FFT3DEngine<Interface>::GetFrame(int n) {
   {
     // show noise pattern window
     src = super->GetFrame(super->child, n); // get noise pattern frame
-//		env->MakeWritable(&src); // it produced bug for separated fields
     dst = super->NewVideoFrame();
     // TODO: CopyFrame(src, dst, vi, plane, env);
 
@@ -1086,25 +1071,11 @@ typename Interface::AFrame FFT3DEngine<Interface>::GetFrame(int n) {
   _RPT2(0, "FFT3DFilter child GetFrame END, frame=%d instance_id=%d\n", n, _instance_id);
   dst = super->NewVideoFrame();
 
-  /*
-  _multiplane == 0 : process Y, copy U, copy V
-  _multiplane == 1 : copy Y, process U, copy V
-  _multiplane == 2 : copy Y, copy U, process V
-  _multiplane == 3 : copy Y, process U, process V
-  _multiplane == 4 : process Y, process U, process V
-  */
-  //if (multiplane < 3 || (multiplane == 3 && plane == 1)) // v1.8.4
-  //{
-    // TODO: CopyFrame(src, dst, vi, plane, env);
-  // }
 
   int btcur = ep->bt; // bt used for current frame
 //	if ( (bt/2 > n) || bt==3 && n==vi.num_frames-1 )
   if ((ep->bt / 2 > n) || (ep->bt - 1) / 2 > (super->frames() - 1 - n))
-  {
     btcur = 1; //	do 2D filter for first and last frames
-  }
-  // return src //first  frame was not processed prior v.0.7
 
   SharedFunctionParams sfp {
     outwidth,
@@ -1127,6 +1098,8 @@ typename Interface::AFrame FFT3DEngine<Interface>::GetFrame(int n) {
     ht2n
   };
 
+  fftwf_complex* apply_in[5];
+
   if (btcur > 0) // Wiener
   {
     sfp.sigmaSquaredNoiseNormed = btcur*ep->sigma*ep->sigma / norm; // normalized variation=sigma^2
@@ -1134,327 +1107,45 @@ typename Interface::AFrame FFT3DEngine<Interface>::GetFrame(int n) {
     if (btcur != btcurlast) // !! global state, multithreading warning
       Pattern2Dto3D(pattern2d, ep->bh, outwidth, outpitch, (float)btcur, pattern3d);
 
-    // get power spectral density (abs quadrat) for every block and apply filter
-
-    // put source bytes to float array of overlapped blocks
-
     if (btcur == 1) // 2D
     {
       // cur frame
       load_buffer(plane, src, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced, bits_per_pixel);
       FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
-      //			FFT3DEngine<Interface>::InitOverlapPlaneWin(in, coverbuf,  coverpitch, planeBase, fullwinan); // slower
             // make FFT 2D
       fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
       ffp.Apply2D(outrez, sfp);
       if (ep->pfactor != 0)
         ffp.Sharpen(outrez, sfp);
+    }
+    else // 3D
+    {
+      int from = -btcur / 2;
+      int to = (btcur - 1) / 2;
+      for (auto i = from; i <= to; i++)
+      {
+        if (fftcache->exists(n+i)) {
+          apply_in[2+i] = fftcache->get_read(n+i);
+        }
+        else {
+          apply_in[2+i] = fftcache->get_write(n+i);
+          auto frame = i == 0 ? src : super->GetFrame(super->child, n+i);
+          load_buffer(plane, frame, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced, bits_per_pixel);
+          FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
+          fftfp.fftwf_execute_dft_r2c(plan, in, apply_in[2+i]);
+          if (i != 0) super->FreeFrame(frame);
+        }
+      }
 
-      // do inverse FFT 2D, get filtered 'in' array
-      fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
-    }
-    else if (btcur == 2)  // 3D2
-    {
-      cachecur = 2;
-      cachestart = n - cachecur;
-      cachestartold = nlast - cachecur;
-      SortCache(cachewhat, cachefft, cachesize, cachestart, cachestartold);
-      // cur frame
-      out = cachefft[cachecur];
-      if (cachewhat[cachecur] != n)
-      {
-        load_buffer(plane, src, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced, bits_per_pixel);
-        FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
-        // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, out);
-        cachewhat[cachecur] = n;
-      }
-      // prev frame
-      outprev = cachefft[cachecur - 1];
-      if (cachewhat[cachecur - 1] != n - 1)
-      {
-        _RPT2(0, "FFT3DFilter child-1 GetFrame, frame=%d instance_id=%d\n", n-1, _instance_id);
-        prev = super->GetFrame(super->child, n - 1);
-        _RPT2(0, "FFT3DFilter child-1 GetFrame END, frame=%d instance_id=%d\n", n - 1, _instance_id);
-        load_buffer(plane, prev, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced, bits_per_pixel);
-      }
-      if (cachewhat[cachecur - 1] != n - 1)
-      {
-        // calculate prev
-        FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
-        // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, outprev);
-        cachewhat[cachecur - 1] = n - 1;
-      }
-      if (n != nlast + 1)//(not direct sequential access)
-      {
-        Copyfft(outrez, outprev, outsize); // save outprev to outrez to prevent its change in cache
-      }
-      else
-      {
-        // swap
-        outtemp = outrez;
-        outrez = outprev;
-        outprev = outtemp;
-        cachefft[cachecur - 1] = outtemp;
-        cachewhat[cachecur - 1] = -1; // will be destroyed
-      }
-      ffp.Apply3D2(out, outrez, sfp);
+      ffp.Apply3D(apply_in, outrez, sfp);
       ffp.Sharpen(outrez, sfp);
-      // do inverse FFT 3D, get filtered 'in' array
-      // note: input "outrez" array is destroyed by execute algo.
-      fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
     }
-    else if (btcur == 3) // 3D3
-    {
-      cachecur = 2;
-      cachestart = n - cachecur;
-      cachestartold = nlast - cachecur;
-      SortCache(cachewhat, cachefft, cachesize, cachestart, cachestartold);
-      // cur frame
-      out = cachefft[cachecur];
-      if (cachewhat[cachecur] != n)
-      {
-        load_buffer(plane, src, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced, bits_per_pixel);
-        FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
-        // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, out);
-        cachewhat[cachecur] = n;
-      }
-      // prev frame
-      outprev = cachefft[cachecur - 1];
-      if (cachewhat[cachecur - 1] != n - 1)
-      {
-        // calculate prev
-        //_RPT2(0, "FFT3DFilter child-1 GetFrame, frame=%d instance_id=%d\n", n - 1, _instance_id);
-        prev = super->GetFrame(super->child, n - 1);
-        //_RPT2(0, "FFT3DFilter child-1 GetFrame END, frame=%d instance_id=%d\n", n - 1, _instance_id);
-        load_buffer(plane, prev, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced, bits_per_pixel);
-      }
-      if (cachewhat[cachecur - 1] != n - 1)
-      {
-        FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
-        // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, outprev);
-        cachewhat[cachecur - 1] = n - 1;
-      }
-      if (n != nlast + 1)
-      {
-        Copyfft(outrez, outprev, outsize); // save outprev to outrez to preventits change in cache
-      }
-      else
-      {
-        // swap
-        outtemp = outrez;
-        outrez = outprev;
-        outprev = outtemp;
-        cachefft[cachecur - 1] = outtemp;
-        cachewhat[cachecur - 1] = -1; // will be destroyed
-      }
-      // calculate next
-      outnext = cachefft[cachecur + 1];
-      if (cachewhat[cachecur + 1] != n + 1)
-      {
-        //_RPT2(0, "FFT3DFilter child+1 GetFrame, frame=%d instance_id=%d\n", n + 1, _instance_id);
-        next = super->GetFrame(super->child, n + 1);
-        //_RPT2(0, "FFT3DFilter child+1 GetFrame END, frame=%d instance_id=%d\n", n + 1, _instance_id);
-        load_buffer(plane, next, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced, bits_per_pixel);
-      }
-      if (cachewhat[cachecur + 1] != n + 1)
-      {
-        FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
-        // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, outnext);
-        cachewhat[cachecur + 1] = n + 1;
-      }
-      ffp.Apply3D3(out, outrez, outnext, sfp);
-      ffp.Sharpen(outrez, sfp);
-      // do inverse FFT 2D, get filtered 'in' array
-      // note: input "outrez" array is destroyed by execute algo.
-      fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
-    }
-    else if (btcur == 4) // 3D4
-    {
-      // cycle prev2, prev, cur and next
-      cachecur = 3;
-      cachestart = n - cachecur;
-      cachestartold = nlast - cachecur;
-      SortCache(cachewhat, cachefft, cachesize, cachestart, cachestartold);
-      // cur frame
-      out = cachefft[cachecur];
-      if (cachewhat[cachecur] != n)
-      {
-        load_buffer(plane, src, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced, bits_per_pixel);
-        FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
-        // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, out);
-        cachewhat[cachecur] = n;
-      }
-      // prev2 frame
-      outprev2 = cachefft[cachecur - 2];
-      if (cachewhat[cachecur - 2] != n - 2)
-      {
-        // calculate prev2
-        _RPT2(0, "FFT3DFilter child-2 GetFrame, frame=%d instance_id=%d\n", n - 2, _instance_id);
-        prev2 = super->GetFrame(super->child, n - 2);
-        _RPT2(0, "FFT3DFilter child-2 GetFrame END, frame=%d instance_id=%d\n", n - 2, _instance_id);
-        load_buffer(plane, prev2, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced, bits_per_pixel);
-      }
-      if (cachewhat[cachecur - 2] != n - 2)
-      {
-        FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
-        // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, outprev2);
-        cachewhat[cachecur - 2] = n - 2;
-      }
-      if (n != nlast + 1)
-      {
-        Copyfft(outrez, outprev2, outsize); // save outprev2 to outrez to prevent its change in cache
-      }
-      else
-      {
-        // swap
-        outtemp = outrez;
-        outrez = outprev2;
-        outprev2 = outtemp;
-        cachefft[cachecur - 2] = outtemp;
-        cachewhat[cachecur - 2] = -1; // will be destroyed
-      }
-      // prev frame
-      outprev = cachefft[cachecur - 1];
-      if (cachewhat[cachecur - 1] != n - 1)
-      {
-        _RPT2(0, "FFT3DFilter child-1 GetFrame, frame=%d instance_id=%d\n", n - 1, _instance_id);
-        prev = super->GetFrame(super->child, n - 1);
-        _RPT2(0, "FFT3DFilter child-1 GetFrame END, frame=%d instance_id=%d\n", n - 1, _instance_id);
-        load_buffer(plane, prev, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced, bits_per_pixel);
-      }
-      if (cachewhat[cachecur - 1] != n - 1)
-      {
-        FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
-        // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, outprev);
-        cachewhat[cachecur - 1] = n - 1;
-      }
-      // next frame
-      outnext = cachefft[cachecur + 1];
-      if (cachewhat[cachecur + 1] != n + 1)
-      {
-        _RPT2(0, "FFT3DFilter child+1 GetFrame, frame=%d instance_id=%d\n", n + 1, _instance_id);
-        next = super->GetFrame(super->child, n + 1);
-        _RPT2(0, "FFT3DFilter child+1 GetFrame END, frame=%d instance_id=%d\n", n + 1, _instance_id);
-        load_buffer(plane, next, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced, bits_per_pixel);
-      }
-      if (cachewhat[cachecur + 1] != n + 1)
-      {
-        FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
-        // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, outnext);
-        cachewhat[cachecur + 1] = n + 1;
-      }
-      ffp.Apply3D4(out, outrez, outprev, outnext, sfp);
-      ffp.Sharpen(outrez, sfp);
-      // do inverse FFT 2D, get filtered 'in' array
-      // note: input "outrez" array is destroyed by execute algo.
-      fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
-    }
-    else if (btcur == 5) // 3D5
-    {
-      // cycle prev2, prev, cur, next and next2
-      cachecur = 3;
-      cachestart = n - cachecur;
-      cachestartold = nlast - cachecur;
-      SortCache(cachewhat, cachefft, cachesize, cachestart, cachestartold);
-      // cur frame
-      out = cachefft[cachecur];
-      if (cachewhat[cachecur] != n)
-      {
-        load_buffer(plane, src, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced, bits_per_pixel);
-        FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
-        // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, out);
-        cachewhat[cachecur] = n;
-      }
-      // prev2 frame
-      outprev2 = cachefft[cachecur - 2];
-      if (cachewhat[cachecur - 2] != n - 2)
-      {
-        // calculate prev2
-        prev2 = super->GetFrame(super->child, n - 2);
-        load_buffer(plane, prev2, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced, bits_per_pixel);
-      }
-      if (cachewhat[cachecur - 2] != n - 2)
-      {
-        FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
-        // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, outprev2);
-        cachewhat[cachecur - 2] = n - 2;
-      }
-      if (n != nlast + 1)
-      {
-        Copyfft(outrez, outprev2, outsize); // save outprev2 to outrez to prevent its change in cache
-      }
-      else
-      {
-        // swap
-        outtemp = outrez;
-        outrez = outprev2;
-        outprev2 = outtemp;
-        cachefft[cachecur - 2] = outtemp;
-        cachewhat[cachecur - 2] = -1; // will be destroyed
-      }
-      // prev frame
-      outprev = cachefft[cachecur - 1];
-      if (cachewhat[cachecur - 1] != n - 1)
-      {
-        prev = super->GetFrame(super->child, n - 1);
-        load_buffer(plane, prev, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced, bits_per_pixel);
-      }
-      if (cachewhat[cachecur - 1] != n - 1)
-      {
-        FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
-        // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, outprev);
-        cachewhat[cachecur - 1] = n - 1;
-      }
-      // next frame
-      outnext = cachefft[cachecur + 1];
-      if (cachewhat[cachecur + 1] != n + 1)
-      {
-        next = super->GetFrame(super->child, n + 1);
-        load_buffer(plane, next, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced, bits_per_pixel);
-      }
-      if (cachewhat[cachecur + 1] != n + 1)
-      {
-        FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
-        // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, outnext);
-        cachewhat[cachecur + 1] = n + 1;
-      }
-      // next2 frame
-      outnext2 = cachefft[cachecur + 2];
-      if (cachewhat[cachecur + 2] != n + 2)
-      {
-        next2 = super->GetFrame(super->child, n + 2);
-        load_buffer(plane, next2, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced, bits_per_pixel);
-      }
-      if (cachewhat[cachecur + 2] != n + 2)
-      {
-        FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
-        // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, outnext2);
-        cachewhat[cachecur + 2] = n + 2;
-      }
-      ffp.Apply3D5(out, outrez, outprev, outnext, outnext2, sfp);
-      ffp.Sharpen(outrez, sfp);
-      // do inverse FFT 2D, get filtered 'in' array
-      // note: input "outrez" array is destroyed by execute algo.
-      fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
-    }
+
+    // do inverse FFT, get filtered 'in' array
+    fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
     // make destination frame plane from current overlaped blocks
     FFT3DEngine<Interface>::DecodeOverlapPlane(in, norm, coverbuf, coverpitch, plane_is_chroma);
     store_buffer(plane, coverbuf, coverwidth, coverheight, coverpitch, dst, mirw, mirh, ep->interlaced, bits_per_pixel);
-
   }
   else if (ep->bt == 0) //Kalman filter
   {

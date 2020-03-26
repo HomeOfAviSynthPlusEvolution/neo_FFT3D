@@ -31,17 +31,8 @@ struct LambdaFunctionParams {
 
 };
 
-template<typename ... T>
-inline void loop_wrapper_C_advance(int pitch, fftwf_complex* &fft_data, T&&... other_fft_data) {
-  fft_data += pitch;
-  loop_wrapper_C_advance(pitch, other_fft_data...);
-}
-
-inline void loop_wrapper_C_advance(int pitch) {}
-
-// Note, MSVC requires parameter pack to be the last to work
 template<typename ... T, typename Func>
-inline void loop_wrapper_C(Func f, SharedFunctionParams sfp, fftwf_complex* &outcur, T&&... fft_data) {
+inline void loop_wrapper_C(fftwf_complex** in, fftwf_complex* &out, SharedFunctionParams sfp, Func f) {
   LambdaFunctionParams lfp;
 
   lfp.lowlimit = (sfp.beta - 1) / sfp.beta;
@@ -56,7 +47,7 @@ inline void loop_wrapper_C(Func f, SharedFunctionParams sfp, fftwf_complex* &out
     lfp.wdehalo = sfp.wdehalo;
     // Grid
     lfp.gridsample = sfp.gridsample;
-    lfp.gridfraction = sfp.degrid * outcur[0][0] / lfp.gridsample[0][0];
+    lfp.gridfraction = sfp.degrid * in[2][0][0] / lfp.gridsample[0][0];
 
     for (lfp.h = 0; lfp.h < sfp.bh; lfp.h++)
     {
@@ -65,8 +56,12 @@ inline void loop_wrapper_C(Func f, SharedFunctionParams sfp, fftwf_complex* &out
         f(lfp);
       }
       // Data
-      outcur += sfp.outpitch;
-      loop_wrapper_C_advance(sfp.outpitch, fft_data...);
+      in[0] += sfp.outpitch;
+      in[1] += sfp.outpitch;
+      in[2] += sfp.outpitch;
+      in[3] += sfp.outpitch;
+      in[4] += sfp.outpitch;
+      out += sfp.outpitch;
       // Pattern
       lfp.pattern2d += sfp.outpitch;
       lfp.pattern3d += sfp.outpitch;

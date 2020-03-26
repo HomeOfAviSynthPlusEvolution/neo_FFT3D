@@ -9,15 +9,14 @@
 // Sharpen Profiling
 // 13,958 ms -> 3,484 ms
 template <bool degrid, bool sharpen, bool dehalo>
-void Sharpen_SSE2_impl(
-  fftwf_complex *outcur,
-  SharedFunctionParams sfp)
+void Sharpen_SSE2_impl(fftwf_complex *out, SharedFunctionParams sfp)
 {
-  loop_wrapper_SSE2(
+  fftwf_complex * dummy[5] = {0, 0, out, 0, 0};
+  loop_wrapper_SSE2(dummy, out, sfp,
     [&](LambdaFunctionParams lfp) {
       __m128 gridcorrection;
 
-      __m128 cur = _mm_load_ps((const float*)outcur);
+      __m128 cur = _mm_load_ps((const float*)out);
 
       if (degrid) {
         gridcorrection = lfp.m_gridcorrection;
@@ -53,25 +52,23 @@ void Sharpen_SSE2_impl(
         result += gridcorrection;
       }
 
-      _mm_store_ps((float*)outcur, result);
-    }, sfp, outcur
+      _mm_store_ps((float*)out, result);
+    }
   );
 }
 
 template <bool degrid>
-void Sharpen_SSE2(
-  fftwf_complex *outcur,
-  SharedFunctionParams sfp)
+void Sharpen_SSE2(fftwf_complex *out, SharedFunctionParams sfp)
 {
   if (sfp.sharpen == 0 && sfp.dehalo == 0)
     return;
   else if (sfp.sharpen != 0 && sfp.dehalo == 0)
-    Sharpen_SSE2_impl<degrid, true, false>(outcur, sfp);
+    Sharpen_SSE2_impl<degrid, true, false>(out, sfp);
   else if (sfp.sharpen == 0 && sfp.dehalo != 0)
-    Sharpen_SSE2_impl<degrid, false, true>(outcur, sfp);
+    Sharpen_SSE2_impl<degrid, false, true>(out, sfp);
   else if (sfp.sharpen != 0 && sfp.dehalo != 0)
-    Sharpen_SSE2_impl<degrid, true, true>(outcur, sfp);
+    Sharpen_SSE2_impl<degrid, true, true>(out, sfp);
 }
 
-template void Sharpen_SSE2<true>(fftwf_complex *outcur, SharedFunctionParams sfp);
-template void Sharpen_SSE2<false>(fftwf_complex *outcur, SharedFunctionParams sfp);
+template void Sharpen_SSE2<true>(fftwf_complex *, SharedFunctionParams);
+template void Sharpen_SSE2<false>(fftwf_complex *, SharedFunctionParams);

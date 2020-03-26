@@ -1,11 +1,10 @@
 #include "code_impl_C.h"
 
 template <bool degrid, bool sharpen, bool dehalo>
-static void Sharpen_C_impl(
-  fftwf_complex *outcur,
-  SharedFunctionParams sfp)
+static void Sharpen_C_impl(fftwf_complex *out, SharedFunctionParams sfp)
 {
-  loop_wrapper_C(
+  fftwf_complex * dummy[5] = {0, 0, out, 0, 0};
+  loop_wrapper_C(dummy, out, sfp,
     [&](LambdaFunctionParams lfp) {
       float gridcorrection0 = 0.0f;
       float gridcorrection1 = 0.0f;
@@ -15,8 +14,8 @@ static void Sharpen_C_impl(
         gridcorrection1 = lfp.gridfraction * lfp.gridsample[lfp.w][1];
       }
 
-      float cr = outcur[lfp.w][0] - gridcorrection0;
-      float ci = outcur[lfp.w][1] - gridcorrection1;
+      float cr = out[lfp.w][0] - gridcorrection0;
+      float ci = out[lfp.w][1] - gridcorrection1;
 
       float psd = cr * cr + ci * ci + 1e-15f;
 
@@ -34,26 +33,24 @@ static void Sharpen_C_impl(
       else if (sharpen && dehalo)
         factor = s_fact * d_fact;
 
-      outcur[lfp.w][0] = cr * factor + gridcorrection0;
-      outcur[lfp.w][1] = ci * factor + gridcorrection1;
-    }, sfp, outcur
+      out[lfp.w][0] = cr * factor + gridcorrection0;
+      out[lfp.w][1] = ci * factor + gridcorrection1;
+    }
   );
 }
 
 template <bool degrid>
-void Sharpen_C(
-  fftwf_complex *outcur,
-  SharedFunctionParams sfp)
+void Sharpen_C(fftwf_complex *out, SharedFunctionParams sfp)
 {
   if (sfp.sharpen == 0 && sfp.dehalo == 0)
     return;
   else if (sfp.sharpen != 0 && sfp.dehalo == 0)
-    Sharpen_C_impl<degrid, true, false>(outcur, sfp);
+    Sharpen_C_impl<degrid, true, false>(out, sfp);
   else if (sfp.sharpen == 0 && sfp.dehalo != 0)
-    Sharpen_C_impl<degrid, false, true>(outcur, sfp);
+    Sharpen_C_impl<degrid, false, true>(out, sfp);
   else if (sfp.sharpen != 0 && sfp.dehalo != 0)
-    Sharpen_C_impl<degrid, true, true>(outcur, sfp);
+    Sharpen_C_impl<degrid, true, true>(out, sfp);
 }
 
-template void Sharpen_C<true>(fftwf_complex *outcur, SharedFunctionParams sfp);
-template void Sharpen_C<false>(fftwf_complex *outcur, SharedFunctionParams sfp);
+template void Sharpen_C<true>(fftwf_complex *, SharedFunctionParams);
+template void Sharpen_C<false>(fftwf_complex *, SharedFunctionParams);
