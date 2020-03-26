@@ -18,6 +18,9 @@ struct LambdaFunctionParams {
   // Grid
   fftwf_complex *gridsample;
   float gridfraction = 0.0f;
+  // Kalman
+  fftwf_complex *covar;
+  fftwf_complex *covarProcess;
 
   float lowlimit;
 
@@ -37,6 +40,10 @@ inline void loop_wrapper_C(fftwf_complex** in, fftwf_complex* &out, SharedFuncti
 
   lfp.lowlimit = (sfp.beta - 1) / sfp.beta;
   lfp.sigmaSquaredNoiseNormed = sfp.sigmaSquaredNoiseNormed;
+  // Kalman
+  lfp.covar = sfp.covar;
+  lfp.covarProcess = sfp.covarProcess;
+
   for (lfp.block = 0; lfp.block < sfp.howmanyblocks; lfp.block++)
   {
     // Pattern
@@ -70,6 +77,9 @@ inline void loop_wrapper_C(fftwf_complex** in, fftwf_complex* &out, SharedFuncti
       lfp.wdehalo += sfp.outpitch;
       // Grid
       lfp.gridsample += sfp.outpitch;
+      // Kalman
+      lfp.covar += sfp.outpitch;
+      lfp.covarProcess += sfp.outpitch;
     }
   }
 }

@@ -20,6 +20,7 @@ struct FilterFunctionPointers {
     Apply3D_PROC Apply3D4_C_Dispatch;
     Apply3D_PROC Apply3D5_C_Dispatch;
     void (*Sharpen_C_Dispatch)(fftwf_complex *, SharedFunctionParams);
+    void (*Kalman_C_Dispatch)(fftwf_complex *, fftwf_complex *, SharedFunctionParams);
 
   // SSE2
     void (*Apply2D_SSE2_Dispatch)(fftwf_complex *, SharedFunctionParams);
@@ -34,13 +35,7 @@ struct FilterFunctionPointers {
     void (*Apply2D)(fftwf_complex *, SharedFunctionParams);
     Apply3D_PROC Apply3D;
     void (*Sharpen)(fftwf_complex *, SharedFunctionParams);
-
-  // Kalman
-    void (*ApplyKalman)
-        (fftwf_complex *out, fftwf_complex *outLast, fftwf_complex *covar, fftwf_complex *covarProcess, int outwidth, int outpitch, int bh, int howmanyblocks, float covarNoiseNormed, float kratio2);
-    void (*ApplyKalmanPattern)
-        (fftwf_complex *out, fftwf_complex *outLast, fftwf_complex *covar, fftwf_complex *covarProcess, int outwidth, int outpitch, int bh, int howmanyblocks, float *covarNoiseNormed, float kratio2);
-
+    void (*Kalman)(fftwf_complex *, fftwf_complex *, SharedFunctionParams);
 
   void set_ffp(int CPUFlags, float degrid, float pfactor, int bt)
   {
@@ -107,6 +102,13 @@ struct FilterFunctionPointers {
       Sharpen_SSE2_Dispatch = Sharpen_SSE2<false>;
     }
 
+    if (pfactor != 0) {
+      Kalman_C_Dispatch = Kalman_C<true>;
+    }
+    else {
+      Kalman_C_Dispatch = Kalman_C<false>;
+    }
+
     switch(bt) {
       case 2:
         Apply3D_C_Dispatch = Apply3D2_C_Dispatch;
@@ -126,12 +128,10 @@ struct FilterFunctionPointers {
         break;
     }
 
-    ApplyKalman = ApplyKalman_C;
-    ApplyKalmanPattern = ApplyKalmanPattern_C;
-
     Apply2D = Apply2D_C_Dispatch;
     Apply3D = Apply3D_C_Dispatch;
     Sharpen = Sharpen_C_Dispatch;
+    Kalman = Kalman_C_Dispatch;
 
     if (CPUFlags & CPUF_SSE2) {
       Apply2D = Apply2D_SSE2_Dispatch;

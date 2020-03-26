@@ -1084,7 +1084,7 @@ typename Interface::AFrame FFT3DEngine<Interface>::GetFrame(int n) {
     outpitch,
     ep->bh,
     howmanyblocks,
-    sigmaSquaredNoiseNormed,
+    btcur * ep->sigma * ep->sigma / norm,
     ep->pfactor,
     pattern2d,
     pattern3d,
@@ -1097,15 +1097,17 @@ typename Interface::AFrame FFT3DEngine<Interface>::GetFrame(int n) {
     wsharpen,
     ep->dehalo,
     wdehalo,
-    ht2n
+    ht2n,
+    covar,
+    covarProcess,
+    sigmaSquaredNoiseNormed2D,
+    ep->kratio * ep->kratio
   };
 
   fftwf_complex* apply_in[5];
 
   if (btcur > 0) // Wiener
   {
-    sfp.sigmaSquaredNoiseNormed = btcur*ep->sigma*ep->sigma / norm; // normalized variation=sigma^2
-
     if (btcur != btcurlast) // !! global state, multithreading warning
       Pattern2Dto3D(pattern2d, ep->bh, outwidth, outpitch, (float)btcur, pattern3d);
 
@@ -1124,6 +1126,17 @@ typename Interface::AFrame FFT3DEngine<Interface>::GetFrame(int n) {
     {
       int from = -btcur / 2;
       int to = (btcur - 1) / 2;
+      /* apply_in[]
+       *
+       * |   |   0   |   1   |   2   |   3   |   4   |
+       * |   | prev2 | prev1 |current| next1 | next2 |
+       * +---+-------+-------+-------+-------+-------+
+       * | 2 |       |   √   |   √   |       |       |
+       * | 3 |       |   √   |   √   |   √   |       |
+       * | 4 |   √   |   √   |   √   |   √   |       |
+       * | 5 |   √   |   √   |   √   |   √   |   √   |
+       *
+       */
       for (auto i = from; i <= to; i++)
       {
         if (fftcache->exists(n+i)) {
@@ -1151,8 +1164,6 @@ typename Interface::AFrame FFT3DEngine<Interface>::GetFrame(int n) {
   }
   else if (ep->bt == 0) //Kalman filter
   {
-    // get power spectral density (abs quadrat) for every block and apply filter
-
     if (n == 0)
     {
       _RPT2(0, "FFT3DFilter GetFrame END, frame=%d instance_id=%d\n", n, _instance_id);
@@ -1171,13 +1182,10 @@ typename Interface::AFrame FFT3DEngine<Interface>::GetFrame(int n) {
     FFT3DEngine<Interface>::InitOverlapPlane(in, coverbuf, coverpitch, plane_is_chroma);
     // make FFT 2D
     fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
-    if (ep->pfactor != 0)
-      ffp.ApplyKalmanPattern(outrez, outLast, covar, covarProcess, outwidth, outpitch, ep->bh, howmanyblocks, pattern2d, ep->kratio*ep->kratio);
-    else
-      ffp.ApplyKalman(outrez, outLast, covar, covarProcess, outwidth, outpitch, ep->bh, howmanyblocks, sigmaSquaredNoiseNormed2D, ep->kratio*ep->kratio);
+    ffp.Kalman(outrez, outLast, sfp);
 
     // copy outLast to outrez
-    memcpy((byte*)&outrez[0][0], (byte*)&outLast[0][0], outsize * sizeof(fftwf_complex));  //v.0.9.2
+    memcpy(outrez, outLast, outsize * sizeof(fftwf_complex));  //v.0.9.2
     ffp.Sharpen(outrez, sfp);
     // do inverse FFT 2D, get filtered 'in' array
     // note: input "out" array is destroyed by execute algo.
