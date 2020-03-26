@@ -17,12 +17,3 @@ template<typename pixel_t>
 void PlanarPlaneToCoverbuf(const pixel_t *srcp, int src_width, int src_height, int src_pitch, pixel_t *coverbuf, int coverwidth, int coverheight, int coverpitch, int mirw, int mirh, bool interlaced);
 template<typename pixel_t>
 void CoverbufToPlanarPlane(const pixel_t *coverbuf, int coverwidth, int coverheight, int coverpitch, pixel_t *dstp, int dst_width, int dst_height, int dst_pitch, int mirw, int mirh, bool interlaced);
-
-#define DECLARE(pixel_t) \
-  template void PlanarPlaneToCoverbuf<pixel_t>(const pixel_t *srcp, int src_width, int src_height, int src_pitch, pixel_t *coverbuf, int coverwidth, int coverheight, int coverpitch, int mirw, int mirh, bool interlaced);\
-  template void CoverbufToPlanarPlane<pixel_t>(const pixel_t *coverbuf, int coverwidth, int coverheight, int coverpitch, pixel_t *dstp, int dst_width, int dst_height, int dst_pitch, int mirw, int mirh, bool interlaced);\
-
-DECLARE(uint8_t)
-DECLARE(uint16_t)
-DECLARE(float)
-#undef DECLARE
