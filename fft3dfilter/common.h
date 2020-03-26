@@ -22,4 +22,6 @@ typedef unsigned char byte;
 #define MIN(a,b)            (((a) < (b)) ? (a) : (b))
 #endif
 
+int GetCPUFlags();
+
 #endif
