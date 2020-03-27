@@ -30,6 +30,7 @@ struct FilterFunctionPointers {
     Apply3D_PROC Apply3D4_SSE2_Dispatch;
     Apply3D_PROC Apply3D5_SSE2_Dispatch;
     void (*Sharpen_SSE2_Dispatch)(fftwf_complex *, SharedFunctionParams);
+    void (*Kalman_SSE2_Dispatch)(fftwf_complex *, fftwf_complex *, SharedFunctionParams);
 
   // Dispatcher -> [C / SSE2 / AVX]
     void (*Apply2D)(fftwf_complex *, SharedFunctionParams);
@@ -104,9 +105,11 @@ struct FilterFunctionPointers {
 
     if (pfactor != 0) {
       Kalman_C_Dispatch = Kalman_C<true>;
+      Kalman_SSE2_Dispatch = Kalman_SSE2<true>;
     }
     else {
       Kalman_C_Dispatch = Kalman_C<false>;
+      Kalman_SSE2_Dispatch = Kalman_SSE2<false>;
     }
 
     switch(bt) {
@@ -137,6 +140,7 @@ struct FilterFunctionPointers {
       Apply2D = Apply2D_SSE2_Dispatch;
       Apply3D = Apply3D_SSE2_Dispatch;
       Sharpen = Sharpen_SSE2_Dispatch;
+      Kalman = Kalman_SSE2_Dispatch;
     }
   }
 };

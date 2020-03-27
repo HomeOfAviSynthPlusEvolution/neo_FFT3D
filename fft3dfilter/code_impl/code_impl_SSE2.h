@@ -21,10 +21,14 @@ inline __m128 _mm_swap_ri(__m128 data) {
     inline __m128 operator-(const __m128 &a, const __m128 &b) { return _mm_sub_ps(a, b); }
     inline __m128 operator*(const __m128 &a, const __m128 &b) { return _mm_mul_ps(a, b); }
     inline __m128 operator/(const __m128 &a, const __m128 &b) { return _mm_div_ps(a, b); }
+    inline __m128 operator|(const __m128 &a, const __m128 &b) { return _mm_or_ps(a, b); }
+    inline __m128 operator&(const __m128 &a, const __m128 &b) { return _mm_and_ps(a, b); }
     inline __m128 &operator+=(__m128 &a, const __m128 &b) { return a = _mm_add_ps(a, b); }
     inline __m128 &operator-=(__m128 &a, const __m128 &b) { return a = _mm_sub_ps(a, b); }
     inline __m128 &operator*=(__m128 &a, const __m128 &b) { return a = _mm_mul_ps(a, b); }
     inline __m128 &operator/=(__m128 &a, const __m128 &b) { return a = _mm_div_ps(a, b); }
+    inline __m128 &operator|=(__m128 &a, const __m128 &b) { return a = _mm_or_ps(a, b); }
+    inline __m128 &operator&=(__m128 &a, const __m128 &b) { return a = _mm_and_ps(a, b); }
   #endif
 #endif
 
@@ -42,6 +46,10 @@ struct LambdaFunctionParams {
   // Grid
   __m128 m_gridsample;
   __m128 m_gridcorrection;
+  // Kalman
+  __m128 m_sigmaSquaredNoiseNormed2D;
+  fftwf_complex *covar;
+  fftwf_complex *covarProcess;
 
   __m128 m_lowlimit;
 
@@ -62,8 +70,7 @@ struct LambdaFunctionParams {
     data *= _wiener_factor;
   }
 
-  private:
-    const __m128 epsilon = _mm_set1_ps(1e-15f);
+  const __m128 epsilon = _mm_set1_ps(1e-15f);
 };
 
 template<typename ... T, typename Func>
@@ -72,6 +79,10 @@ inline void loop_wrapper_SSE2(fftwf_complex** in, fftwf_complex* &out, SharedFun
 
   lfp.m_lowlimit = _mm_set1_ps((sfp.beta - 1) / sfp.beta);
   lfp.m_sigmaSquaredNoiseNormed = _mm_set1_ps(sfp.sigmaSquaredNoiseNormed);
+  lfp.m_sigmaSquaredNoiseNormed2D = _mm_set1_ps(sfp.sigmaSquaredNoiseNormed2D);
+  // Kalman
+  lfp.covar = sfp.covar;
+  lfp.covarProcess = sfp.covarProcess;
   int itemsperblock = sfp.bh * sfp.outpitch;
   const int step = 2;
 
@@ -120,6 +131,9 @@ inline void loop_wrapper_SSE2(fftwf_complex** in, fftwf_complex* &out, SharedFun
       wdehalo += step;
       // Grid
       gridsample += step;
+      // Kalman
+      lfp.covar += step;
+      lfp.covarProcess += step;
     }
   }
 }

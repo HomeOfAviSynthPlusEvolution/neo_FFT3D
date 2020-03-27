@@ -44,5 +44,6 @@ struct SharedFunctionParams {
   template <bool pattern, bool degrid> void Apply3D4_SSE2(fftwf_complex **, fftwf_complex *, SharedFunctionParams);
   template <bool pattern, bool degrid> void Apply3D5_SSE2(fftwf_complex **, fftwf_complex *, SharedFunctionParams);
   template <bool degrid> void Sharpen_SSE2(fftwf_complex *, SharedFunctionParams);
+  template <bool pattern> void Kalman_SSE2(fftwf_complex *, fftwf_complex *, SharedFunctionParams);
 
 #endif
