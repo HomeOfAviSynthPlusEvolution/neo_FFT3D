@@ -127,6 +127,12 @@ public:
     return cachehints == CACHE_GET_MTMODE ? (ep->bt==0 ? MT_SERIALIZED : MT_MULTI_INSTANCE) : 0;
   }
 
+  ~FFT3DFilter() {
+    for (int i = 0; i < planes; i++)
+      if (process[i] == 3)
+        delete engine[i];
+  }
+
 public:
   using Interface::Interface;
 
