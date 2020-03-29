@@ -66,16 +66,12 @@ FFT3DEngine<Interface>::FFT3DEngine(Interface* _super, EngineParams _ep, int _pl
   ep->smin *= factor;
   ep->smax *= factor;
 
-#ifndef X86_64
-  _mm_empty(); // _asm emms;
-#endif
-
-  if (ep->ow * 2 > ep->bw) throw("FFT3DFilter: Must not be 2*ow > ep->bw");
-  if (ep->oh * 2 > ep->bh) throw("FFT3DFilter: Must not be 2*oh > bh");
+  if (ep->ow * 2 > ep->bw) throw("Must not be 2*ow > ep->bw");
+  if (ep->oh * 2 > ep->bh) throw("Must not be 2*oh > bh");
   if (ep->ow < 0) ep->ow = ep->bw / 3; // changed from ep->bw/4 to ep->bw/3 in v.1.2
   if (ep->oh < 0) ep->oh = ep->bh / 3; // changed from bh/4 to bh/3 in v.1.2
 
-  if (ep->bt < -1 || ep->bt >5) throw("FFT3DFilter: bt must be -1(Sharpen), 0(Kalman), 1,2,3,4,5(Wiener)");
+  if (ep->bt < -1 || ep->bt >5) throw("bt must be -1(Sharpen), 0(Kalman), 1,2,3,4,5(Wiener)");
 
 /*
     (Parameter bt = 1) 
@@ -119,7 +115,7 @@ FFT3DEngine<Interface>::FFT3DEngine(Interface* _super, EngineParams _ep, int _pl
     noy = ((super->height() >> yRatioShift) - ep->oh + (ep->bh - ep->oh - 1)) / (ep->bh - ep->oh);
   }
   else
-    throw("FFT3DFilter: video must be planar");
+    throw("video must be planar");
 
 
   // padding by 1 block per side
@@ -129,7 +125,7 @@ FFT3DEngine<Interface>::FFT3DEngine(Interface* _super, EngineParams _ep, int _pl
   mirh = ep->bh - ep->oh;
 
   if (ep->beta < 1)
-    throw("FFT3DFilter: beta must be not less 1.0");
+    throw("beta must be not less 1.0");
 
   int istat;
 
@@ -194,12 +190,12 @@ FFT3DEngine<Interface>::FFT3DEngine(Interface* _super, EngineParams _ep, int _pl
   plan = fftfp.fftwf_plan_many_dft_r2c(rank, ndim, howmanyblocks,
     in, inembed, istride, idist, outrez, onembed, ostride, odist, planFlags);
   if (plan == NULL)
-    throw("FFT3DFilter: FFTW plan error");
+    throw("FFTW plan error");
 
   planinv = fftfp.fftwf_plan_many_dft_c2r(rank, ndim, howmanyblocks,
     outrez, onembed, ostride, odist, in, inembed, istride, idist, planFlags);
   if (planinv == NULL)
-    throw("FFT3DFilter: FFTW plan error");
+    throw("FFTW plan error");
 
   fftfp.fftwf_plan_with_nthreads(1);
 
@@ -493,7 +489,7 @@ FFT3DEngine<Interface>::~FFT3DEngine() {
 // use analysis windows
 //
 template <class Interface>
-void FFT3DEngine<Interface>::InitOverlapPlane(float * inp0, const BYTE *srcp0, int src_pitch, bool chroma)
+void FFT3DEngine<Interface>::InitOverlapPlane(float * inp0, const byte *srcp0, int src_pitch, bool chroma)
 {
   // for float: chroma center is also 0.0
   if (chroma) {
@@ -520,7 +516,7 @@ void FFT3DEngine<Interface>::InitOverlapPlane(float * inp0, const BYTE *srcp0, i
 
 template <class Interface>
 template<typename pixel_t, int _bits_per_pixel, bool chroma>
-void FFT3DEngine<Interface>::do_InitOverlapPlane(float * inp0, const BYTE *srcp0, int src_pitch)
+void FFT3DEngine<Interface>::do_InitOverlapPlane(float * inp0, const byte *srcp0, int src_pitch)
 {
   // pitch is pixel_t granularity, can be used directly as scrp+=pitch
   int w, h;
@@ -775,7 +771,7 @@ void FFT3DEngine<Interface>::do_InitOverlapPlane(float * inp0, const BYTE *srcp0
 // make destination frame plane from overlaped blocks
 // use synthesis windows wsynxl, wsynxr, wsynyl, wsynyr
 template <class Interface>
-void FFT3DEngine<Interface>::DecodeOverlapPlane(float *inp0, float norm, BYTE *dstp0, int dst_pitch, bool chroma)
+void FFT3DEngine<Interface>::DecodeOverlapPlane(float *inp0, float norm, byte *dstp0, int dst_pitch, bool chroma)
 {
   if (chroma) {
     switch (bits_per_pixel) {
@@ -801,7 +797,7 @@ void FFT3DEngine<Interface>::DecodeOverlapPlane(float *inp0, float norm, BYTE *d
 
 template <class Interface>
 template<typename pixel_t, int _bits_per_pixel, bool chroma>
-void FFT3DEngine<Interface>::do_DecodeOverlapPlane(float *inp0, float norm, BYTE *dstp0, int dst_pitch)
+void FFT3DEngine<Interface>::do_DecodeOverlapPlane(float *inp0, float norm, byte *dstp0, int dst_pitch)
 {
   int w, h;
   int ihx, ihy;
@@ -986,13 +982,9 @@ typename Interface::AFrame FFT3DEngine<Interface>::GetFrame(int n) {
   _RPT2(0, "FFT3DFilter GetFrame, frame=%d instance_id=%d\n", n, _instance_id);
   if (reentrancy_check) {
     _RPT2(0, "FFT3DFilter GetFrame, Reentrant call detected! Frame=%d instance_id=%d\n", n, _instance_id);
-    throw("FFT3DFilter: cannot work in reentrant multithread mode!");
+    throw("cannot work in reentrant multithread mode!");
   }
   reentrancy_check = true;
-
-#ifndef X86_64
-  _mm_empty(); // _asm emms;
-#endif
 
   const bool plane_is_chroma = !(plane == 0 || isRGB || plane == PLANAR_Y);
 

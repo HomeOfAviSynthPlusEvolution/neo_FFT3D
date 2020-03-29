@@ -2,13 +2,8 @@
 #define __FFT3DFILTER_H__
 
 #include "common.h"
-#include <avisynth.h>
-#include "info.h"
-#include <emmintrin.h>
-#include <mmintrin.h> // _mm_empty
-#include <algorithm>
-#include <atomic>
 #include "code_impl/code_impl.h"
+#include <avs/cpuid.h>
 
 struct FilterFunctionPointers {
   typedef void (*Apply3D_PROC)(fftwf_complex **, fftwf_complex *, SharedFunctionParams);

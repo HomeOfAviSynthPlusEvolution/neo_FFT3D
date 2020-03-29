@@ -4,7 +4,7 @@
 #include "FFT3DEngine.h"
 
 template <typename Interface>
-class FFT3DFilter: public Interface {
+class FFT3D: public Interface {
 
 protected:
   int process[4];
@@ -127,7 +127,7 @@ public:
     return cachehints == CACHE_GET_MTMODE ? (ep->bt==0 ? MT_SERIALIZED : MT_MULTI_INSTANCE) : 0;
   }
 
-  ~FFT3DFilter() {
+  ~FFT3D() {
     for (int i = 0; i < planes; i++)
       if (process[i] == 3)
         delete engine[i];

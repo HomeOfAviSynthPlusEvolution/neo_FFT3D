@@ -29,12 +29,12 @@
 *.app
 
 # custom
-fft3dfilter/build/*
 build/*
 *.suo
 *.user
 *.userosscache
 *.sln.docstates
+*~
 
 # Build results
 [Dd]ebug/
@@ -50,6 +50,7 @@ bld/
 [Ll]og/
 
 .vs/
+.vscode/
 
 # Visual C++ cache files
 ipch/

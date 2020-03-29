@@ -1,9 +1,12 @@
-#pragma once
+#ifndef __FFT3DENGINE_H__
+#define __FFT3DENGINE_H__
 
-#include "FFT3DFilter.h"
+#include "functions.h"
 #include "helper.h"
+#include "info.h"
 #include "wrapper/avs_filter.hpp"
 #include "cache.hpp"
+#include <atomic>
 
 struct EngineParams {
   float sigma; // noise level (std deviation) for high frequncies ***
@@ -140,3 +143,5 @@ public:
   typename Interface::AFrame GetFrame(int n);
 
 };
+
+#endif

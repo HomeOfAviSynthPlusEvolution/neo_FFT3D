@@ -2,7 +2,6 @@
 #define __CODE_IMPL_SSE2_H__
 
 #include "code_impl.h"
-#include <avs/config.h> // x64
 #include <emmintrin.h>
 
 inline __m128 _mm_sign_r(__m128 data) {

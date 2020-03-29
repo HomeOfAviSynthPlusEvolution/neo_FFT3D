@@ -8,6 +8,8 @@
 
 #include "fftwlite.h"
 
+#include <avs/config.h>
+
 typedef unsigned char byte;
 
 #ifndef _WIN32
