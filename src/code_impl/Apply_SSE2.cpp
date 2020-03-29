@@ -1,3 +1,10 @@
+/*
+ * Copyright 2020 Xinyue Lu
+ *
+ * 2D and 3D filter implementation, SSE SIMD code.
+ *
+ */
+
 #include "code_impl_SSE2.h"
 
 // Profiling Infomation

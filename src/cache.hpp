@@ -1,3 +1,10 @@
+/*
+ * Copyright 2020 Xinyue Lu
+ *
+ * LRU key-value cache.
+ *
+ */
+
 #ifndef __CACHE_HPP__
 #define __CACHE_HPP__
 

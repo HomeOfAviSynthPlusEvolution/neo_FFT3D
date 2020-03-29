@@ -1,3 +1,11 @@
+/*
+ * Copyright 2020 Xinyue Lu
+ *
+ * Code implementation section interface.
+ * This file exposes all internal functions and parameters to main file.
+ *
+ */
+
 #ifndef __CODE_IMPL_H__
 #define __CODE_IMPL_H__
 

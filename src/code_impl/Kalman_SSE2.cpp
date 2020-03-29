@@ -1,3 +1,10 @@
+/*
+ * Copyright 2020 Xinyue Lu
+ *
+ * Kalman filter implementation, SSE SIMD code.
+ *
+ */
+
 #include "code_impl_SSE2.h"
 
 // Profiling Infomation

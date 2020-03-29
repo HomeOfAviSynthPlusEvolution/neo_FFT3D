@@ -1,3 +1,10 @@
+/*
+ * Copyright 2020 Xinyue Lu
+ *
+ * SSE SIMD wrapper.
+ *
+ */
+
 #ifndef __CODE_IMPL_SSE2_H__
 #define __CODE_IMPL_SSE2_H__
 

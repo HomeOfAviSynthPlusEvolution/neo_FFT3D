@@ -1,3 +1,11 @@
+/*
+ * Copyright 2020 Xinyue Lu
+ *
+ * DualSynth bridge.
+ * Fetch parameters and create real filters.
+ *
+ */
+
 #pragma once
 
 #include <climits>

@@ -1,3 +1,10 @@
+/*
+ * Copyright 2020 Xinyue Lu
+ *
+ * AviSynth+ Public API.
+ *
+ */
+
 #include "wrapper/avs_filter.hpp"
 #include "neo_fft3d.hpp"
 #include "version.hpp"

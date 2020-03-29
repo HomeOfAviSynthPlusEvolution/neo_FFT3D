@@ -1,4 +1,12 @@
-#define VERSION_NUMBER 2.6
+/*
+ * Copyright 2004-2007 A.G.Balakhnin aka Fizick
+ * Copyright 2015 martin53
+ * Copyright 2017-2019 Ferenc Pinter aka printerf
+ * Copyright 2020 Xinyue Lu
+ *
+ * Main file.
+ *
+ */
 
 #include "FFT3DEngine.h"
 

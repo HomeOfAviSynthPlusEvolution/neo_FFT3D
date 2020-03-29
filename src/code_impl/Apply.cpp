@@ -1,3 +1,13 @@
+/*
+ * Copyright 2004-2007 A.G.Balakhnin aka Fizick
+ * Copyright 2015 martin53
+ * Copyright 2017-2019 Ferenc Pinter aka printerf
+ * Copyright 2020 Xinyue Lu
+ *
+ * 2D and 3D filter implementation, Pure C code.
+ *
+ */
+
 #include "code_impl_C.h"
 
 template <bool pattern, bool degrid, bool sharpen, bool dehalo>

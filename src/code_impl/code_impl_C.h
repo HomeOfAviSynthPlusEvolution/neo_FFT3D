@@ -1,3 +1,10 @@
+/*
+ * Copyright 2020 Xinyue Lu
+ *
+ * C code wrapper.
+ *
+ */
+
 #ifndef __CODE_IMPL_C_H__
 #define __CODE_IMPL_C_H__
 

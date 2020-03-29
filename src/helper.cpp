@@ -1,3 +1,13 @@
+/*
+ * Copyright 2004-2007 A.G.Balakhnin aka Fizick
+ * Copyright 2015 martin53
+ * Copyright 2017-2019 Ferenc Pinter aka printerf
+ * Copyright 2020 Xinyue Lu
+ *
+ * Some helper functions.
+ *
+ */
+
 #include "helper.h"
 
 #define DECLARE(pixel_t) \
