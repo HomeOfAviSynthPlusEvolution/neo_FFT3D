@@ -1,41 +1,61 @@
-### fft3dfilter ###
+# Neo FFT3D (forked from fft3dfilter)
 
-Change log
+Neo FFT3D Copyright(C) 2020 Xinyue Lu, and previous developers
+
+FFT3DFilter is a 3D Frequency Domain filter - strong denoiser and moderate sharpener. It was originally written by Alexander G. Balakhnin aka Fizick, and later modified by martin53 for AviSynth 2.6 and later modified by Ferenc Pintér aka printerf for further improvement, high bit depth, and more. Kudos to them for creating and improving this fantastic tool.
+
+In this project, legacy format like YUY2 has been removed, legacy parameters like multiplane has been removed, and SIMD code has been completely re-written for all core parts of the code. Due to API change, the project has been renamed from FFT3DFilter to Neo_FFT3D to avoid confusion. SSE is required to run optimized routine.
+
+
+## Usage
+
+```python
+# AviSynth+
+LoadPlugin("neo-fft3d.dll")
+neo_fft3d(clip, sigma=2.0, bt=3, y=3, u=3, v=3, ...)
 ```
-FFT3DFilter v2.6 (20190131)
-  - Fix: Proper rounding when internal 32 bit float data are converted back to integer pixel values
 
-FFT3DFilter v2.5 (20180702)
-  - 32bit Float YUV: Chroma center to 0.0 instead of 0.5, to match new Avisynth+ r2728-
+Parameters:
 
-FFT3DFilter v2.4 (20170608)
-  - some inline asm (not all) ported to simd intrisics, helps speedup x64 mode, but some of them faster also on x86.
-  - intrinsics bt=0 
-  - intrinsics bt=2, degrid=0, pfactor=0
-  - intrinsics bt=3 sharpen=0/1 dehalo=0/1
-  - intrinsics bt=3
-  - Adaptive MT settings for Avisynth+: MT_SERIALIZED for bt==0 (temporal), MT_MULTI_INSTANCE for others
-  - Copy Alpha plane if exists
-  - reentrancy checks against bad multithreading usage
-    Note: for properly operating in MT_SERIALIZED mode in Avisynth MT, please use Avs+ r2504 or better.
+[Check original usage documents.](https://avisynth.org.ru/fft3dfilter/fft3dfilter.html)
 
-FFT3DFilter v2.3 (20170221)
-  - apply current avs+ headers
-  - 10-16 bits and 32 bit float colorspace support in AVS+
-  - Planar RGB support
-  - look for libfftw3f-3.dll first, then fftw3.dll
-  - inline asm ignored on x64 builds
-  - pre-check: if plane to process for greyscale is U and/or V return original clip
-  - auto register MT mode for avs+: MT_SERIALIZED
+- *bt*
 
-Previous versions by Fizick and martin53
-``` 
-Original Docs:
-https://avisynth.org.ru/fft3dfilter/fft3dfilter.html
-Project:
-https://github.com/pinterf/fft3dfilter
-Forum:
-https://forum.doom9.org/showthread.php?t=174347
+    * -1: Sharpen and dehalo only
+    * 0: Temporal Kalman filter
+    * 1: 2D (spatial) Wiener filter
+    * 2: 3D Wiener filter for 2 frames
+    * 3: 3D Wiener filter for 3 frames
+    * 4: 3D Wiener filter for 4 frames
+    * 5: 3D Wiener filter for 5 frames
+    * As shown below:
 
+        |bt | prev2 | prev1 |current| next1 | next2 |
+        |---|-------|-------|-------|-------|-------|
+        | 1 |       |       |   o   |       |       |
+        | 2 |       |   o   |   o   |       |       |
+        | 3 |       |   o   |   o   |   o   |       |
+        | 4 |   o   |   o   |   o   |   o   |       |
+        | 5 |   o   |   o   |   o   |   o   |   o   |
 
+    Default: 3.
 
+- *sigma*
+
+    Denoise strongness.
+
+    Default: 2.0.
+
+- *y*, *u*, *v*
+
+    Whether a plane is to be filtered.
+
+        1 - Do not touch, leaving garbage data
+        2 - Copy from origin
+        3 - Process
+
+    Default: 3.
+
+## License
+
+* GPLv2.
