@@ -89,6 +89,7 @@ template <bool pattern, bool degrid>
 void Apply3D3_C(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp)
 {
   constexpr float sin120 = 0.86602540378443864676372317075294f;//sqrtf(3.0f)*0.5f;
+  constexpr float athird = 1.0f/3.0f;
 
   loop_wrapper_C(in, out, sfp,
     [&](LambdaFunctionParams lfp) {
@@ -121,8 +122,8 @@ void Apply3D3_C(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp
       lfp.wiener_factor_3d<pattern>(fnr, fni);
 
       // reverse dft for 3 points
-      out[lfp.w][0] = (fcr + fpr + fnr + gridcorrection0) * 0.33333333333f; // get real part
-      out[lfp.w][1] = (fci + fpi + fni + gridcorrection1) * 0.33333333333f; // get imaginary part
+      out[lfp.w][0] = (fcr + fpr + fnr + gridcorrection0) * athird; // get real part
+      out[lfp.w][1] = (fci + fpi + fni + gridcorrection1) * athird; // get imaginary part
     }
   );
 }
