@@ -131,7 +131,9 @@ struct FilterFunctionPointers {
     Sharpen = Sharpen_C_Dispatch;
     Kalman = Kalman_C_Dispatch;
 
-    if (CPUFlags & CPUF_SSE2) {
+    // We actually only used SSE code.
+    // Let's try SSE and if it breaks on pure SSE we'll change it to SSE2.
+    if (CPUFlags & CPUF_SSE) {
       Apply2D = Apply2D_SSE2_Dispatch;
       Apply3D = Apply3D_SSE2_Dispatch;
       Sharpen = Sharpen_SSE2_Dispatch;
