@@ -240,7 +240,7 @@ void Apply3D5_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
 
       if (degrid) {
         gridcorrection = lfp.m_gridcorrection * _mm_set1_ps(scale);
-        fc = _mm_sub_ps(fc, gridcorrection);
+        fc -= gridcorrection;
       }
 
       lfp.wiener_factor_3d<pattern>(fp2);

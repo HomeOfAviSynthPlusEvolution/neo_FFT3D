@@ -1131,10 +1131,10 @@ typename Interface::AFrame FFT3DEngine<Interface>::GetFrame(int n) {
        * |   |   0   |   1   |   2   |   3   |   4   |
        * |   | prev2 | prev1 |current| next1 | next2 |
        * +---+-------+-------+-------+-------+-------+
-       * | 2 |       |   √   |   √   |       |       |
-       * | 3 |       |   √   |   √   |   √   |       |
-       * | 4 |   √   |   √   |   √   |   √   |       |
-       * | 5 |   √   |   √   |   √   |   √   |   √   |
+       * | 2 |       |   o   |   o   |       |       |
+       * | 3 |       |   o   |   o   |   o   |       |
+       * | 4 |   o   |   o   |   o   |   o   |       |
+       * | 5 |   o   |   o   |   o   |   o   |   o   |
        *
        */
       for (auto i = from; i <= to; i++)
