@@ -1,5 +1,5 @@
-#ifndef __FFT3DFILTER_H__
-#define __FFT3DFILTER_H__
+#ifndef __FUNCTIONS_H__
+#define __FUNCTIONS_H__
 
 #include "common.h"
 #include "code_impl/code_impl.h"
