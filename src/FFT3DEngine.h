@@ -8,13 +8,14 @@
 #include "cache.hpp"
 #include <atomic>
 #include <mutex>
+#include <thread>
 #include <unordered_map>
 
 template <typename Interface>
 class FFT3DEngine {
+  Interface* super;
   EngineParams* ep;
   IOParams *iop;
-  Interface* super;
   int plane; // color plane
 
   // additional parameterss
@@ -84,7 +85,7 @@ class FFT3DEngine {
 
 public:
   FFT3DEngine(Interface* _super, EngineParams _ep, int _plane) :
-  super(_super), ep(new EngineParams(_ep)), plane(_plane), iop(new IOParams()) {
+  super(_super), ep(new EngineParams(_ep)), iop(new IOParams()), plane(_plane) {
     int i, j;
 
     float factor;
@@ -135,24 +136,25 @@ public:
     coverpitch = ((coverwidth + 15) / 16) * 16; // align to 16 elements. Pitch is element-granularity. For byte pitch, multiply is by pixelsize
 
     insize = ep->bw*ep->bh*iop->nox*iop->noy;
+    insize = ((insize + 15) / 16) * 16;
     outwidth = ep->bw / 2 + 1; // width (pitch) of complex fft block
-    outpitch = ((outwidth + 3) / 4) * 4; // must be even for SSE - v1.7
+    outpitch = ((outwidth + 15) / 16) * 16; // must be even for SSE - v1.7
     outsize = outpitch*ep->bh*iop->nox*iop->noy; // replace outwidth to outpitch here and below in v1.7
     if (ep->bt == 0) // Kalman
     {
-      outLast = (fftwf_complex *)fftfp.fftwf_malloc(sizeof(fftwf_complex) * outsize);
-      covar = (fftwf_complex *)fftfp.fftwf_malloc(sizeof(fftwf_complex) * outsize);
-      covarProcess = (fftwf_complex *)fftfp.fftwf_malloc(sizeof(fftwf_complex) * outsize);
+      outLast = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, 64);
+      covar = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, 64);
+      covarProcess = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, 64);
     }
     // in and out are thread dependent now // neo-r1
-    auto in = (float *)fftfp.fftwf_malloc(sizeof(float) * insize);
-    auto outrez = (fftwf_complex *)fftfp.fftwf_malloc(sizeof(fftwf_complex) * outsize); //v1.8
-    gridsample = (fftwf_complex *)fftfp.fftwf_malloc(sizeof(fftwf_complex) * outsize); //v1.8
+    auto in = (float *)_aligned_malloc(sizeof(float) * insize, 64);
+    auto outrez = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, 64); //v1.8
+    gridsample = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, 64); //v1.8
 
     cachesize = ep->bt + 8; // extra cache to work with MT
     fftcache = NULL;
     if (ep->bt > 1)
-      fftcache = new cache<fftwf_complex>(cachesize, outsize, fftfp.fftwf_malloc, fftfp.fftwf_free);
+      fftcache = new cache<fftwf_complex>(cachesize, outsize);
 
     int planFlags;
     // use FFTW_ESTIMATE or FFTW_MEASURE (more optimal plan, but with time calculation at load stage)
@@ -201,8 +203,8 @@ public:
     iop->wsynyl = new float[ep->oh];
     iop->wsynyr = new float[ep->oh];
 
-    wsharpen = (float*)fftfp.fftwf_malloc(ep->bh*outpitch * sizeof(float));
-    wdehalo = (float*)fftfp.fftwf_malloc(ep->bh*outpitch * sizeof(float));
+    wsharpen = (float*)_aligned_malloc(ep->bh*outpitch * sizeof(float), 64);
+    wdehalo = (float*)_aligned_malloc(ep->bh*outpitch * sizeof(float), 64);
 
     // define analysis and synthesis windows
     // combining window (analize mult by synthesis) is raised cosine (Hanning)
@@ -313,7 +315,6 @@ public:
       for (i = 0; i < outwidth; i++)
       {
         float d2 = d2v + float(i*i) / ((ep->bw / 2)*(ep->bw / 2)); // squared distance in frequency domain
-        float d1 = sqrt(d2);
         tmp_wdehalo[i] = exp(-0.7f*d2*ep->hr*ep->hr) - exp(-d2*ep->hr*ep->hr); // some window with max around 1/hr, small at low and high frequencies
         if (tmp_wdehalo[i] > wmax) wmax = tmp_wdehalo[i]; // for normalization
       }
@@ -372,8 +373,8 @@ public:
     }
     pwin -= outpitch*ep->bh; // restore pointer
 
-    pattern2d = (float*)fftfp.fftwf_malloc(ep->bh*outpitch * sizeof(float)); // noise pattern window array
-    pattern3d = (float*)fftfp.fftwf_malloc(ep->bh*outpitch * sizeof(float)); // noise pattern window array
+    pattern2d = (float*)_aligned_malloc(ep->bh*outpitch * sizeof(float), 64); // noise pattern window array
+    pattern3d = (float*)_aligned_malloc(ep->bh*outpitch * sizeof(float), 64); // noise pattern window array
 
     if ((ep->sigma2 != ep->sigma || ep->sigma3 != ep->sigma || ep->sigma4 != ep->sigma) && ep->pfactor == 0)
     {// we have different sigmas, so create pattern from sigmas
@@ -425,27 +426,27 @@ public:
     delete[] iop->wsynxr;
     delete[] iop->wsynyl;
     delete[] iop->wsynyr;
-    fftfp.fftwf_free(wsharpen);
-    fftfp.fftwf_free(wdehalo);
+    _aligned_free(wsharpen);
+    _aligned_free(wdehalo);
     delete[] pwin;
-    fftfp.fftwf_free(pattern2d);
-    fftfp.fftwf_free(pattern3d);
+    _aligned_free(pattern2d);
+    _aligned_free(pattern3d);
     if (ep->bt == 0) // Kalman
     {
-      fftfp.fftwf_free(outLast);
-      fftfp.fftwf_free(covar);
-      fftfp.fftwf_free(covarProcess);
+      _aligned_free(outLast);
+      _aligned_free(covar);
+      _aligned_free(covarProcess);
     }
     delete fftcache;
     delete ep;
     delete iop;
-    fftfp.fftwf_free(gridsample); //fixed memory leakage in v1.8.5
+    _aligned_free(gridsample); //fixed memory leakage in v1.8.5
     for (auto it : mt_in)
-      fftfp.fftwf_free(it.second);
+      _aligned_free(it.second);
     for (auto it : mt_out)
-      fftfp.fftwf_free(it.second);
+      _aligned_free(it.second);
     for (auto it : mt_coverbuf)
-      delete[] it.second;
+      _aligned_free(it.second);
 
     fftfp.free();
     free(messagebuf); //v1.8.5
@@ -467,9 +468,9 @@ public:
         outrez = mt_out.find(thread_id)->second;
       }
       else {
-        mt_coverbuf[thread_id] = coverbuf = new byte[coverheight*coverpitch*ep->byte_per_channel];
-        mt_in[thread_id] = in = (float *)fftfp.fftwf_malloc(sizeof(float) * insize);
-        mt_out[thread_id] = outrez = (fftwf_complex *)fftfp.fftwf_malloc(sizeof(fftwf_complex) * outsize);
+        mt_coverbuf[thread_id] = coverbuf = (byte*)_aligned_malloc(coverheight*coverpitch*ep->byte_per_channel, 64);
+        mt_in[thread_id] = in = (float *)_aligned_malloc(sizeof(float) * insize, 64);
+        mt_out[thread_id] = outrez = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, 64);
       }
     }
     //	char debugbuf[1536];

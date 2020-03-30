@@ -41,7 +41,7 @@ void Kalman_AVX(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionPar
       __m256 motion_threshold = sigma * _mm256_set1_ps(sfp.kratio2);
 
       __m256 is_motion = _mm256_cmp_ps(motion, motion_threshold, _CMP_GT_OQ);
-      is_motion = _mm256_movehdup_ps(is_motion) | _mm256_moveldup_ps(is_motion);
+      is_motion = _mm256_or_ps(_mm256_movehdup_ps(is_motion), _mm256_moveldup_ps(is_motion));
       int motion_mask = _mm256_movemask_ps(is_motion);
 
       if (motion_mask == 255) {

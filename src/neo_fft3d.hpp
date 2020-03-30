@@ -130,7 +130,7 @@ public:
     }
   }
 
-  virtual typename Interface::Frametype get(int n) {
+  virtual typename Interface::Frametype get(int n) override {
     if (engine_count == 1 && copy_count == 0 && !this->crop)
       for (int i = 0; i < planes; i++)
         if (process[i] == 3)
@@ -201,7 +201,7 @@ public:
     src_ptr += stride * t;
     dst_ptr += stride * t;
     pcs_ptr += stride * t;
-    for (size_t y = 0; y < (height - t - b); y++) {
+    for (int y = 0; y < (height - t - b); y++) {
       if (l2 > 0) memcpy(dst_ptr, src_ptr, l2);
       memcpy(dst_ptr + l2, pcs_ptr + l2, width - l2 - r2);
       if (r2 > 0) memcpy(dst_ptr + width - r2, src_ptr + width - r2, r2);

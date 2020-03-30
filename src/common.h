@@ -13,6 +13,8 @@ typedef unsigned char byte;
 
 #ifndef _WIN32
   #define wsprintf sprintf
+  #define _aligned_malloc(a,b) aligned_alloc(b,a)
+  #define _aligned_free(a) free(a)
 #endif
 
 #ifndef MAX

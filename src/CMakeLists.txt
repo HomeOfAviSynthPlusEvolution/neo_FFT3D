@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 3.1)
 project (neo_fft3d)
 file(GLOB CODE_IMPL "code_impl/*.cpp")
+file(GLOB AVX_CODE_IMPL "code_impl/*AVX.cpp")
 add_library(neo-fft3d SHARED avs_interface.cpp vs_interface.cpp buffer.cpp helper.cpp cpuid.cpp version.rc ${CODE_IMPL})
 
 find_package(Git REQUIRED)
@@ -33,6 +34,13 @@ else()
 endif()
 
 include_directories(.)
+
+if(MSVC)
+  set_source_files_properties(${AVX_CODE_IMPL} PROPERTIES COMPILE_FLAGS "/arch:AVX")
+else()
+  message(WARNING ${AVX_CODE_IMPL})
+  set_source_files_properties(${AVX_CODE_IMPL} PROPERTIES COMPILE_FLAGS "-mavx")
+endif()
 
 add_custom_command(
   TARGET neo-fft3d POST_BUILD

@@ -119,7 +119,7 @@ static void CoverToOverlap_impl(EngineParams * ep, IOParams * iop, float *dst_pt
   // pitch is pixel_t granularity, can be used directly as scrp+=pitch
   int w, h;
   int ihx, ihy;
-  const pixel_t *srcp = reinterpret_cast<const pixel_t *>(ep, iop, src_ptr);// + (hrest/2)*src_pitch + wrest/2; // centered
+  const pixel_t *srcp = reinterpret_cast<const pixel_t *>(src_ptr);// + (hrest/2)*src_pitch + wrest/2; // centered
   float ftmp;
   int xoffset = ep->bh*ep->bw - (ep->bw - ep->ow); // skip frames
   int yoffset = ep->bw*iop->nox*ep->bh - ep->bw*(ep->bh - ep->oh); // vertical offset of same block (overlap)
@@ -369,7 +369,7 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
 {
   int w, h;
   int ihx, ihy;
-  pixel_t *dstp = reinterpret_cast<pixel_t *>(ep, iop, dst_ptr);// + (hrest/2)*dst_pitch + wrest/2; // centered
+  pixel_t *dstp = reinterpret_cast<pixel_t *>(dst_ptr);// + (hrest/2)*dst_pitch + wrest/2; // centered
   float *inp = src_ptr;
   int xoffset = ep->bh*ep->bw - (ep->bw - ep->ow);
   int yoffset = ep->bw*iop->nox*ep->bh - ep->bw*(ep->bh - ep->oh); // vertical offset of same block (overlap)

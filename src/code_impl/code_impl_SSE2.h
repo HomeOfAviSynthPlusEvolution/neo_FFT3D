@@ -27,14 +27,10 @@ inline __m128 _mm_swap_ri(__m128 data) {
     inline __m128 operator-(const __m128 &a, const __m128 &b) { return _mm_sub_ps(a, b); }
     inline __m128 operator*(const __m128 &a, const __m128 &b) { return _mm_mul_ps(a, b); }
     inline __m128 operator/(const __m128 &a, const __m128 &b) { return _mm_div_ps(a, b); }
-    inline __m128 operator|(const __m128 &a, const __m128 &b) { return _mm_or_ps(a, b); }
-    inline __m128 operator&(const __m128 &a, const __m128 &b) { return _mm_and_ps(a, b); }
     inline __m128 &operator+=(__m128 &a, const __m128 &b) { return a = _mm_add_ps(a, b); }
     inline __m128 &operator-=(__m128 &a, const __m128 &b) { return a = _mm_sub_ps(a, b); }
     inline __m128 &operator*=(__m128 &a, const __m128 &b) { return a = _mm_mul_ps(a, b); }
     inline __m128 &operator/=(__m128 &a, const __m128 &b) { return a = _mm_div_ps(a, b); }
-    inline __m128 &operator|=(__m128 &a, const __m128 &b) { return a = _mm_or_ps(a, b); }
-    inline __m128 &operator&=(__m128 &a, const __m128 &b) { return a = _mm_and_ps(a, b); }
   #endif
 #endif
 

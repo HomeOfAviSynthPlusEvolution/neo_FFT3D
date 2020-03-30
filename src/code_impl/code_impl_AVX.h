@@ -33,14 +33,10 @@ inline __m256 _mm256_loadu_2ps(const float* mem) {
     inline __m256 operator-(const __m256 &a, const __m256 &b) { return _mm256_sub_ps(a, b); }
     inline __m256 operator*(const __m256 &a, const __m256 &b) { return _mm256_mul_ps(a, b); }
     inline __m256 operator/(const __m256 &a, const __m256 &b) { return _mm256_div_ps(a, b); }
-    inline __m256 operator|(const __m256 &a, const __m256 &b) { return _mm256_or_ps(a, b); }
-    inline __m256 operator&(const __m256 &a, const __m256 &b) { return _mm256_and_ps(a, b); }
     inline __m256 &operator+=(__m256 &a, const __m256 &b) { return a = _mm256_add_ps(a, b); }
     inline __m256 &operator-=(__m256 &a, const __m256 &b) { return a = _mm256_sub_ps(a, b); }
     inline __m256 &operator*=(__m256 &a, const __m256 &b) { return a = _mm256_mul_ps(a, b); }
     inline __m256 &operator/=(__m256 &a, const __m256 &b) { return a = _mm256_div_ps(a, b); }
-    inline __m256 &operator|=(__m256 &a, const __m256 &b) { return a = _mm256_or_ps(a, b); }
-    inline __m256 &operator&=(__m256 &a, const __m256 &b) { return a = _mm256_and_ps(a, b); }
   #endif
 #endif
 

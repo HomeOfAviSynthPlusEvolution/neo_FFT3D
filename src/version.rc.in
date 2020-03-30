@@ -1,5 +1,4 @@
 #include <winver.h>
-#include <ntdef.h>
 
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION             1,0,0,0
