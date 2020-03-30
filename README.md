@@ -56,6 +56,18 @@ Parameters:
 
     Default: 3.
 
+- *l*, *t*, *r*, *b*
+
+    Exclude part of image to be filtered.
+
+    Non-filtered part is copied from the source.
+
+    Default: 0.
+
+### Note on MT (multi-threading)
+
+Neo_FFT3D is MT-compatible. Do not invoke more than 6 threads, or otherwise it'll start missing cache hits and lose speed by a lot. The sweet spot is likely be 2-4.
+
 ## License
 
 * GPLv2.

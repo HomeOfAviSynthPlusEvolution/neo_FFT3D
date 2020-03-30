@@ -536,27 +536,41 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
 
 void FrameToCover(EngineParams * ep, int plane, const byte *src_ptr, byte *coverbuf, int coverwidth, int coverheight, int coverpitch, int mirw, int mirh)
 {
+  auto l = ep->IsChroma ? (ep->l >> ep->ssw) : ep->l;
+  auto r = ep->IsChroma ? (ep->r >> ep->ssw) : ep->r;
+  auto t = ep->IsChroma ? (ep->t >> ep->ssh) : ep->t;
+  auto b = ep->IsChroma ? (ep->b >> ep->ssh) : ep->b;
+  auto width = ep->framewidth - l - r;
+  auto height = ep->frameheight - t - b;
+  auto new_src_ptr = src_ptr + (t * ep->framepitch + l) * ep->byte_per_channel;
   switch (ep->bit_per_channel)
   {
-  case 8: FrameToCover_impl<uint8_t>(src_ptr, ep->framewidth, ep->frameheight, ep->framepitch, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
+  case 8: FrameToCover_impl<uint8_t>(new_src_ptr, width, height, ep->framepitch, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
   case 10:
   case 12:
   case 14:
-  case 16: FrameToCover_impl<uint16_t>((uint16_t *)src_ptr, ep->framewidth, ep->frameheight, ep->framepitch, (uint16_t *)coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
-  case 32: FrameToCover_impl<float>((float *)src_ptr, ep->framewidth, ep->frameheight, ep->framepitch, (float *)coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
+  case 16: FrameToCover_impl<uint16_t>((uint16_t *)new_src_ptr, width, height, ep->framepitch, (uint16_t *)coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
+  case 32: FrameToCover_impl<float>((float *)new_src_ptr, width, height, ep->framepitch, (float *)coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
   }
 }
 
 void CoverToFrame(EngineParams * ep, int plane, const byte *coverbuf, int coverwidth, int coverheight, int coverpitch, byte *dst_ptr, int mirw, int mirh)
 {
+  auto l = ep->IsChroma ? (ep->l >> ep->ssw) : ep->l;
+  auto r = ep->IsChroma ? (ep->r >> ep->ssw) : ep->r;
+  auto t = ep->IsChroma ? (ep->t >> ep->ssh) : ep->t;
+  auto b = ep->IsChroma ? (ep->b >> ep->ssh) : ep->b;
+  auto width = ep->framewidth - l - r;
+  auto height = ep->frameheight - t - b;
+  auto new_dst_ptr = dst_ptr + (t * ep->framepitch + l) * ep->byte_per_channel;
   switch (ep->bit_per_channel)
   {
-  case 8: CoverToFrame_impl<uint8_t>(coverbuf, coverwidth, coverheight, coverpitch, dst_ptr, ep->framewidth, ep->frameheight, ep->framepitch, mirw, mirh, ep->interlaced); break;
+  case 8: CoverToFrame_impl<uint8_t>(coverbuf, coverwidth, coverheight, coverpitch, new_dst_ptr, width, height, ep->framepitch, mirw, mirh, ep->interlaced); break;
   case 10:
   case 12:
   case 14:
-  case 16: CoverToFrame_impl<uint16_t>((uint16_t *)coverbuf, coverwidth, coverheight, coverpitch, (uint16_t *)dst_ptr, ep->framewidth, ep->frameheight, ep->framepitch, mirw, mirh, ep->interlaced); break;
-  case 32: CoverToFrame_impl<float>((float *)coverbuf, coverwidth, coverheight, coverpitch, (float *)dst_ptr, ep->framewidth, ep->frameheight, ep->framepitch, mirw, mirh, ep->interlaced); break;
+  case 16: CoverToFrame_impl<uint16_t>((uint16_t *)coverbuf, coverwidth, coverheight, coverpitch, (uint16_t *)new_dst_ptr, width, height, ep->framepitch, mirw, mirh, ep->interlaced); break;
+  case 32: CoverToFrame_impl<float>((float *)coverbuf, coverwidth, coverheight, coverpitch, (float *)new_dst_ptr, width, height, ep->framepitch, mirw, mirh, ep->interlaced); break;
   }
 }
 

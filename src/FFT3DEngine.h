@@ -111,8 +111,8 @@ public:
     int xRatioShift = ep->IsChroma ? ep->ssw : 0;
     int yRatioShift = ep->IsChroma ? ep->ssh : 0;
 
-    iop->nox = ((super->width() >> xRatioShift) - ep->ow + (ep->bw - ep->ow - 1)) / (ep->bw - ep->ow);
-    iop->noy = ((super->height() >> yRatioShift) - ep->oh + (ep->bh - ep->oh - 1)) / (ep->bh - ep->oh);
+    iop->nox = (((super->width() - ep->l - ep->r) >> xRatioShift) - ep->ow + (ep->bw - ep->ow - 1)) / (ep->bw - ep->ow);
+    iop->noy = (((super->height() - ep->t - ep->b) >> yRatioShift) - ep->oh + (ep->bh - ep->oh - 1)) / (ep->bh - ep->oh);
 
 
     // padding by 1 block per side

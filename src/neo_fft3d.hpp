@@ -23,6 +23,8 @@ protected:
   int planes;
   EngineParams* ep;
 
+  bool crop;
+
 public:
   int bt;
   virtual const char* name() const override { return "Neo_FFT3D"; }
@@ -70,10 +72,10 @@ public:
       this->ArgAsFloat(29, "hr", (2.0f)), // halo radius - v 1.9
       this->ArgAsFloat(30, "ht", (50.0f)), // halo threshold - v 1.9
       this->ArgAsInt(  31, "ncpu", (1)), //  ncpu
-      this->ArgAsInt(  35, "l", (0)),
-      this->ArgAsInt(  36, "t", (0)),
-      this->ArgAsInt(  37, "r", (0)),
-      this->ArgAsInt(  38, "b", (0))
+      MAX(this->ArgAsInt(  35, "l", (0)), 0),
+      MAX(this->ArgAsInt(  36, "t", (0)), 0),
+      MAX(this->ArgAsInt(  37, "r", (0)), 0),
+      MAX(this->ArgAsInt(  38, "b", (0)), 0)
     };
 
     ep->bit_per_channel = this->bit_per_channel = this->vi.BitsPerComponent();
@@ -84,6 +86,13 @@ public:
     ep->ssw = this->ssw();
     ep->ssh = this->ssh();
     ep->frames = this->frames();
+    this->crop = ep->l > 0 || ep->r > 0 || ep->t > 0 || ep->b > 0;
+
+    if (ep->l + ep->r >= this->width())
+      throw "Width cannot be cropped to zero or below";
+
+    if (ep->t + ep->b >= this->height())
+      throw "Height cannot be cropped to zero or below";
 
     #ifdef __VS_FILTER_HPP__
       int m = this->_vsapi->propNumElements(this->_in, "planes");
@@ -122,7 +131,7 @@ public:
   }
 
   virtual typename Interface::Frametype get(int n) {
-    if (engine_count == 1 && copy_count == 0)
+    if (engine_count == 1 && copy_count == 0 && !this->crop)
       for (int i = 0; i < planes; i++)
         if (process[i] == 3)
           return engine[i]->GetFrame(n);
@@ -133,6 +142,11 @@ public:
 
     for (int i = 0; i < planes; i++)
     {
+      bool chroma = ep->IsYUV && i > 0 && i < 3;
+      auto l = chroma ? (ep->l >> ep->ssw) : ep->l;
+      auto r = chroma ? (ep->r >> ep->ssw) : ep->r;
+      auto t = chroma ? (ep->t >> ep->ssh) : ep->t;
+      auto b = chroma ? (ep->b >> ep->ssh) : ep->b;
       auto frame = src;
       if (process[i] == 3)
         frame = engine[i]->GetFrame(n);
@@ -140,8 +154,7 @@ public:
         ;
       else
         continue;
-      auto idx = plane_index[i];
-      memcpy(dst->GetWritePtr(idx), frame->GetReadPtr(idx), this->stride(frame, idx) * this->height(frame, idx));
+      copy_frame(dst, src, frame, plane_index[i], l, t, r, b);
       if (frame != src)
         this->FreeFrame(frame);
     }
@@ -161,6 +174,43 @@ public:
     for (int i = 0; i < planes; i++)
       if (process[i] == 3)
         delete engine[i];
+  }
+
+  void copy_frame(typename Interface::Frametype &dst, typename Interface::Frametype &src, typename Interface::Frametype &processed, int plane, int l, int t, int r, int b)
+  {
+    auto height = this->height(processed, plane);
+    auto stride = this->stride(processed, plane);
+    auto width = this->width(processed, plane) * this->byte_per_channel;
+    auto src_ptr = src->GetReadPtr(plane);
+    auto pcs_ptr = processed->GetReadPtr(plane);
+    auto dst_ptr = dst->GetWritePtr(plane);
+    auto l2 = l * this->byte_per_channel;
+    auto r2 = r * this->byte_per_channel;
+    if (processed == src) {
+      memcpy(dst_ptr, src_ptr, stride * height);
+      return;
+    }
+
+    if (l == 0 && r == 0 && t == 0 && b == 0) {
+      memcpy(dst_ptr, pcs_ptr, stride * height);
+      return;
+    }
+
+    if (t > 0)
+      memcpy(dst_ptr, src_ptr, stride * t);
+    src_ptr += stride * t;
+    dst_ptr += stride * t;
+    pcs_ptr += stride * t;
+    for (size_t y = 0; y < (height - t - b); y++) {
+      if (l2 > 0) memcpy(dst_ptr, src_ptr, l2);
+      memcpy(dst_ptr + l2, pcs_ptr + l2, width - l2 - r2);
+      if (r2 > 0) memcpy(dst_ptr + width - r2, src_ptr + width - r2, r2);
+      src_ptr += stride;
+      dst_ptr += stride;
+      pcs_ptr += stride;
+    }
+    if (b > 0)
+      memcpy(dst_ptr, src_ptr, stride * b);
   }
 
 public:
