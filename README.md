@@ -2,9 +2,9 @@
 
 Neo FFT3D Copyright(C) 2020 Xinyue Lu, and previous developers
 
-FFT3DFilter is a 3D Frequency Domain filter - strong denoiser and moderate sharpener. It was originally written by Alexander G. Balakhnin aka Fizick, and later modified by martin53 for AviSynth 2.6 and later modified by Ferenc Pintér aka printerf for further improvement, high bit depth, and more. Kudos to them for creating and improving this fantastic tool.
+FFT3DFilter is a 3D Frequency Domain filter - strong denoiser and moderate sharpener. It was originally written by Alexander G. Balakhnin aka Fizick, and later modified by martin53 for AviSynth 2.6 and later modified by Ferenc Pintér aka pinterf for further improvement, high bit depth, and more. Kudos to them for creating and improving this fantastic tool.
 
-In this project, legacy format like YUY2 has been removed, legacy parameters like multiplane has been removed, and SIMD code has been completely re-written for all core parts of the code. Due to API change, the project has been renamed from FFT3DFilter to Neo_FFT3D to avoid confusion. SSE is required to run optimized routine.
+In this project, legacy format like YUY2 has been removed, legacy parameter like multiplane has been removed, and SIMD code has been completely re-written for all core parts of the code. Due to API change, the project has been renamed from FFT3DFilter to Neo_FFT3D to avoid confusion. SSE is required to run optimized routine. AVX routine is also available.
 
 
 ## Usage
