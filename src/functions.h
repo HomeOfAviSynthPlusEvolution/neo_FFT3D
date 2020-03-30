@@ -27,6 +27,16 @@ struct FilterFunctionPointers {
     void (*Sharpen_SSE2_Dispatch)(fftwf_complex *, SharedFunctionParams);
     void (*Kalman_SSE2_Dispatch)(fftwf_complex *, fftwf_complex *, SharedFunctionParams);
 
+  // SSE2
+    void (*Apply2D_AVX_Dispatch)(fftwf_complex *, SharedFunctionParams);
+    Apply3D_PROC Apply3D_AVX_Dispatch;
+    Apply3D_PROC Apply3D2_AVX_Dispatch;
+    Apply3D_PROC Apply3D3_AVX_Dispatch;
+    Apply3D_PROC Apply3D4_AVX_Dispatch;
+    Apply3D_PROC Apply3D5_AVX_Dispatch;
+    void (*Sharpen_AVX_Dispatch)(fftwf_complex *, SharedFunctionParams);
+    void (*Kalman_AVX_Dispatch)(fftwf_complex *, fftwf_complex *, SharedFunctionParams);
+
   // Dispatcher -> [C / SSE2 / AVX]
     void (*Apply2D)(fftwf_complex *, SharedFunctionParams);
     Apply3D_PROC Apply3D;
@@ -48,6 +58,12 @@ struct FilterFunctionPointers {
       Apply3D3_SSE2_Dispatch = Apply3D3_SSE2<false, true>;
       Apply3D4_SSE2_Dispatch = Apply3D4_SSE2<false, true>;
       Apply3D5_SSE2_Dispatch = Apply3D5_SSE2<false, true>;
+
+      Apply2D_AVX_Dispatch = Apply2D_AVX<false, true>;
+      Apply3D2_AVX_Dispatch = Apply3D2_AVX<false, true>;
+      Apply3D3_AVX_Dispatch = Apply3D3_AVX<false, true>;
+      Apply3D4_AVX_Dispatch = Apply3D4_AVX<false, true>;
+      Apply3D5_AVX_Dispatch = Apply3D5_AVX<false, true>;
     }
     else if (degrid == 0 && pfactor == 0) {
       Apply2D_C_Dispatch = Apply2D_C<false, false>;;
@@ -61,6 +77,12 @@ struct FilterFunctionPointers {
       Apply3D3_SSE2_Dispatch = Apply3D3_SSE2<false, false>;
       Apply3D4_SSE2_Dispatch = Apply3D4_SSE2<false, false>;
       Apply3D5_SSE2_Dispatch = Apply3D5_SSE2<false, false>;
+
+      Apply2D_AVX_Dispatch = Apply2D_AVX<false, false>;
+      Apply3D2_AVX_Dispatch = Apply3D2_AVX<false, false>;
+      Apply3D3_AVX_Dispatch = Apply3D3_AVX<false, false>;
+      Apply3D4_AVX_Dispatch = Apply3D4_AVX<false, false>;
+      Apply3D5_AVX_Dispatch = Apply3D5_AVX<false, false>;
     }
     else if (degrid != 0 && pfactor != 0) {
       Apply2D_C_Dispatch = Apply2D_C<true, true>;;
@@ -74,6 +96,12 @@ struct FilterFunctionPointers {
       Apply3D3_SSE2_Dispatch = Apply3D3_SSE2<true, true>;
       Apply3D4_SSE2_Dispatch = Apply3D4_SSE2<true, true>;
       Apply3D5_SSE2_Dispatch = Apply3D5_SSE2<true, true>;
+
+      Apply2D_AVX_Dispatch = Apply2D_AVX<true, true>;
+      Apply3D2_AVX_Dispatch = Apply3D2_AVX<true, true>;
+      Apply3D3_AVX_Dispatch = Apply3D3_AVX<true, true>;
+      Apply3D4_AVX_Dispatch = Apply3D4_AVX<true, true>;
+      Apply3D5_AVX_Dispatch = Apply3D5_AVX<true, true>;
     }
     else if (degrid == 0 && pfactor != 0) {
       Apply2D_C_Dispatch = Apply2D_C<true, false>;;
@@ -87,42 +115,56 @@ struct FilterFunctionPointers {
       Apply3D3_SSE2_Dispatch = Apply3D3_SSE2<true, false>;
       Apply3D4_SSE2_Dispatch = Apply3D4_SSE2<true, false>;
       Apply3D5_SSE2_Dispatch = Apply3D5_SSE2<true, false>;
+
+      Apply2D_AVX_Dispatch = Apply2D_AVX<true, false>;
+      Apply3D2_AVX_Dispatch = Apply3D2_AVX<true, false>;
+      Apply3D3_AVX_Dispatch = Apply3D3_AVX<true, false>;
+      Apply3D4_AVX_Dispatch = Apply3D4_AVX<true, false>;
+      Apply3D5_AVX_Dispatch = Apply3D5_AVX<true, false>;
     }
 
     if (degrid != 0) {
       Sharpen_C_Dispatch = Sharpen_C<true>;
       Sharpen_SSE2_Dispatch = Sharpen_SSE2<true>;
+      Sharpen_AVX_Dispatch = Sharpen_AVX<true>;
     }
     else {
       Sharpen_C_Dispatch = Sharpen_C<false>;
       Sharpen_SSE2_Dispatch = Sharpen_SSE2<false>;
+      Sharpen_AVX_Dispatch = Sharpen_AVX<false>;
     }
 
     if (pfactor != 0) {
       Kalman_C_Dispatch = Kalman_C<true>;
       Kalman_SSE2_Dispatch = Kalman_SSE2<true>;
+      Kalman_AVX_Dispatch = Kalman_AVX<true>;
     }
     else {
       Kalman_C_Dispatch = Kalman_C<false>;
       Kalman_SSE2_Dispatch = Kalman_SSE2<false>;
+      Kalman_AVX_Dispatch = Kalman_AVX<false>;
     }
 
     switch(bt) {
       case 2:
         Apply3D_C_Dispatch = Apply3D2_C_Dispatch;
         Apply3D_SSE2_Dispatch = Apply3D2_SSE2_Dispatch;
+        Apply3D_AVX_Dispatch = Apply3D2_AVX_Dispatch;
         break;
       case 3:
         Apply3D_C_Dispatch = Apply3D3_C_Dispatch;
         Apply3D_SSE2_Dispatch = Apply3D3_SSE2_Dispatch;
+        Apply3D_AVX_Dispatch = Apply3D3_AVX_Dispatch;
         break;
       case 4:
         Apply3D_C_Dispatch = Apply3D4_C_Dispatch;
         Apply3D_SSE2_Dispatch = Apply3D4_SSE2_Dispatch;
+        Apply3D_AVX_Dispatch = Apply3D4_AVX_Dispatch;
         break;
       case 5:
         Apply3D_C_Dispatch = Apply3D5_C_Dispatch;
         Apply3D_SSE2_Dispatch = Apply3D5_SSE2_Dispatch;
+        Apply3D_AVX_Dispatch = Apply3D5_AVX_Dispatch;
         break;
     }
 
@@ -138,6 +180,12 @@ struct FilterFunctionPointers {
       Apply3D = Apply3D_SSE2_Dispatch;
       Sharpen = Sharpen_SSE2_Dispatch;
       Kalman = Kalman_SSE2_Dispatch;
+    }
+    if (CPUFlags & CPUF_AVX) {
+      Apply2D = Apply2D_AVX_Dispatch;
+      Apply3D = Apply3D_AVX_Dispatch;
+      Sharpen = Sharpen_AVX_Dispatch;
+      Kalman = Kalman_AVX_Dispatch;
     }
   }
 };
