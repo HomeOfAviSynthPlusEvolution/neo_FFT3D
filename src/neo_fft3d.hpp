@@ -24,13 +24,11 @@ protected:
   EngineParams* ep;
 
 public:
-  virtual const char* name() const override { return "neo_FFT3D"; }
+  virtual const char* name() const override { return "Neo_FFT3D"; }
   virtual void initialize() override {
     engine_count = 0;
     copy_count = 0;
     planes = 3;
-    this->bit_per_channel = this->vi.BitsPerComponent();
-    this->byte_per_channel = this->vi.ComponentSize();
 
     // Check input
     if (!this->vi.HasVideo())
@@ -75,10 +73,30 @@ public:
       this->ArgAsInt(  37, "r", (0)),
       this->ArgAsInt(  38, "b", (0))
     };
-    process[0] = this->ArgAsInt(32, "y", 3);
-    process[1] = this->ArgAsInt(33, "u", 3);
-    process[2] = this->ArgAsInt(34, "v", 3);
-    process[3] = 2;
+
+    ep->bit_per_channel = this->bit_per_channel = this->vi.BitsPerComponent();
+    ep->byte_per_channel = this->byte_per_channel = this->vi.ComponentSize();
+    ep->IsYUV = this->vi.IsYUV();
+    ep->IsY8 = this->vi.IsY8();
+    ep->IsRGB = !ep->IsYUV && !ep->IsY8;
+    ep->ssw = this->ssw();
+    ep->ssh = this->ssh();
+    ep->frames = this->frames();
+
+    #ifdef __VS_FILTER_HPP__
+      int m = this->_vsapi->propNumElements(this->_in, "planes");
+      for (int i = 0; i < m; i++) {
+        int pid = int64ToIntS(this->_vsapi->propGetInt(this->_in, "planes", i, 0));
+        if (pid < 3)
+          process[pid] = 3;
+      }
+    #endif
+    #ifdef __AVS_FILTER_HPP__
+      process[0] = this->ArgAsInt(32, "y", 3);
+      process[1] = this->ArgAsInt(33, "u", 3);
+      process[2] = this->ArgAsInt(34, "v", 3);
+      process[3] = 2;
+    #endif
 
     if (this->vi.IsY8()) planes = 1;
     else if (this->vi.IsYUVA()) planes = 4;
@@ -91,6 +109,7 @@ public:
     for (int i = 0; i < 4; i++) {
       plane_index[i] = planes[i];
       if (process[i] == 3) {
+        ep->IsChroma = ep->IsYUV && planes[i] != PLANAR_Y;
         engine[i] = new FFT3DEngine<Interface>(this, *ep, planes[i]);
         engine_count++;
       }
@@ -100,8 +119,7 @@ public:
     }
   }
 
-  virtual typename Interface::AFrame get(int n) override {
-  // virtual auto get(int n) -> decltype(Interface::get(n)) {
+  virtual typename Interface::Frametype get(int n) {
     if (engine_count == 1 && copy_count == 0)
       for (int i = 0; i < planes; i++)
         if (process[i] == 3)
@@ -121,7 +139,7 @@ public:
       else
         continue;
       auto idx = plane_index[i];
-      memcpy(dst->GetWritePtr(idx), frame->GetReadPtr(idx), frame->GetPitch(idx) * frame->GetHeight(idx));
+      memcpy(dst->GetWritePtr(idx), frame->GetReadPtr(idx), this->stride(frame, idx) * this->height(frame, idx));
       if (frame != src)
         this->FreeFrame(frame);
     }
@@ -130,10 +148,12 @@ public:
     return dst;
   }
 
+  #ifdef __AVS_FILTER_HPP__
   // Auto register AVS+ mode: serialized
-  int __stdcall SetCacheHints(int cachehints, int frame_range) override {
+  int __stdcall SetCacheHints(int cachehints, int frame_range) {
     return cachehints == CACHE_GET_MTMODE ? (ep->bt==0 ? MT_SERIALIZED : MT_MULTI_INSTANCE) : 0;
   }
+  #endif
 
   ~FFT3D() {
     for (int i = 0; i < planes; i++)

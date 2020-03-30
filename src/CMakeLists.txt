@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 3.1)
 project (neo_fft3d)
 file(GLOB CODE_IMPL "code_impl/*.cpp")
-add_library(neo-fft3d SHARED avs_interface.cpp FFT3DEngine.cpp helper.cpp cpuid.cpp info.cpp version.rc ${CODE_IMPL})
+add_library(neo-fft3d SHARED avs_interface.cpp vs_interface.cpp buffer.cpp helper.cpp cpuid.cpp version.rc ${CODE_IMPL})
 
 find_package(Git REQUIRED)
 execute_process(COMMAND ${GIT_EXECUTABLE} describe --first-parent --tags --always OUTPUT_VARIABLE GIT_REPO_VERSION)

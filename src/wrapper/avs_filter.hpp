@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __AVS_FILTER_HPP__
+#define __AVS_FILTER_HPP__
 
 #include <avisynth.h>
 
@@ -6,6 +7,7 @@ class AVSFilter : public IClip {
 public:
   typedef class ::PClip AClip;
   typedef class ::PVideoFrame AFrame;
+  using Frametype = AFrame;
   PClip child;
   VideoInfo vi;
 protected:
@@ -61,7 +63,6 @@ public:
   int ssw(int plane) const { return vi.GetPlaneWidthSubsampling(plane); }
   int ssh(int plane) const { return vi.GetPlaneHeightSubsampling(plane); }
 
-
   int stride(PVideoFrame& frame, int plane) const { return frame->GetPitch(plane); }
   int width (PVideoFrame& frame, int plane) const { return frame->GetRowSize(plane) / byte_per_channel; }
   int height(PVideoFrame& frame, int plane) const { return frame->GetHeight(plane); }
@@ -96,3 +97,5 @@ public:
   int __stdcall SetCacheHints(int cachehints, int frame_range) { return 0; } ;
 
 };
+
+#endif

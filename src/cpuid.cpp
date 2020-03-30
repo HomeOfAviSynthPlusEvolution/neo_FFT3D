@@ -25,7 +25,6 @@
 #include <intrin.h>
 #else
 #include <x86intrin.h>
-#include <cpuid.h>
 #undef __cpuid
 
 static inline void __cpuid(int cpuinfo[4], int leaf) {
