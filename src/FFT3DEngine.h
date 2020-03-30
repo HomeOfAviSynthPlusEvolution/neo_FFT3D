@@ -7,6 +7,8 @@
 #include "buffer.h"
 #include "cache.hpp"
 #include <atomic>
+#include <mutex>
+#include <unordered_map>
 
 template <typename Interface>
 class FFT3DEngine {
@@ -16,13 +18,11 @@ class FFT3DEngine {
   int plane; // color plane
 
   // additional parameterss
-  float *in;
-  fftwf_complex *out, *outprev, *outnext, *outtemp, *outprev2, *outnext2;
-  fftwf_complex *outrez, *gridsample; //v1.8
+  fftwf_complex *gridsample; //v1.8
   fftwf_plan plan, planinv, plan1;
   int outwidth;
   int outpitch; //v.1.7
-
+  int insize;
   int outsize;
   int howmanyblocks;
 
@@ -46,7 +46,6 @@ class FFT3DEngine {
   float ht2n; // halo threshold squared normed
   float norm; // normalization factor
 
-  BYTE *coverbuf; //  block buffer covering the frame without remainders (with sufficient width and heigth)
   int coverwidth;
   int coverheight;
   int coverpitch;
@@ -73,17 +72,19 @@ class FFT3DEngine {
   int cachesize;//v1.8
   cache<fftwf_complex> *fftcache;
 
-  int _instance_id; // debug unique id
-  std::atomic<bool> reentrancy_check;
+  std::mutex fft_mutex;
+  std::mutex cache_mutex;
+  std::mutex buffer_mutex;
+
+  std::unordered_map<std::thread::id, float *> mt_in;
+  std::unordered_map<std::thread::id, fftwf_complex *> mt_out;
+  std::unordered_map<std::thread::id, byte *> mt_coverbuf;
 
   struct FilterFunctionPointers ffp;
 
 public:
   FFT3DEngine(Interface* _super, EngineParams _ep, int _plane) :
   super(_super), ep(new EngineParams(_ep)), plane(_plane), iop(new IOParams()) {
-    static int id = 0; _instance_id = id++;
-    reentrancy_check = false;
-
     int i, j;
 
     float factor;
@@ -132,10 +133,8 @@ public:
     coverwidth = iop->nox*(ep->bw - ep->ow) + ep->ow;
     coverheight = iop->noy*(ep->bh - ep->oh) + ep->oh;
     coverpitch = ((coverwidth + 15) / 16) * 16; // align to 16 elements. Pitch is element-granularity. For byte pitch, multiply is by pixelsize
-    coverbuf = (byte*)malloc(coverheight*coverpitch*ep->byte_per_channel);
 
-    int insize = ep->bw*ep->bh*iop->nox*iop->noy;
-    in = (float *)fftfp.fftwf_malloc(sizeof(float) * insize);
+    insize = ep->bw*ep->bh*iop->nox*iop->noy;
     outwidth = ep->bw / 2 + 1; // width (pitch) of complex fft block
     outpitch = ((outwidth + 3) / 4) * 4; // must be even for SSE - v1.7
     outsize = outpitch*ep->bh*iop->nox*iop->noy; // replace outwidth to outpitch here and below in v1.7
@@ -145,11 +144,15 @@ public:
       covar = (fftwf_complex *)fftfp.fftwf_malloc(sizeof(fftwf_complex) * outsize);
       covarProcess = (fftwf_complex *)fftfp.fftwf_malloc(sizeof(fftwf_complex) * outsize);
     }
-    outrez = (fftwf_complex *)fftfp.fftwf_malloc(sizeof(fftwf_complex) * outsize); //v1.8
+    // in and out are thread dependent now // neo-r1
+    auto in = (float *)fftfp.fftwf_malloc(sizeof(float) * insize);
+    auto outrez = (fftwf_complex *)fftfp.fftwf_malloc(sizeof(fftwf_complex) * outsize); //v1.8
     gridsample = (fftwf_complex *)fftfp.fftwf_malloc(sizeof(fftwf_complex) * outsize); //v1.8
 
-    cachesize = ep->bt + 4;
-    fftcache = new cache<fftwf_complex>(cachesize, outsize, fftfp.fftwf_malloc, fftfp.fftwf_free);
+    cachesize = ep->bt + 8; // extra cache to work with MT
+    fftcache = NULL;
+    if (ep->bt > 1)
+      fftcache = new cache<fftwf_complex>(cachesize, outsize, fftfp.fftwf_malloc, fftfp.fftwf_free);
 
     int planFlags;
     // use FFTW_ESTIMATE or FFTW_MEASURE (more optimal plan, but with time calculation at load stage)
@@ -390,6 +393,7 @@ public:
     plan1 = fftfp.fftwf_plan_many_dft_r2c(rank, ndim, 1,
       in, inembed, istride, idist, outrez, onembed, ostride, odist, planFlags); // 1 block
 
+    byte* coverbuf = new byte[coverheight*coverpitch*ep->byte_per_channel];
     // avs+
     switch (ep->byte_per_channel) {
     case 1: memset(coverbuf, 255, coverheight*coverpitch); 
@@ -400,6 +404,7 @@ public:
       break; // 255 
     }
     CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, false);
+    delete[] coverbuf;
     // make FFT 2D
     fftfp.fftwf_execute_dft_r2c(plan1, in, gridsample);
 
@@ -411,7 +416,6 @@ public:
     fftfp.fftwf_destroy_plan(plan);
     fftfp.fftwf_destroy_plan(plan1);
     fftfp.fftwf_destroy_plan(planinv);
-    fftfp.fftwf_free(in);
     //	fftfp.fftwf_free(out);
     delete[] iop->wanxl;
     delete[] iop->wanxr;
@@ -426,111 +430,129 @@ public:
     delete[] pwin;
     fftfp.fftwf_free(pattern2d);
     fftfp.fftwf_free(pattern3d);
-    fftfp.fftwf_free(outrez);
     if (ep->bt == 0) // Kalman
     {
       fftfp.fftwf_free(outLast);
       fftfp.fftwf_free(covar);
       fftfp.fftwf_free(covarProcess);
     }
-    free(coverbuf);
     delete fftcache;
     delete ep;
     delete iop;
     fftfp.fftwf_free(gridsample); //fixed memory leakage in v1.8.5
+    for (auto it : mt_in)
+      fftfp.fftwf_free(it.second);
+    for (auto it : mt_out)
+      fftfp.fftwf_free(it.second);
+    for (auto it : mt_coverbuf)
+      delete[] it.second;
 
     fftfp.free();
     free(messagebuf); //v1.8.5
   }
 
   typename Interface::Frametype GetFrame(int n) {
-
+    auto thread_id = std::this_thread::get_id();
     typename Interface::Frametype src, psrc, dst;
     int pxf, pyf;
+
+    byte* coverbuf;
+    float *in;
+    fftwf_complex *outrez;
+    {
+      std::lock_guard<std::mutex> lock(buffer_mutex);
+      if (mt_coverbuf.find(thread_id) != mt_coverbuf.end()) {
+        coverbuf = mt_coverbuf.find(thread_id)->second;
+        in = mt_in.find(thread_id)->second;
+        outrez = mt_out.find(thread_id)->second;
+      }
+      else {
+        mt_coverbuf[thread_id] = coverbuf = new byte[coverheight*coverpitch*ep->byte_per_channel];
+        mt_in[thread_id] = in = (float *)fftfp.fftwf_malloc(sizeof(float) * insize);
+        mt_out[thread_id] = outrez = (fftwf_complex *)fftfp.fftwf_malloc(sizeof(fftwf_complex) * outsize);
+      }
+    }
     //	char debugbuf[1536];
     //	wsprintf(debugbuf,"FFT3DFilter: n=%d \n", n);
     //	OutputDebugString(debugbuf);
     //	fftwf_complex * tmpoutrez, *tmpoutnext, *tmpoutprev, *tmpoutnext2; // store pointers
-    if (reentrancy_check) {
-      throw("cannot work in reentrant multithread mode!");
-    }
-    reentrancy_check = true;
 
-    if (ep->pfactor != 0 && isPatternSet == false && ep->pshow == false) // get noise pattern
     {
-      psrc = super->GetFrame(super->child, ep->pframe); // get noise patterme
-      auto sptr = psrc->GetReadPtr(plane);
-      ep->framewidth = super->width(psrc, plane);
-      ep->frameheight = super->height(psrc, plane);
-      ep->framepitch = super->stride(psrc, plane) / ep->byte_per_channel;
-
-      // put source bytes to float array of overlapped blocks
-      FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
-      CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
-      // make FFT 2D
-      fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
-      if (ep->px == 0 && ep->py == 0) // try find pattern block with minimal noise sigma
-        FindPatternBlock(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin, ep->degrid, gridsample);
-      SetPattern(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin, pattern2d, psigma, ep->degrid, gridsample);
-      isPatternSet = true;
-    }
-    else if (ep->pfactor != 0 && ep->pshow == true)
-    {
-      // show noise pattern window
-      src = super->GetFrame(super->child, n); // get noise pattern frame
-      dst = super->NewVideoFrame();
-      auto sptr = src->GetReadPtr(plane);
-      auto dptr = dst->GetWritePtr(plane);
-      ep->framewidth = super->width(src, plane);
-      ep->frameheight = super->height(src, plane);
-      ep->framepitch = super->stride(src, plane) / ep->byte_per_channel;
-      // TODO: CopyFrame(src, dst, vi, plane, env);
-
-      // put source bytes to float array of overlapped blocks
-      FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
-      CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
-      // make FFT 2D
-      fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
-      if (ep->px == 0 && ep->py == 0) // try find pattern block with minimal noise sigma
-        FindPatternBlock(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf, pwin, ep->degrid, gridsample);
-      else
+      std::lock_guard<std::mutex> guard(fft_mutex);
+      if (ep->pfactor != 0 && isPatternSet == false && ep->pshow == false) // get noise pattern
       {
-        pxf = ep->px; // fixed bug in v1.6
-        pyf = ep->py;
+        psrc = super->GetFrame(super->child, ep->pframe); // get noise patterme
+        auto sptr = psrc->GetReadPtr(plane);
+        ep->framewidth = super->width(psrc, plane);
+        ep->frameheight = super->height(psrc, plane);
+        ep->framepitch = super->stride(psrc, plane) / ep->byte_per_channel;
+
+        // put source bytes to float array of overlapped blocks
+        FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
+        CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
+        fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
+        if (ep->px == 0 && ep->py == 0) // try find pattern block with minimal noise sigma
+          FindPatternBlock(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin, ep->degrid, gridsample);
+        SetPattern(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin, pattern2d, psigma, ep->degrid, gridsample);
+        isPatternSet = true;
       }
-      SetPattern(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf, pwin, pattern2d, psigma, ep->degrid, gridsample);
+      else if (ep->pfactor != 0 && ep->pshow == true)
+      {
+        // show noise pattern window
+        src = super->GetFrame(super->child, n); // get noise pattern frame
+        dst = super->NewVideoFrame();
+        auto sptr = src->GetReadPtr(plane);
+        auto dptr = dst->GetWritePtr(plane);
+        ep->framewidth = super->width(src, plane);
+        ep->frameheight = super->height(src, plane);
+        ep->framepitch = super->stride(src, plane) / ep->byte_per_channel;
+        // TODO: CopyFrame(src, dst, vi, plane, env);
 
-      // change analysis and synthesis window to constant to show
-      std::fill_n(iop->wanxl, ep->ow, 1.0f);
-      std::fill_n(iop->wanxr, ep->ow, 1.0f);
-      std::fill_n(iop->wsynxl, ep->ow, 1.0f);
-      std::fill_n(iop->wsynxr, ep->ow, 1.0f);
-      std::fill_n(iop->wanyl, ep->oh, 1.0f);
-      std::fill_n(iop->wanyr, ep->oh, 1.0f);
-      std::fill_n(iop->wsynyl, ep->oh, 1.0f);
-      std::fill_n(iop->wsynyr, ep->oh, 1.0f);
+        // put source bytes to float array of overlapped blocks
+        FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
+        CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
+        // make FFT 2D
+        fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
+        if (ep->px == 0 && ep->py == 0) // try find pattern block with minimal noise sigma
+          FindPatternBlock(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf, pwin, ep->degrid, gridsample);
+        else
+        {
+          pxf = ep->px; // fixed bug in v1.6
+          pyf = ep->py;
+        }
+        SetPattern(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf, pwin, pattern2d, psigma, ep->degrid, gridsample);
 
-      // put source bytes to float array of overlapped blocks
-      // cur frame
-      FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
-      CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, !ep->IsRGB);
-      // make FFT 2D
-      fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
+        // change analysis and synthesis window to constant to show
+        std::fill_n(iop->wanxl, ep->ow, 1.0f);
+        std::fill_n(iop->wanxr, ep->ow, 1.0f);
+        std::fill_n(iop->wsynxl, ep->ow, 1.0f);
+        std::fill_n(iop->wsynxr, ep->ow, 1.0f);
+        std::fill_n(iop->wanyl, ep->oh, 1.0f);
+        std::fill_n(iop->wanyr, ep->oh, 1.0f);
+        std::fill_n(iop->wsynyl, ep->oh, 1.0f);
+        std::fill_n(iop->wsynyr, ep->oh, 1.0f);
 
-      PutPatternOnly(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf);
-      // do inverse 2D FFT, get filtered 'in' array
-      fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
+        // put source bytes to float array of overlapped blocks
+        // cur frame
+        FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
+        CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, !ep->IsRGB);
+        // make FFT 2D
+        fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
 
-      // make destination frame plane from current overlaped blocks
-      OverlapToCover(ep, iop, in, norm, coverbuf, coverwidth, coverpitch, !ep->IsRGB);
-      CoverToFrame(ep, plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
-      int psigmaint = ((int)(10 * psigma)) / 10;
-      int psigmadec = (int)((psigma - psigmaint) * 10);
-      wsprintf(messagebuf, " frame=%d, px=%d, py=%d, sigma=%d.%d", n, pxf, pyf, psigmaint, psigmadec);
-      // TODO: DrawString(dst, vi, 0, 0, messagebuf);
+        PutPatternOnly(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf);
+        // do inverse 2D FFT, get filtered 'in' array
+        fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
 
-      reentrancy_check = false;
-      return dst; // return pattern frame to show
+        // make destination frame plane from current overlaped blocks
+        OverlapToCover(ep, iop, in, norm, coverbuf, coverwidth, coverpitch, !ep->IsRGB);
+        CoverToFrame(ep, plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
+        int psigmaint = ((int)(10 * psigma)) / 10;
+        int psigmadec = (int)((psigma - psigmaint) * 10);
+        wsprintf(messagebuf, " frame=%d, px=%d, py=%d, sigma=%d.%d", n, pxf, pyf, psigmaint, psigmadec);
+        // TODO: DrawString(dst, vi, 0, 0, messagebuf);
+
+        return dst; // return pattern frame to show
+      }
     }
 
     // Request frame 'n' from the child (source) clip.
@@ -576,22 +598,31 @@ public:
 
     if (btcur > 0) // Wiener
     {
-      if (btcur != btcurlast) // !! global state, multithreading warning
-        Pattern2Dto3D(pattern2d, ep->bh, outwidth, outpitch, (float)btcur, pattern3d);
-
       if (btcur == 1) // 2D
       {
         // cur frame
         FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
         CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
-              // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
+        {
+          std::lock_guard<std::mutex> lock(fft_mutex);
+                // make FFT 2D
+          fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
+        }
         ffp.Apply2D(outrez, sfp);
         if (ep->pfactor != 0)
           ffp.Sharpen(outrez, sfp);
       }
       else // 3D
       {
+        static bool pattern3d_initialized = false;
+        static std::mutex init3d_mutex;
+        if (!pattern3d_initialized) {
+          std::lock_guard<std::mutex> lock(init3d_mutex);
+          if (!pattern3d_initialized)
+            Pattern2Dto3D(pattern2d, ep->bh, outwidth, outpitch, (float)btcur, pattern3d);
+          pattern3d_initialized = true;
+        }
+
         int from = -btcur / 2;
         int to = (btcur - 1) / 2;
         /* apply_in[]
@@ -607,14 +638,17 @@ public:
         */
         for (auto i = from; i <= to; i++)
         {
+          std::lock_guard<std::mutex> lock1(cache_mutex);
           if (fftcache->exists(n+i)) {
             apply_in[2+i] = fftcache->get_read(n+i);
           }
           else {
             apply_in[2+i] = fftcache->get_write(n+i);
             auto frame = i == 0 ? src : super->GetFrame(super->child, n+i);
-            FrameToCover(ep, plane, frame->GetReadPtr(), coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
+            FrameToCover(ep, plane, frame->GetReadPtr(plane), coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
             CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
+
+            std::lock_guard<std::mutex> lock2(fft_mutex);
             fftfp.fftwf_execute_dft_r2c(plan, in, apply_in[2+i]);
             if (i != 0) super->FreeFrame(frame);
           }
@@ -624,17 +658,18 @@ public:
         ffp.Sharpen(outrez, sfp);
       }
 
-      // do inverse FFT, get filtered 'in' array
-      fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
-      // make destination frame plane from current overlaped blocks
+      {
+        std::lock_guard<std::mutex> lock(fft_mutex);
+        // do inverse FFT, get filtered 'in' array
+        fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
+        // make destination frame plane from current overlaped blocks
+      }
       OverlapToCover(ep, iop, in, norm, coverbuf, coverwidth, coverpitch, ep->IsChroma);
       CoverToFrame(ep, plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
     }
     else if (ep->bt == 0) //Kalman filter
     {
-      if (n == 0)
-      {
-        reentrancy_check = false;
+      if (n == 0) {
         return src; // first frame  not processed
       }
       /* PF 170302 comment: accumulated error?
@@ -647,34 +682,44 @@ public:
       // cur frame
       FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
       CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
-      // make FFT 2D
-      fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
+      {
+        std::lock_guard<std::mutex> lock(fft_mutex);
+        // make FFT 2D
+        fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
+      }
       ffp.Kalman(outrez, outLast, sfp);
 
       // copy outLast to outrez
       memcpy(outrez, outLast, outsize * sizeof(fftwf_complex));  //v.0.9.2
       ffp.Sharpen(outrez, sfp);
-      // do inverse FFT 2D, get filtered 'in' array
-      // note: input "out" array is destroyed by execute algo.
-      // that is why we must have its copy in "outLast" array
-      fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
-      // make destination frame plane from current overlaped blocks
+      {
+        std::lock_guard<std::mutex> lock(fft_mutex);
+        // do inverse FFT 2D, get filtered 'in' array
+        // note: input "out" array is destroyed by execute algo.
+        // that is why we must have its copy in "outLast" array
+        fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
+        // make destination frame plane from current overlaped blocks
+      }
       OverlapToCover(ep, iop, in, norm, coverbuf, coverwidth, coverpitch, ep->IsChroma);
       CoverToFrame(ep, plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
 
     }
     else if (ep->bt == -1) /// sharpen only
     {
-      //		env->MakeWritable(&src);
-          // put source bytes to float array of overlapped blocks
       FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
       CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
-      // make FFT 2D
-      fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
+      {
+        std::lock_guard<std::mutex> lock(fft_mutex);
+        // make FFT 2D
+        fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
+      }
       ffp.Sharpen(outrez, sfp);
-      // do inverse FFT 2D, get filtered 'in' array
-      fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
-      // make destination frame plane from current overlaped blocks
+      {
+        std::lock_guard<std::mutex> lock(fft_mutex);
+        // do inverse FFT 2D, get filtered 'in' array
+        fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
+        // make destination frame plane from current overlaped blocks
+      }
       OverlapToCover(ep, iop, in, norm, coverbuf, coverwidth, coverpitch, ep->IsChroma);
       CoverToFrame(ep, plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
 
@@ -687,7 +732,6 @@ public:
     btcurlast = btcur;
 
     // As we now are finished processing the image, we return the destination image.
-    reentrancy_check = false;
     return dst;
   }
 };

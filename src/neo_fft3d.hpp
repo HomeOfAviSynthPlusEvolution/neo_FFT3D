@@ -24,6 +24,7 @@ protected:
   EngineParams* ep;
 
 public:
+  int bt;
   virtual const char* name() const override { return "Neo_FFT3D"; }
   virtual void initialize() override {
     engine_count = 0;
@@ -42,6 +43,7 @@ public:
       this->ArgAsFloat( 2, "beta", (1.0f)), // beta
       this->ArgAsInt(   4, "bw", (32)), // bw - changed default from 48 to 32 in v.1.9.2
       this->ArgAsInt(   5, "bh", (32)), // bh - changed default from 48 to 32 in v.1.9.2
+      this->bt =
       this->ArgAsInt(   6, "bt", (3)), //  bt (=0 for Kalman mode) // new default=3 in v.0.9.3
       this->ArgAsInt(   7, "ow", (-1)), //  ow
       this->ArgAsInt(   8, "oh", (-1)), //  oh
@@ -151,7 +153,7 @@ public:
   #ifdef __AVS_FILTER_HPP__
   // Auto register AVS+ mode: serialized
   int __stdcall SetCacheHints(int cachehints, int frame_range) {
-    return cachehints == CACHE_GET_MTMODE ? (ep->bt==0 ? MT_SERIALIZED : MT_MULTI_INSTANCE) : 0;
+    return cachehints == CACHE_GET_MTMODE ? (ep->bt==0 ? MT_SERIALIZED : MT_NICE_FILTER) : 0;
   }
   #endif
 

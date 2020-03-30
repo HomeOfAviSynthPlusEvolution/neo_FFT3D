@@ -20,9 +20,10 @@ pluginFree(void *instanceData, VSCore *core, const VSAPI *vsapi)
 const VSFrameRef *VS_CC
 pluginGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
 {
-  VSFilter *d = *reinterpret_cast<VSFilter**>(instanceData);
+  FFT3D<VSFilter> *d = *reinterpret_cast<FFT3D<VSFilter>**>(instanceData);
+  static int to = (d->bt - 1) / 2;
   if (activationReason == arInitial) {
-    d->GetFramePre(frameCtx, core, vsapi, n);
+    d->GetFramePre(frameCtx, core, vsapi, n + to);
     return nullptr;
   }
   if (activationReason != arAllFramesReady)
@@ -38,7 +39,7 @@ pluginCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VS
   try {
     data = new FFT3D<VSFilter>(in, out, core, vsapi);
     data->initialize();
-    vsapi->createFilter(in, out, "FFT3D", pluginInit, pluginGetFrame, pluginFree, fmSerial, 0, data, core);
+    vsapi->createFilter(in, out, "FFT3D", pluginInit, pluginGetFrame, pluginFree, data->bt == 0 ? fmSerial : fmParallelRequests, 0, data, core);
   }
   catch(const char *err){
     char msg_buff[256];
