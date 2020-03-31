@@ -496,6 +496,7 @@ public:
           FindPatternBlock(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin, ep->degrid, gridsample);
         SetPattern(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin, pattern2d, psigma, ep->degrid, gridsample);
         isPatternSet = true;
+        super->FreeFrame(psrc);
       }
       else if (ep->pfactor != 0 && ep->pshow == true)
       {
@@ -551,7 +552,7 @@ public:
         int psigmadec = (int)((psigma - psigmaint) * 10);
         wsprintf(messagebuf, " frame=%d, px=%d, py=%d, sigma=%d.%d", n, pxf, pyf, psigmaint, psigmadec);
         // TODO: DrawString(dst, vi, 0, 0, messagebuf);
-
+        super->FreeFrame(src);
         return dst; // return pattern frame to show
       }
     }
@@ -671,6 +672,7 @@ public:
     else if (ep->bt == 0) //Kalman filter
     {
       if (n == 0) {
+        super->FreeFrame(dst);
         return src; // first frame  not processed
       }
       /* PF 170302 comment: accumulated error?
@@ -732,6 +734,7 @@ public:
     }
     btcurlast = btcur;
 
+    super->FreeFrame(src);
     // As we now are finished processing the image, we return the destination image.
     return dst;
   }

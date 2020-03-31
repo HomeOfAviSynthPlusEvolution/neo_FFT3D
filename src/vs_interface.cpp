@@ -52,7 +52,7 @@ VS_EXTERNAL_API(void)
 VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegisterFunction registerFunc, VSPlugin *plugin)
 {
   configFunc("in.7086.neo_fft3d", "neo_fft3d",
-    "VapourSynth DelogoHD Filter " PLUGIN_VERSION,
+    "VapourSynth Neo FFT3D Filter " PLUGIN_VERSION,
     VAPOURSYNTH_API_VERSION, 1, plugin);
   const char * options =
     "clip:clip;sigma:float:opt;beta:float:opt;planes:int[]:opt;bw:int:opt;bh:int:opt;bt:int:opt;ow:int:opt;oh:int:opt;"
@@ -63,5 +63,5 @@ VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegisterFunction registerFunc
     "dehalo:float:opt;hr:float:opt;ht:float:opt;ncpu:int:opt;"
     "l:int:opt;t:int:opt;r:int:opt;b:int:opt;"
     ;
-  registerFunc("DelogoHD", options, pluginCreate, nullptr, plugin);
+  registerFunc("FFT3D", options, pluginCreate, nullptr, plugin);
 }

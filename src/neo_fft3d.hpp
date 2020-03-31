@@ -95,6 +95,10 @@ public:
       throw "Height cannot be cropped to zero or below";
 
     #ifdef __VS_FILTER_HPP__
+      process[0] =
+      process[1] =
+      process[2] = 3;
+      process[3] = 2;
       int m = this->_vsapi->propNumElements(this->_in, "planes");
       for (int i = 0; i < m; i++) {
         int pid = int64ToIntS(this->_vsapi->propGetInt(this->_in, "planes", i, 0));
@@ -174,6 +178,7 @@ public:
     for (int i = 0; i < planes; i++)
       if (process[i] == 3)
         delete engine[i];
+    delete ep;
   }
 
   void copy_frame(typename Interface::Frametype &dst, typename Interface::Frametype &src, typename Interface::Frametype &processed, int plane, int l, int t, int r, int b)
