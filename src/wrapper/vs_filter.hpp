@@ -74,8 +74,8 @@ public:
     AVideoInfo vi() {
       return AVideoInfo(_vi);
     }
-    AFrame* getFrame(int n) {
-      return new AFrame(_vsapi->getFrame(n, _clip, nullptr, 0), _core, _vsapi, _vi);
+    AFrame* getFrame(int n, void *ctx) {
+      return new AFrame(_vsapi->getFrameFilter(n, _clip, (VSFrameContext *)ctx), _core, _vsapi, _vi);
     }
 
     int width()     const { return _vi.width; }
@@ -86,8 +86,8 @@ public:
 
   using Frametype = AFrame*;
 
-  virtual AFrame* get(int n) {
-    return child->getFrame(n);
+  virtual AFrame* get(int n, void *ctx) {
+    return child->getFrame(n, ctx);
   }
   virtual void initialize() {}
   virtual const char* name() const { return "VSFilter"; };
@@ -155,8 +155,8 @@ public:
   }
 
   // Clip
-  AFrame* GetFrame(AClip* clip, int n) {
-    return clip->getFrame(n);
+  AFrame* GetFrame(AClip* clip, int n, void *ctx) {
+    return clip->getFrame(n, ctx);
   }
 
   // Frame
@@ -187,7 +187,7 @@ public:
   }
 
   const VSFrameRef *VS_CC GetFrame(VSFrameContext *_frameCtx, VSCore *_core, const VSAPI *vsapi, int n) {
-    auto frame = dynamic_cast<AFrame*>(get(n));
+    auto frame = dynamic_cast<AFrame*>(get(n, _frameCtx));
     return frame->_frame;
   }
 };

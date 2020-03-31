@@ -18,7 +18,7 @@ protected:
 public:
   virtual void initialize() {}
   virtual const char* name() const { return "AVSFilter"; };
-  virtual AVSFilter::AFrame get(int n) {
+  virtual AVSFilter::AFrame get(int n, void *ctx) {
     return child->GetFrame(n, _env);
   }
 
@@ -43,7 +43,7 @@ public:
   const char* ArgAsString(int index, const char*, const char* def) const { return _args[index].AsString(def); }
 
   // Clip
-  PVideoFrame GetFrame(PClip clip, int n) {
+  PVideoFrame GetFrame(PClip clip, int n, void *) {
     return clip->GetFrame(n, _env);
   }
 
@@ -89,7 +89,7 @@ public:
 
   PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment* env) {
     _env = env;
-    return get(n);
+    return get(n, NULL);
   }
   void __stdcall GetAudio(void* buf, int64_t start, int64_t count, IScriptEnvironment* env) { child->GetAudio(buf, start, count, env); }
   const VideoInfo& __stdcall GetVideoInfo() { return child->GetVideoInfo(); }

@@ -452,7 +452,7 @@ public:
     free(messagebuf); //v1.8.5
   }
 
-  typename Interface::Frametype GetFrame(int n) {
+  typename Interface::Frametype GetFrame(int n, void *ctx) {
     auto thread_id = std::this_thread::get_id();
     typename Interface::Frametype src, psrc, dst;
     int pxf, pyf;
@@ -482,7 +482,7 @@ public:
       std::lock_guard<std::mutex> guard(fft_mutex);
       if (ep->pfactor != 0 && isPatternSet == false && ep->pshow == false) // get noise pattern
       {
-        psrc = super->GetFrame(super->child, ep->pframe); // get noise patterme
+        psrc = super->GetFrame(super->child, ep->pframe, ctx); // get noise patterme
         auto sptr = psrc->GetReadPtr(plane);
         ep->framewidth = super->width(psrc, plane);
         ep->frameheight = super->height(psrc, plane);
@@ -501,7 +501,7 @@ public:
       else if (ep->pfactor != 0 && ep->pshow == true)
       {
         // show noise pattern window
-        src = super->GetFrame(super->child, n); // get noise pattern frame
+        src = super->GetFrame(super->child, n, ctx); // get noise pattern frame
         dst = super->NewVideoFrame();
         auto sptr = src->GetReadPtr(plane);
         auto dptr = dst->GetWritePtr(plane);
@@ -558,7 +558,7 @@ public:
     }
 
     // Request frame 'n' from the child (source) clip.
-    src = super->GetFrame(super->child, n);
+    src = super->GetFrame(super->child, n, ctx);
     dst = super->NewVideoFrame();
     auto sptr = src->GetReadPtr(plane);
     auto dptr = dst->GetWritePtr(plane);
@@ -646,7 +646,7 @@ public:
           }
           else {
             apply_in[2+i] = fftcache->get_write(n+i);
-            auto frame = i == 0 ? src : super->GetFrame(super->child, n+i);
+            auto frame = i == 0 ? src : super->GetFrame(super->child, n+i, ctx);
             FrameToCover(ep, plane, frame->GetReadPtr(plane), coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
             CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
 

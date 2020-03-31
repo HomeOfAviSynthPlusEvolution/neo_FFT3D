@@ -21,9 +21,15 @@ const VSFrameRef *VS_CC
 pluginGetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
 {
   FFT3D<VSFilter> *d = *reinterpret_cast<FFT3D<VSFilter>**>(instanceData);
-  static int to = (d->bt - 1) / 2;
+  int from = MAX(n - d->bt / 2, 0);
+  int to = MIN(n + (d->bt - 1) / 2, d->frames()-1);
   if (activationReason == arInitial) {
-    d->GetFramePre(frameCtx, core, vsapi, n + to);
+    if (d->bt <= 1)
+      d->GetFramePre(frameCtx, core, vsapi, n);
+    else
+      for (int i = from; i <= to; i++) {
+        d->GetFramePre(frameCtx, core, vsapi, i);
+      }
     return nullptr;
   }
   if (activationReason != arAllFramesReady)

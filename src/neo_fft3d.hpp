@@ -134,13 +134,13 @@ public:
     }
   }
 
-  virtual typename Interface::Frametype get(int n) override {
+  virtual typename Interface::Frametype get(int n, void *ctx) override {
     if (engine_count == 1 && copy_count == 0 && !this->crop)
       for (int i = 0; i < planes; i++)
         if (process[i] == 3)
-          return engine[i]->GetFrame(n);
+          return engine[i]->GetFrame(n, ctx);
 
-    auto src = this->GetFrame(this->child, n);
+    auto src = this->GetFrame(this->child, n, ctx);
     if (engine_count == 0) return src;
     auto dst = this->NewVideoFrame();
 
@@ -153,7 +153,7 @@ public:
       auto b = chroma ? (ep->b >> ep->ssh) : ep->b;
       auto frame = src;
       if (process[i] == 3)
-        frame = engine[i]->GetFrame(n);
+        frame = engine[i]->GetFrame(n, ctx);
       else if(process[i] == 2)
         ;
       else
