@@ -54,7 +54,7 @@ public:
 
     int BitsPerComponent() const { return _vi.format->bitsPerSample; }
     int ComponentSize() const { return _vi.format->bytesPerSample; }
-    bool IsY8() const { return _vi.format->colorFamily == cmGray; }
+    bool IsY() const { return _vi.format->colorFamily == cmGray; }
     bool IsPlanarRGBA() const { return false; }
     bool IsYUV() const { return _vi.format->colorFamily == cmYUV; }
     bool IsYUVA() const { return false; }

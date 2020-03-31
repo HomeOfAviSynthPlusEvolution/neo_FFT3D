@@ -61,7 +61,7 @@ struct EngineParams {
   int bit_per_channel;
   bool IsYUV;
   bool IsRGB;
-  bool IsY8;
+  bool IsY;
   int plane;
   bool IsChroma;
   int ssw;

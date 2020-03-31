@@ -81,8 +81,8 @@ public:
     ep->bit_per_channel = this->bit_per_channel = this->vi.BitsPerComponent();
     ep->byte_per_channel = this->byte_per_channel = this->vi.ComponentSize();
     ep->IsYUV = this->vi.IsYUV();
-    ep->IsY8 = this->vi.IsY8();
-    ep->IsRGB = !ep->IsYUV && !ep->IsY8;
+    ep->IsY = this->vi.IsY();
+    ep->IsRGB = !ep->IsYUV && !ep->IsY;
     ep->ssw = this->ssw();
     ep->ssh = this->ssh();
     ep->frames = this->frames();
@@ -113,7 +113,7 @@ public:
       process[3] = 2;
     #endif
 
-    if (this->vi.IsY8()) planes = 1;
+    if (this->vi.IsY()) planes = 1;
     else if (this->vi.IsYUVA()) planes = 4;
     else if (this->vi.IsPlanarRGBA()) planes = 4;
 
