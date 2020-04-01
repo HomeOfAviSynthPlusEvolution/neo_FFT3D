@@ -38,8 +38,12 @@ include_directories(.)
 if(MSVC)
   set_source_files_properties(${AVX_CODE_IMPL} PROPERTIES COMPILE_FLAGS "/arch:AVX")
 else()
-  message(WARNING ${AVX_CODE_IMPL})
   set_source_files_properties(${AVX_CODE_IMPL} PROPERTIES COMPILE_FLAGS "-mavx")
+endif()
+
+if (CMAKE_GENERATOR_TOOLSET MATCHES "v[0-9]*_xp")
+  target_compile_definitions(neo-fft3d PRIVATE WINVER=0x502 _WIN32_WINNT=0x502)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:threadSafeInit-")
 endif()
 
 add_custom_command(
