@@ -27,7 +27,7 @@ struct FilterFunctionPointers {
     void (*Sharpen_SSE2_Dispatch)(fftwf_complex *, SharedFunctionParams);
     void (*Kalman_SSE2_Dispatch)(fftwf_complex *, fftwf_complex *, SharedFunctionParams);
 
-  // SSE2
+  // AVX
     void (*Apply2D_AVX_Dispatch)(fftwf_complex *, SharedFunctionParams);
     Apply3D_PROC Apply3D_AVX_Dispatch;
     Apply3D_PROC Apply3D2_AVX_Dispatch;
@@ -36,6 +36,16 @@ struct FilterFunctionPointers {
     Apply3D_PROC Apply3D5_AVX_Dispatch;
     void (*Sharpen_AVX_Dispatch)(fftwf_complex *, SharedFunctionParams);
     void (*Kalman_AVX_Dispatch)(fftwf_complex *, fftwf_complex *, SharedFunctionParams);
+
+  // AVX512
+    void (*Apply2D_AVX512_Dispatch)(fftwf_complex *, SharedFunctionParams);
+    Apply3D_PROC Apply3D_AVX512_Dispatch;
+    Apply3D_PROC Apply3D2_AVX512_Dispatch;
+    Apply3D_PROC Apply3D3_AVX512_Dispatch;
+    Apply3D_PROC Apply3D4_AVX512_Dispatch;
+    Apply3D_PROC Apply3D5_AVX512_Dispatch;
+    void (*Sharpen_AVX512_Dispatch)(fftwf_complex *, SharedFunctionParams);
+    void (*Kalman_AVX512_Dispatch)(fftwf_complex *, fftwf_complex *, SharedFunctionParams);
 
   // Dispatcher -> [C / SSE2 / AVX]
     void (*Apply2D)(fftwf_complex *, SharedFunctionParams);
@@ -64,6 +74,12 @@ struct FilterFunctionPointers {
       Apply3D3_AVX_Dispatch = Apply3D3_AVX<false, true>;
       Apply3D4_AVX_Dispatch = Apply3D4_AVX<false, true>;
       Apply3D5_AVX_Dispatch = Apply3D5_AVX<false, true>;
+
+      Apply2D_AVX512_Dispatch = Apply2D_AVX512<false, true>;
+      Apply3D2_AVX512_Dispatch = Apply3D2_AVX512<false, true>;
+      Apply3D3_AVX512_Dispatch = Apply3D3_AVX512<false, true>;
+      Apply3D4_AVX512_Dispatch = Apply3D4_AVX512<false, true>;
+      Apply3D5_AVX512_Dispatch = Apply3D5_AVX512<false, true>;
     }
     else if (degrid == 0 && pfactor == 0) {
       Apply2D_C_Dispatch = Apply2D_C<false, false>;;
@@ -83,6 +99,12 @@ struct FilterFunctionPointers {
       Apply3D3_AVX_Dispatch = Apply3D3_AVX<false, false>;
       Apply3D4_AVX_Dispatch = Apply3D4_AVX<false, false>;
       Apply3D5_AVX_Dispatch = Apply3D5_AVX<false, false>;
+
+      Apply2D_AVX512_Dispatch = Apply2D_AVX512<false, false>;
+      Apply3D2_AVX512_Dispatch = Apply3D2_AVX512<false, false>;
+      Apply3D3_AVX512_Dispatch = Apply3D3_AVX512<false, false>;
+      Apply3D4_AVX512_Dispatch = Apply3D4_AVX512<false, false>;
+      Apply3D5_AVX512_Dispatch = Apply3D5_AVX512<false, false>;
     }
     else if (degrid != 0 && pfactor != 0) {
       Apply2D_C_Dispatch = Apply2D_C<true, true>;;
@@ -102,6 +124,12 @@ struct FilterFunctionPointers {
       Apply3D3_AVX_Dispatch = Apply3D3_AVX<true, true>;
       Apply3D4_AVX_Dispatch = Apply3D4_AVX<true, true>;
       Apply3D5_AVX_Dispatch = Apply3D5_AVX<true, true>;
+
+      Apply2D_AVX512_Dispatch = Apply2D_AVX512<true, true>;
+      Apply3D2_AVX512_Dispatch = Apply3D2_AVX512<true, true>;
+      Apply3D3_AVX512_Dispatch = Apply3D3_AVX512<true, true>;
+      Apply3D4_AVX512_Dispatch = Apply3D4_AVX512<true, true>;
+      Apply3D5_AVX512_Dispatch = Apply3D5_AVX512<true, true>;
     }
     else if (degrid == 0 && pfactor != 0) {
       Apply2D_C_Dispatch = Apply2D_C<true, false>;;
@@ -121,6 +149,12 @@ struct FilterFunctionPointers {
       Apply3D3_AVX_Dispatch = Apply3D3_AVX<true, false>;
       Apply3D4_AVX_Dispatch = Apply3D4_AVX<true, false>;
       Apply3D5_AVX_Dispatch = Apply3D5_AVX<true, false>;
+
+      Apply2D_AVX512_Dispatch = Apply2D_AVX512<true, false>;
+      Apply3D2_AVX512_Dispatch = Apply3D2_AVX512<true, false>;
+      Apply3D3_AVX512_Dispatch = Apply3D3_AVX512<true, false>;
+      Apply3D4_AVX512_Dispatch = Apply3D4_AVX512<true, false>;
+      Apply3D5_AVX512_Dispatch = Apply3D5_AVX512<true, false>;
     }
 
     if (degrid != 0) {
@@ -186,6 +220,12 @@ struct FilterFunctionPointers {
       Apply3D = Apply3D_AVX_Dispatch;
       Sharpen = Sharpen_AVX_Dispatch;
       Kalman = Kalman_AVX_Dispatch;
+    }
+    if (CPUFlags & CPUF_AVX512F) {
+      Apply2D = Apply2D_AVX512_Dispatch;
+      Apply3D = Apply3D_AVX512_Dispatch;
+      Sharpen = Sharpen_AVX512_Dispatch;
+      Kalman = Kalman_AVX512_Dispatch;
     }
   }
 };

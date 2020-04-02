@@ -63,4 +63,13 @@ struct SharedFunctionParams {
   template <bool degrid> void Sharpen_AVX(fftwf_complex *, SharedFunctionParams);
   template <bool pattern> void Kalman_AVX(fftwf_complex *, fftwf_complex *, SharedFunctionParams);
 
+// AVX512
+  template <bool pattern, bool degrid> void Apply2D_AVX512(fftwf_complex *, SharedFunctionParams);
+  template <bool pattern, bool degrid> void Apply3D2_AVX512(fftwf_complex **, fftwf_complex *, SharedFunctionParams);
+  template <bool pattern, bool degrid> void Apply3D3_AVX512(fftwf_complex **, fftwf_complex *, SharedFunctionParams);
+  template <bool pattern, bool degrid> void Apply3D4_AVX512(fftwf_complex **, fftwf_complex *, SharedFunctionParams);
+  template <bool pattern, bool degrid> void Apply3D5_AVX512(fftwf_complex **, fftwf_complex *, SharedFunctionParams);
+  template <bool degrid> void Sharpen_AVX512(fftwf_complex *, SharedFunctionParams);
+  template <bool pattern> void Kalman_AVX512(fftwf_complex *, fftwf_complex *, SharedFunctionParams);
+
 #endif

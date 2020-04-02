@@ -2,6 +2,7 @@ cmake_minimum_required (VERSION 3.1)
 project (neo_fft3d)
 file(GLOB CODE_IMPL "code_impl/*.cpp")
 file(GLOB AVX_CODE_IMPL "code_impl/*AVX.cpp")
+file(GLOB AVX512_CODE_IMPL "code_impl/*AVX512.cpp")
 add_library(neo-fft3d SHARED avs_interface.cpp vs_interface.cpp buffer.cpp helper.cpp cpuid.cpp version.rc ${CODE_IMPL})
 
 find_package(Git REQUIRED)
@@ -37,8 +38,10 @@ include_directories(.)
 
 if(MSVC)
   set_source_files_properties(${AVX_CODE_IMPL} PROPERTIES COMPILE_FLAGS "/arch:AVX")
+  set_source_files_properties(${AVX512_CODE_IMPL} PROPERTIES COMPILE_FLAGS "/arch:AVX512")
 else()
   set_source_files_properties(${AVX_CODE_IMPL} PROPERTIES COMPILE_FLAGS "-mavx")
+  set_source_files_properties(${AVX512_CODE_IMPL} PROPERTIES COMPILE_FLAGS "-mavx512f")
 endif()
 
 if (CMAKE_GENERATOR_TOOLSET MATCHES "v[0-9]*_xp")
