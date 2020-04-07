@@ -473,7 +473,8 @@ public:
         mt_in[thread_id] = in = (float *)_aligned_malloc(sizeof(float) * insize, FRAME_ALIGN);
         mt_out[thread_id] = outrez = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN);
         std::lock_guard<std::mutex> lock2(cache_mutex);
-        fftcache->resize(ep->bt + mt_coverbuf.size() + 2);
+        if (fftcache)
+          fftcache->resize(ep->bt + mt_coverbuf.size() + 2);
       }
     }
     //	char debugbuf[1536];

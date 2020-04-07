@@ -7,11 +7,12 @@
 
 #pragma once
 
+#include "version.hpp"
 #include "fft3d.hpp"
 
 namespace Plugin {
-  const char* Identifier = "in.7086.neo_fft3d_dual";
-  const char* Namespace = "neo_fft3d_dual";
+  const char* Identifier = "in.7086.neo_fft3d";
+  const char* Namespace = "neo_fft3d";
   const char* Description = "Neo FFT3D Filter " PLUGIN_VERSION;
 }
 
