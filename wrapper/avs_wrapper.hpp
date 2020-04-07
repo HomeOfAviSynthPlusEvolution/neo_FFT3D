@@ -31,9 +31,9 @@ namespace AVSInterface
         output = _default;
     }
     void Read(const char* name, bool& output) override {
-      auto output_int = _args[NameToIndex(name)].AsBool(output);
+      output = _args[NameToIndex(name)].AsBool(output);
     }
-    void Read(const char* name, void*& output) {
+    void Read(const char* name, void*& output) override {
       output = (void *)(_args[NameToIndex(name)].AsClip());
     }
     void Read(const char* name, std::vector<int>& output) override {
@@ -144,9 +144,9 @@ namespace AVSInterface
       return vi;
     }
 
-    void __stdcall GetAudio(void* buf, int64_t start, int64_t count, IScriptEnvironment* env) { clip->GetAudio(buf, start, count, env); }
-    bool __stdcall GetParity(int n) { return clip->GetParity(n); }
-    int __stdcall SetCacheHints(int cachehints, int frame_range) { return Data.SetCacheHints(cachehints, frame_range); }
+    void __stdcall GetAudio(void* buf, int64_t start, int64_t count, IScriptEnvironment* env) override { clip->GetAudio(buf, start, count, env); }
+    bool __stdcall GetParity(int n) override { return clip->GetParity(n); }
+    int __stdcall SetCacheHints(int cachehints, int frame_range) override { return Data.SetCacheHints(cachehints, frame_range); }
     ~AVSWrapper() {
       delete functor;
     }

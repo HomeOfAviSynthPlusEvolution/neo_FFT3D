@@ -46,7 +46,6 @@ class FFT3DEngine {
   int btcurlast;  //v1.7 to prevent multiple Pattern2Dto3D for the same btcurrent. btcurrent can change and may differ from bt for e.g. first/last frame
 
   fftwf_complex *outLast, *covar, *covarProcess;
-  float sigmaSquaredNoiseNormed {0};
   float sigmaSquaredNoiseNormed2D {0};
   float sigmaNoiseNormed2D {0};
   float sigmaMotionNormed {0};

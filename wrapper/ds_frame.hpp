@@ -16,8 +16,8 @@ struct DSFrame
 
   // AviSynth+ Interface
   PVideoFrame _avssrc;
-  IScriptEnvironment * _env {nullptr};
   VideoInfo _vi;
+  IScriptEnvironment * _env {nullptr};
   int planes_y[4] = { PLANAR_Y, PLANAR_U, PLANAR_V, PLANAR_A };
   int planes_r[4] = { PLANAR_R, PLANAR_G, PLANAR_B, PLANAR_A };
   int *planes {0};

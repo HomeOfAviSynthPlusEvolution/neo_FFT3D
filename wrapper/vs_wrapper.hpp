@@ -34,7 +34,6 @@ namespace VSInterface {
       if (_err) output = _default;
     }
     void Read(const char* name, bool& output) override {
-      auto _default = output;
       auto output_int = _vsapi->propGetInt(_in, name, 0, &_err);
       if (!_err) output = output_int != 0;
     }
@@ -73,7 +72,7 @@ namespace VSInterface {
       for (int i = 0; i < size; i++)
         output.push_back(_vsapi->propGetInt(_in, name, i, &_err));
     }
-    void Read(const char* name, void*& output) {
+    void Read(const char* name, void*& output) override {
       output = reinterpret_cast<void *>(_vsapi->propGetNode(_in, name, 0, &_err));
     }
     VSInDelegator(const VSMap *in, const VSAPI *vsapi) : _in(in), _vsapi(vsapi) {}

@@ -16,7 +16,7 @@
 #include <execution>
 using namespace std::chrono_literals;
 
-struct FFT3D : Filter {
+struct FFT3D final : Filter {
   int process[4];
   std::vector<int> idx {0, 1, 2, 3};
   FFT3DEngine* engine[4];
