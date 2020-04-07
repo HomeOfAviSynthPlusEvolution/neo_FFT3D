@@ -2,10 +2,13 @@
 
 #include <avisynth.h>
 #include <VapourSynth.h>
-#include <vector>
+#include <cstring>
+#include <cmath>
 #include <string>
 #include <sstream>
+#include <vector>
 #include <unordered_map>
+#include <algorithm>
 #include "ds_format.hpp"
 #include "ds_videoinfo.hpp"
 #include "ds_frame.hpp"

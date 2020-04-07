@@ -6,6 +6,7 @@
 #include <cstring>
 #include <cmath>
 #include <algorithm>
+#include <string>
 
 #include "fftwlite.h"
 #include "../wrapper/common.hpp"

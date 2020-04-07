@@ -6,72 +6,6 @@ namespace Plugin {
 
 namespace AVSInterface
 {
-  struct AVSFetchFrameFunctor;
-
-  template<typename FilterType>
-  struct AVSWrapper : IClip
-  {
-    AVSValue _args;
-    IScriptEnvironment* _env;
-    FilterType Data;
-    PClip clip;
-    VideoInfo vi;
-    AVSFetchFrameFunctor* functor;
-    
-    AVSWrapper(AVSValue args, IScriptEnvironment* env)
-      : _args(args), _env(env) {}
-    
-    void Initialize()
-    {
-      clip = _args[0].AsClip();
-      auto input_vi = DSVideoInfo(clip->GetVideoInfo());
-      functor = new AVSFetchFrameFunctor(clip, clip->GetVideoInfo(), _env);
-      auto Arguments = AVSInDelegator(_args, Data.Params());
-      Data.Initialize(&Arguments, input_vi, functor);
-    }
-
-    PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment * env) override {
-      std::vector<int> requests = Data.RequestReferenceFrames(n);
-      std::unordered_map<int, DSFrame> in_frames;
-      for (auto &&i : requests)
-        in_frames[i] = DSFrame(clip->GetFrame(i, env), vi, env);
-      
-      return Data.GetFrame(n, in_frames).ToAVSFrame();
-    }
-
-    const VideoInfo& __stdcall GetVideoInfo() override {
-      auto output_vi = Data.GetOutputVI();
-      vi = output_vi.ToAVSVI();
-      return vi;
-    }
-
-    void __stdcall GetAudio(void* buf, int64_t start, int64_t count, IScriptEnvironment* env) { clip->GetAudio(buf, start, count, env); }
-    bool __stdcall GetParity(int n) { return clip->GetParity(n); }
-    int __stdcall SetCacheHints(int cachehints, int frame_range) { return Data.SetCacheHints(cachehints, frame_range); }
-    ~AVSWrapper() {
-      delete functor;
-    }
-  };
-
-  template<typename FilterType>
-  AVSValue __cdecl Create(AVSValue args, void* user_data, IScriptEnvironment* env)
-  {
-    auto filter = new AVSWrapper<FilterType>(args, env);
-    try {
-      filter->Initialize();
-    }
-    catch (const char *err) {
-      env->ThrowError("%s: %s", filter->Data.AVSName(), err);
-    }
-    return filter;
-  }
-
-  template<typename FilterType>
-  void RegisterFilter(IScriptEnvironment* env) {
-    FilterType filter;
-    env->AddFunction(filter.AVSName(), filter.AVSParams().c_str(), Create<FilterType>, nullptr);
-  }
-
   struct AVSInDelegator final : InDelegator {
     const AVSValue _args;
     std::unordered_map<std::string, int> _params_index_map;
@@ -91,10 +25,10 @@ namespace AVSInterface
       output = static_cast<float>(_args[NameToIndex(name)].AsFloat(output));
     }
     void Read(const char* name, double& output) override {
-      auto default = output;
+      auto _default = output;
       output = _args[NameToIndex(name)].AsFloat(NAN);
-      if (output == NAN)
-        output = default;
+      if (std::isnan(output))
+        output = _default;
     }
     void Read(const char* name, bool& output) override {
       auto output_int = _args[NameToIndex(name)].AsBool(output);
@@ -166,9 +100,76 @@ namespace AVSInterface
     AVSFetchFrameFunctor(PClip clip, VideoInfo vi, IScriptEnvironment * env)
       : _clip(clip), _vi(vi), _env(env) {}
     DSFrame operator()(int n) {
-      return DSFrame(_clip->GetFrame(n, _env), _vi, _env);
+      auto frame = _clip->GetFrame(n, _env);
+      return DSFrame(frame, _vi, _env);
     }
   };
+
+  template<typename FilterType>
+  struct AVSWrapper : IClip
+  {
+    AVSValue _args;
+    IScriptEnvironment* _env;
+    FilterType Data;
+    PClip clip;
+    VideoInfo vi;
+    AVSFetchFrameFunctor* functor;
+    
+    AVSWrapper(AVSValue args, IScriptEnvironment* env)
+      : _args(args), _env(env) {}
+    
+    void Initialize()
+    {
+      clip = _args[0].AsClip();
+      auto input_vi = DSVideoInfo(clip->GetVideoInfo());
+      functor = new AVSFetchFrameFunctor(clip, clip->GetVideoInfo(), _env);
+      auto Arguments = AVSInDelegator(_args, Data.Params());
+      Data.Initialize(&Arguments, input_vi, functor);
+    }
+
+    PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment * env) override {
+      std::vector<int> requests = Data.RequestReferenceFrames(n);
+      std::unordered_map<int, DSFrame> in_frames;
+      for (auto &&i : requests) {
+        auto frame = clip->GetFrame(i, env);
+        in_frames[i] = DSFrame(frame, vi, env);
+      }
+      
+      return Data.GetFrame(n, in_frames).ToAVSFrame();
+    }
+
+    const VideoInfo& __stdcall GetVideoInfo() override {
+      auto output_vi = Data.GetOutputVI();
+      vi = output_vi.ToAVSVI();
+      return vi;
+    }
+
+    void __stdcall GetAudio(void* buf, int64_t start, int64_t count, IScriptEnvironment* env) { clip->GetAudio(buf, start, count, env); }
+    bool __stdcall GetParity(int n) { return clip->GetParity(n); }
+    int __stdcall SetCacheHints(int cachehints, int frame_range) { return Data.SetCacheHints(cachehints, frame_range); }
+    ~AVSWrapper() {
+      delete functor;
+    }
+  };
+
+  template<typename FilterType>
+  AVSValue __cdecl Create(AVSValue args, void* user_data, IScriptEnvironment* env)
+  {
+    auto filter = new AVSWrapper<FilterType>(args, env);
+    try {
+      filter->Initialize();
+    }
+    catch (const char *err) {
+      env->ThrowError("%s: %s", filter->Data.AVSName(), err);
+    }
+    return filter;
+  }
+
+  template<typename FilterType>
+  void RegisterFilter(IScriptEnvironment* env) {
+    FilterType filter;
+    env->AddFunction(filter.AVSName(), filter.AVSParams().c_str(), Create<FilterType>, nullptr);
+  }
 }
 
 const AVS_Linkage *AVS_linkage = NULL;

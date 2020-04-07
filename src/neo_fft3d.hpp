@@ -10,9 +10,9 @@
 #include "fft3d.hpp"
 
 namespace Plugin {
-  static const char* Identifier = "in.7086.neo_fft3d_dual";
-  static const char* Namespace = "neo_fft3d_dual";
-  static const char* Description = "Neo FFT3D Filter " PLUGIN_VERSION;
+  const char* Identifier = "in.7086.neo_fft3d_dual";
+  const char* Namespace = "neo_fft3d_dual";
+  const char* Description = "Neo FFT3D Filter " PLUGIN_VERSION;
 }
 
 std::vector<register_vsfilter_proc> RegisterVSFilters()

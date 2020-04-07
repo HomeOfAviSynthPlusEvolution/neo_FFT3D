@@ -39,17 +39,27 @@ endif()
 
 include_directories(.)
 
-if(MSVC)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   set_source_files_properties(${AVX_CODE_IMPL} PROPERTIES COMPILE_FLAGS "/arch:AVX")
   set_source_files_properties(${AVX512_CODE_IMPL} PROPERTIES COMPILE_FLAGS "/arch:AVX512")
+
+  if (CMAKE_GENERATOR_TOOLSET MATCHES "v[0-9]*_xp")
+    target_compile_definitions(neo-fft3d PRIVATE WINVER=0x502 _WIN32_WINNT=0x502)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:threadSafeInit-")
+  endif()
+
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+  set_source_files_properties(${AVX_CODE_IMPL} PROPERTIES COMPILE_FLAGS "/arch:AVX")
+  set_source_files_properties(${AVX512_CODE_IMPL} PROPERTIES COMPILE_FLAGS "/QxCOMMON-AVX512")
+
 else()
   set_source_files_properties(${AVX_CODE_IMPL} PROPERTIES COMPILE_FLAGS "-mavx")
   set_source_files_properties(${AVX512_CODE_IMPL} PROPERTIES COMPILE_FLAGS "-mavx512f")
+
 endif()
 
-if (CMAKE_GENERATOR_TOOLSET MATCHES "v[0-9]*_xp")
-  target_compile_definitions(neo-fft3d PRIVATE WINVER=0x502 _WIN32_WINNT=0x502)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:threadSafeInit-")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  target_link_libraries(neo-fft3d tbb)
 endif()
 
 add_custom_command(
