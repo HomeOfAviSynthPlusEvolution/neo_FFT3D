@@ -9,14 +9,14 @@ namespace Plugin {
 namespace VSInterface {
   const VSAPI * API;
   template<typename FilterType>
-  void Initialize(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
+  void VS_CC Initialize(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
     auto Data = reinterpret_cast<FilterType*>(*instanceData);
     auto output_vi = Data->GetOutputVI();
     vsapi->setVideoInfo(output_vi.ToVSVI(), 1, node);
   }
 
   template<typename FilterType>
-  void Delete(void *instanceData, VSCore *core, const VSAPI *vsapi) {
+  void VS_CC Delete(void *instanceData, VSCore *core, const VSAPI *vsapi) {
     auto Data = reinterpret_cast<FilterType*>(instanceData);
     if (Data->clip)
       vsapi->freeNode(reinterpret_cast<VSNodeRef*>(Data->clip));
@@ -24,7 +24,7 @@ namespace VSInterface {
   }
 
   template<typename FilterType>
-  const VSFrameRef* GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
+  const VSFrameRef* VS_CC GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
     auto Data = reinterpret_cast<FilterType*>(*instanceData);
     auto functor = reinterpret_cast<VSFetchFrameFunctor*>(Data->fetch_frame);
     functor->_frameCtx = frameCtx;
@@ -52,7 +52,7 @@ namespace VSInterface {
   }
 
   template<typename FilterType>
-  void Create(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
+  void VS_CC Create(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
     static VSFetchFrameFunctor functor(core, vsapi);
     auto Data = new FilterType{};
     auto Arguments = VSInDelegator(in, vsapi);
