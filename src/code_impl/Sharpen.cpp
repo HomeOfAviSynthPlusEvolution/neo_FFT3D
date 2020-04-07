@@ -27,7 +27,7 @@ static inline void Sharpen_C_impl(fftwf_complex *out, SharedFunctionParams sfp)
       float cr = out[lfp.w][0] - gridcorrection0;
       float ci = out[lfp.w][1] - gridcorrection1;
 
-      float psd = cr * cr + ci * ci + 1e-15f;
+      float psd = cr * cr + ci * ci + 1.0e-15f;
 
       float s_fact = 1 + sfp.sharpen * lfp.wsharpen[lfp.w] * sqrt(
         psd * sfp.sigmaSquaredSharpenMaxNormed / ((psd + sfp.sigmaSquaredSharpenMinNormed) * (psd + sfp.sigmaSquaredSharpenMaxNormed))

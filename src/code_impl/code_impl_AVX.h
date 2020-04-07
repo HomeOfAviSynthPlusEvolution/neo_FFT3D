@@ -63,6 +63,7 @@ struct LambdaFunctionParams {
 
   inline __m256 psd(const __m256 &data) {
     // [dr0, di0, dr1, di1]
+    const __m256 epsilon = _mm256_set1_ps(1.0e-15f);
     __m256 _square = data * data;
     __m256 _shuffle = _mm256_swap_ri(_square);
     return _square + _shuffle + epsilon; // power spectrum density
@@ -77,8 +78,6 @@ struct LambdaFunctionParams {
 
     data *= _wiener_factor;
   }
-
-  const __m256 epsilon = _mm256_set1_ps(1e-15f);
 };
 
 template<typename ... T, typename Func>

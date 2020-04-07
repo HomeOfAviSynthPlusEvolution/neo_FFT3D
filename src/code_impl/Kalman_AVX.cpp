@@ -18,6 +18,7 @@
 template <bool pattern>
 void Kalman_AVX(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionParams sfp)
 {
+  const __m256 epsilon = _mm256_set1_ps(1.0e-15f);
   fftwf_complex * dummy[5] = {0, outLast, outcur, 0, 0};
   loop_wrapper_AVX(dummy, outLast, sfp,
     [&](LambdaFunctionParams lfp) {
@@ -32,7 +33,7 @@ void Kalman_AVX(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionPar
 
       if constexpr (pattern) {
         // Prevent bad blocks, maybe incorrect -- by XL
-        sigma = _mm256_max_ps(lfp.m_pattern2d, lfp.epsilon);
+        sigma = _mm256_max_ps(lfp.m_pattern2d, epsilon);
       }
       else
         sigma = lfp.m_sigmaSquaredNoiseNormed2D;
