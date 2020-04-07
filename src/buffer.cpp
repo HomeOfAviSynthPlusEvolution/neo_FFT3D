@@ -1,4 +1,16 @@
 #include "buffer.h"
+#include <numeric>
+#include <execution>
+#pragma warning (disable: 26451)
+
+std::vector<int> parallel_index;
+
+void BufferInit(EngineParams * ep, IOParams * iop)
+{
+  auto count = MAX(iop->nox, iop->noy) + 2;
+  for (int i = 0; i < count; i++)
+    parallel_index.push_back(i);
+}
 
 template<typename pixel_t>
 static void FrameToCover_impl(const pixel_t *srcp, int src_width, int src_height, int src_pitch, pixel_t *coverbuf, int coverwidth, int coverheight, int coverpitch, int mirw, int mirh, bool interlaced)
@@ -215,30 +227,35 @@ static void CoverToOverlap_impl(EngineParams * ep, IOParams * iop, float *dst_pt
     }
   }
 
-  for (ihy = 1; ihy < iop->noy; ihy += 1) // middle vertical
+  // for (ihy = 1; ihy < iop->noy; ihy += 1) // middle vertical
+  std::for_each(std::execution::par_unseq, &parallel_index[1], &parallel_index[iop->noy], [&](int ihy)
   {
+    int w, h;
+    int ihx;
+    float ftmp;
+    auto srcp0 = srcp + src_pitch * (ihy - 1)  * (ep->bh - ep->oh);
     for (h = 0; h < ep->oh; h++) // top overlapped part
     {
-      inp = dst_ptr + (ihy - 1)*(yoffset + (ep->bh - ep->oh)*ep->bw) + (ep->bh - ep->oh)*ep->bw + h*ep->bw;
+      auto inp = dst_ptr + (ihy - 1)*(yoffset + (ep->bh - ep->oh)*ep->bw) + (ep->bh - ep->oh)*ep->bw + h*ep->bw;
       for (w = 0; w < ep->ow; w++)   // first half line of first block
       {
-        ftmp = float(iop->wanxl[w] * (srcp[w] - planeBase));
+        ftmp = float(iop->wanxl[w] * (srcp0[w] - planeBase));
         inp[w] = ftmp*iop->wanyr[h];   // Copy each byte from source to float array
         inp[w + yoffset] = ftmp*iop->wanyl[h];   // y overlapped
       }
       for (w = ep->ow; w < ep->bw - ep->ow; w++)   // first half line of first block
       {
-        ftmp = float((srcp[w] - planeBase));
+        ftmp = float((srcp0[w] - planeBase));
         inp[w] = ftmp*iop->wanyr[h];   // Copy each byte from source to float array
         inp[w + yoffset] = ftmp*iop->wanyl[h];   // y overlapped
       }
       inp += ep->bw - ep->ow;
-      srcp += ep->bw - ep->ow;
+      srcp0 += ep->bw - ep->ow;
       for (ihx = 1; ihx < iop->nox; ihx++) // middle blocks
       {
         for (w = 0; w < ep->ow; w++)   // half overlapped line of block
         {
-          ftmp = float((srcp[w] - planeBase));   // Copy each byte from source to float array
+          ftmp = float((srcp0[w] - planeBase));   // Copy each byte from source to float array
           inp[w] = ftmp * iop->wanxr[w] * iop->wanyr[h];
           inp[w + xoffset] = ftmp *iop->wanxl[w] * iop->wanyr[h];   // x overlapped
           inp[w + yoffset] = ftmp * iop->wanxr[w] * iop->wanyl[h];
@@ -246,75 +263,76 @@ static void CoverToOverlap_impl(EngineParams * ep, IOParams * iop, float *dst_pt
         }
         inp += ep->ow;
         inp += xoffset;
-        srcp += ep->ow;
+        srcp0 += ep->ow;
         for (w = 0; w < ep->bw - ep->ow - ep->ow; w++)   // half non-overlapped line of block
         {
-          ftmp = float((srcp[w] - planeBase));   // Copy each byte from source to float array
+          ftmp = float((srcp0[w] - planeBase));   // Copy each byte from source to float array
           inp[w] = ftmp * iop->wanyr[h];
           inp[w + yoffset] = ftmp * iop->wanyl[h];
         }
         inp += ep->bw - ep->ow - ep->ow;
-        srcp += ep->bw - ep->ow - ep->ow;
+        srcp0 += ep->bw - ep->ow - ep->ow;
       }
       for (w = 0; w < ep->ow; w++)   // last half line of last block
       {
-        ftmp = float(iop->wanxr[w] * (srcp[w] - planeBase));// Copy each byte from source to float array
+        ftmp = float(iop->wanxr[w] * (srcp0[w] - planeBase));// Copy each byte from source to float array
         inp[w] = ftmp*iop->wanyr[h];
         inp[w + yoffset] = ftmp*iop->wanyl[h];
       }
       inp += ep->ow;
-      srcp += ep->ow;
+      srcp0 += ep->ow;
 
-      srcp += (src_pitch - src_width);  // Add the pitch of one line (in bytes) to the source image.
+      srcp0 += (src_pitch - src_width);  // Add the pitch of one line (in bytes) to the source image.
     }
     // middle  vertical nonovelapped part
     for (h = 0; h < ep->bh - ep->oh - ep->oh; h++)
     {
-      inp = dst_ptr + (ihy - 1)*(yoffset + (ep->bh - ep->oh)*ep->bw) + (ep->bh)*ep->bw + h*ep->bw + yoffset;
+      auto inp = dst_ptr + (ihy - 1)*(yoffset + (ep->bh - ep->oh)*ep->bw) + (ep->bh)*ep->bw + h*ep->bw + yoffset;
       for (w = 0; w < ep->ow; w++)   // first half line of first block
       {
-        ftmp = float(iop->wanxl[w] * (srcp[w] - planeBase));
+        ftmp = float(iop->wanxl[w] * (srcp0[w] - planeBase));
         inp[w] = ftmp;   // Copy each byte from source to float array
       }
       for (w = ep->ow; w < ep->bw - ep->ow; w++)   // first half line of first block
       {
-        ftmp = float((srcp[w] - planeBase));
+        ftmp = float((srcp0[w] - planeBase));
         inp[w] = ftmp;   // Copy each byte from source to float array
       }
       inp += ep->bw - ep->ow;
-      srcp += ep->bw - ep->ow;
+      srcp0 += ep->bw - ep->ow;
       for (ihx = 1; ihx < iop->nox; ihx++) // middle blocks
       {
         for (w = 0; w < ep->ow; w++)   // half overlapped line of block
         {
-          ftmp = float((srcp[w] - planeBase));   // Copy each byte from source to float array
+          ftmp = float((srcp0[w] - planeBase));   // Copy each byte from source to float array
           inp[w] = ftmp * iop->wanxr[w];
           inp[w + xoffset] = ftmp *iop->wanxl[w];   // x overlapped
         }
         inp += ep->ow;
         inp += xoffset;
-        srcp += ep->ow;
+        srcp0 += ep->ow;
         for (w = 0; w < ep->bw - ep->ow - ep->ow; w++)   // half non-overlapped line of block
         {
-          ftmp = float((srcp[w] - planeBase));   // Copy each byte from source to float array
+          ftmp = float((srcp0[w] - planeBase));   // Copy each byte from source to float array
           inp[w] = ftmp;
         }
         inp += ep->bw - ep->ow - ep->ow;
-        srcp += ep->bw - ep->ow - ep->ow;
+        srcp0 += ep->bw - ep->ow - ep->ow;
       }
       for (w = 0; w < ep->ow; w++)   // last half line of last block
       {
-        ftmp = float(iop->wanxr[w] * (srcp[w] - planeBase));// Copy each byte from source to float array
+        ftmp = float(iop->wanxr[w] * (srcp0[w] - planeBase));// Copy each byte from source to float array
         inp[w] = ftmp;
       }
       inp += ep->ow;
-      srcp += ep->ow;
+      srcp0 += ep->ow;
 
-      srcp += (src_pitch - src_width);  // Add the pitch of one line (in bytes) to the source image.
+      srcp0 += (src_pitch - src_width);  // Add the pitch of one line (in bytes) to the source image.
     }
 
-  }
+  }); // std::for_each
 
+  srcp += src_pitch * (iop->noy - 1)  * (ep->bh - ep->oh);
   ihy = iop->noy; // last bottom  part
   {
     for (h = 0; h < ep->oh; h++)
@@ -419,83 +437,88 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
     }
   }
 
-  for (ihy = 1; ihy < iop->noy; ihy += 1) // middle vertical
+  // for (ihy = 1; ihy < iop->noy; ihy += 1) // middle vertical
+  std::for_each(std::execution::par_unseq, &parallel_index[1], &parallel_index[iop->noy], [&](int ihy)
   {
+    int w, h;
+    int ihx;
+    auto dstp0 = dstp + dst_pitch * (ihy - 1)  * (ep->bh - ep->oh);
     for (h = 0; h < ep->oh; h++) // top overlapped part
     {
-      inp = src_ptr + (ihy - 1)*(yoffset + (ep->bh - ep->oh)*ep->bw) + (ep->bh - ep->oh)*ep->bw + h*ep->bw;
+      auto inp = src_ptr + (ihy - 1)*(yoffset + (ep->bh - ep->oh)*ep->bw) + (ep->bh - ep->oh)*ep->bw + h*ep->bw;
 
       float wsynyrh = iop->wsynyr[h] * norm; // remove from cycle for speed
       float wsynylh = iop->wsynyl[h] * norm;
 
       for (w = 0; w < ep->bw - ep->ow; w++)   // first half line of first block
       {
-        dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * wsynyrh + inp[w + yoffset] * wsynylh) + rounder)+ planeBase));   // y overlapped
+        dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * wsynyrh + inp[w + yoffset] * wsynylh) + rounder)+ planeBase));   // y overlapped
       }
       inp += ep->bw - ep->ow;
-      dstp += ep->bw - ep->ow;
+      dstp0 += ep->bw - ep->ow;
       for (ihx = 1; ihx < iop->nox; ihx++) // middle blocks
       {
         for (w = 0; w < ep->ow; w++)   // half overlapped line of block
         {
-          dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)(((inp[w] * iop->wsynxr[w] + inp[w + xoffset] * iop->wsynxl[w])*wsynyrh
+          dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)(((inp[w] * iop->wsynxr[w] + inp[w + xoffset] * iop->wsynxl[w])*wsynyrh
             + (inp[w + yoffset] * iop->wsynxr[w] + inp[w + xoffset + yoffset] * iop->wsynxl[w])*wsynylh) + rounder) + planeBase));   // x overlapped
         }
         inp += xoffset + ep->ow;
-        dstp += ep->ow;
+        dstp0 += ep->ow;
         for (w = 0; w < ep->bw - ep->ow - ep->ow; w++)   // double minus - half non-overlapped line of block
         {
-          dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * wsynyrh + inp[w + yoffset] * wsynylh) + rounder) + planeBase));
+          dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * wsynyrh + inp[w + yoffset] * wsynylh) + rounder) + planeBase));
         }
         inp += ep->bw - ep->ow - ep->ow;
-        dstp += ep->bw - ep->ow - ep->ow;
+        dstp0 += ep->bw - ep->ow - ep->ow;
       }
       for (w = 0; w < ep->ow; w++)   // last half line of last block
       {
-        dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * wsynyrh + inp[w + yoffset] * wsynylh) + rounder) + planeBase));
+        dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * wsynyrh + inp[w + yoffset] * wsynylh) + rounder) + planeBase));
       }
       inp += ep->ow;
-      dstp += ep->ow;
+      dstp0 += ep->ow;
 
-      dstp += (dst_pitch - dst_width);  // Add the pitch of one line (in bytes) to the source image.
+      dstp0 += (dst_pitch - dst_width);  // Add the pitch of one line (in bytes) to the source image.
     }
     // middle  vertical non-ovelapped part
     for (h = 0; h < (ep->bh - ep->oh - ep->oh); h++)
     {
-      inp = src_ptr + (ihy - 1)*(yoffset + (ep->bh - ep->oh)*ep->bw) + (ep->bh)*ep->bw + h*ep->bw + yoffset;
+      auto inp = src_ptr + (ihy - 1)*(yoffset + (ep->bh - ep->oh)*ep->bw) + (ep->bh)*ep->bw + h*ep->bw + yoffset;
       for (w = 0; w < ep->bw - ep->ow; w++)   // first half line of first block
       {
-        dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w])*norm + rounder) + planeBase));
+        dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w])*norm + rounder) + planeBase));
       }
       inp += ep->bw - ep->ow;
-      dstp += ep->bw - ep->ow;
+      dstp0 += ep->bw - ep->ow;
       for (ihx = 1; ihx < iop->nox; ihx++) // middle blocks
       {
         for (w = 0; w < ep->ow; w++)   // half overlapped line of block
         {
-          dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * iop->wsynxr[w] + inp[w + xoffset] * iop->wsynxl[w])*norm + rounder) + planeBase));   // x overlapped
+          dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * iop->wsynxr[w] + inp[w + xoffset] * iop->wsynxl[w])*norm + rounder) + planeBase));   // x overlapped
         }
         inp += xoffset + ep->ow;
-        dstp += ep->ow;
+        dstp0 += ep->ow;
         for (w = 0; w < ep->bw - ep->ow - ep->ow; w++)   // half non-overlapped line of block
         {
-          dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w])*norm + rounder) + planeBase));
+          dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w])*norm + rounder) + planeBase));
         }
         inp += ep->bw - ep->ow - ep->ow;
-        dstp += ep->bw - ep->ow - ep->ow;
+        dstp0 += ep->bw - ep->ow - ep->ow;
       }
       for (w = 0; w < ep->ow; w++)   // last half line of last block
       {
-        dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w])*norm + rounder) + planeBase));
+        dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w])*norm + rounder) + planeBase));
       }
       inp += ep->ow;
-      dstp += ep->ow;
+      dstp0 += ep->ow;
 
-      dstp += (dst_pitch - dst_width);  // Add the pitch of one line (in bytes) to the source image.
+      dstp0 += (dst_pitch - dst_width);  // Add the pitch of one line (in bytes) to the source image.
     }
 
-  }
+  }); // std::for_each
 
+  dstp += dst_pitch * (iop->noy - 1)  * (ep->bh - ep->oh);
   ihy = iop->noy; // last bottom part
   {
     for (h = 0; h < ep->oh; h++)
@@ -536,14 +559,14 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
 
 void FrameToCover(EngineParams * ep, int plane, const byte *src_ptr, byte *coverbuf, int coverwidth, int coverheight, int coverpitch, int mirw, int mirh)
 {
-  auto l = ep->IsChroma ? (ep->l >> ep->ssw) : ep->l;
-  auto r = ep->IsChroma ? (ep->r >> ep->ssw) : ep->r;
-  auto t = ep->IsChroma ? (ep->t >> ep->ssh) : ep->t;
-  auto b = ep->IsChroma ? (ep->b >> ep->ssh) : ep->b;
+  auto l = ep->IsChroma ? (ep->l >> ep->vi.Format.SSW) : ep->l;
+  auto r = ep->IsChroma ? (ep->r >> ep->vi.Format.SSW) : ep->r;
+  auto t = ep->IsChroma ? (ep->t >> ep->vi.Format.SSH) : ep->t;
+  auto b = ep->IsChroma ? (ep->b >> ep->vi.Format.SSH) : ep->b;
   auto width = ep->framewidth - l - r;
   auto height = ep->frameheight - t - b;
-  auto new_src_ptr = src_ptr + (t * ep->framepitch + l) * ep->byte_per_channel;
-  switch (ep->bit_per_channel)
+  auto new_src_ptr = src_ptr + (t * ep->framepitch + l) * ep->vi.Format.BytesPerSample;
+  switch (ep->vi.Format.BitsPerSample)
   {
   case 8: FrameToCover_impl<uint8_t>(new_src_ptr, width, height, ep->framepitch, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
   case 10:
@@ -556,14 +579,14 @@ void FrameToCover(EngineParams * ep, int plane, const byte *src_ptr, byte *cover
 
 void CoverToFrame(EngineParams * ep, int plane, const byte *coverbuf, int coverwidth, int coverheight, int coverpitch, byte *dst_ptr, int mirw, int mirh)
 {
-  auto l = ep->IsChroma ? (ep->l >> ep->ssw) : ep->l;
-  auto r = ep->IsChroma ? (ep->r >> ep->ssw) : ep->r;
-  auto t = ep->IsChroma ? (ep->t >> ep->ssh) : ep->t;
-  auto b = ep->IsChroma ? (ep->b >> ep->ssh) : ep->b;
+  auto l = ep->IsChroma ? (ep->l >> ep->vi.Format.SSW) : ep->l;
+  auto r = ep->IsChroma ? (ep->r >> ep->vi.Format.SSW) : ep->r;
+  auto t = ep->IsChroma ? (ep->t >> ep->vi.Format.SSH) : ep->t;
+  auto b = ep->IsChroma ? (ep->b >> ep->vi.Format.SSH) : ep->b;
   auto width = ep->framewidth - l - r;
   auto height = ep->frameheight - t - b;
-  auto new_dst_ptr = dst_ptr + (t * ep->framepitch + l) * ep->byte_per_channel;
-  switch (ep->bit_per_channel)
+  auto new_dst_ptr = dst_ptr + (t * ep->framepitch + l) * ep->vi.Format.BytesPerSample;
+  switch (ep->vi.Format.BitsPerSample)
   {
   case 8: CoverToFrame_impl<uint8_t>(coverbuf, coverwidth, coverheight, coverpitch, new_dst_ptr, width, height, ep->framepitch, mirw, mirh, ep->interlaced); break;
   case 10:
@@ -578,7 +601,7 @@ void CoverToOverlap(EngineParams * ep, IOParams * iop, float *dst_ptr, const byt
 {
   // for float: chroma center is also 0.0
   if (chroma) {
-    switch (ep->bit_per_channel) {
+    switch (ep->vi.Format.BitsPerSample) {
     case 8: CoverToOverlap_impl<uint8_t, 8, true>(ep, iop, dst_ptr, src_ptr, src_width, src_pitch); break;
     case 10: CoverToOverlap_impl<uint16_t, 10, true>(ep, iop, dst_ptr, src_ptr, src_width, src_pitch); break;
     case 12: CoverToOverlap_impl<uint16_t, 12, true>(ep, iop, dst_ptr, src_ptr, src_width, src_pitch); break;
@@ -588,7 +611,7 @@ void CoverToOverlap(EngineParams * ep, IOParams * iop, float *dst_ptr, const byt
     }
   }
   else {
-    switch (ep->bit_per_channel) {
+    switch (ep->vi.Format.BitsPerSample) {
     case 8: CoverToOverlap_impl<uint8_t, 8, false>(ep, iop, dst_ptr, src_ptr, src_width, src_pitch); break;
     case 10: CoverToOverlap_impl<uint16_t, 10, false>(ep, iop, dst_ptr, src_ptr, src_width, src_pitch); break;
     case 12: CoverToOverlap_impl<uint16_t, 12, false>(ep, iop, dst_ptr, src_ptr, src_width, src_pitch); break;
@@ -602,7 +625,7 @@ void CoverToOverlap(EngineParams * ep, IOParams * iop, float *dst_ptr, const byt
 void OverlapToCover(EngineParams * ep, IOParams * iop, float *src_ptr, float norm, byte *dst_ptr, int dst_width, int dst_pitch, bool chroma)
 {
   if (chroma) {
-    switch (ep->bit_per_channel) {
+    switch (ep->vi.Format.BitsPerSample) {
     case 8: OverlapToCover_impl<uint8_t, 8, true>(ep, iop, src_ptr, norm, dst_ptr, dst_width, dst_pitch); break;
     case 10: OverlapToCover_impl<uint16_t, 10, true>(ep, iop, src_ptr, norm, dst_ptr, dst_width, dst_pitch); break;
     case 12: OverlapToCover_impl<uint16_t, 12, true>(ep, iop, src_ptr, norm, dst_ptr, dst_width, dst_pitch); break;
@@ -612,7 +635,7 @@ void OverlapToCover(EngineParams * ep, IOParams * iop, float *src_ptr, float nor
     }
   }
   else {
-    switch (ep->bit_per_channel) {
+    switch (ep->vi.Format.BitsPerSample) {
     case 8: OverlapToCover_impl<uint8_t, 8, false>(ep, iop, src_ptr, norm, dst_ptr, dst_width, dst_pitch); break;
     case 10: OverlapToCover_impl<uint16_t, 10, false>(ep, iop, src_ptr, norm, dst_ptr, dst_width, dst_pitch); break;
     case 12: OverlapToCover_impl<uint16_t, 12, false>(ep, iop, src_ptr, norm, dst_ptr, dst_width, dst_pitch); break;

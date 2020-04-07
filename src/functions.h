@@ -1,7 +1,8 @@
+#pragma once
 #ifndef __FUNCTIONS_H__
 #define __FUNCTIONS_H__
 
-#include "common.h"
+#include "fft3d_common.h"
 #include "code_impl/code_impl.h"
 #include <avs/cpuid.h>
 

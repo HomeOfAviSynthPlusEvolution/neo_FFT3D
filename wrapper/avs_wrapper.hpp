@@ -1,0 +1,184 @@
+#pragma once
+
+namespace Plugin {
+  extern const char* Description;
+}
+
+namespace AVSInterface
+{
+  struct AVSFetchFrameFunctor;
+
+  template<typename FilterType>
+  struct AVSWrapper : IClip
+  {
+    AVSValue _args;
+    IScriptEnvironment* _env;
+    FilterType Data;
+    PClip clip;
+    VideoInfo vi;
+    AVSFetchFrameFunctor* functor;
+    
+    AVSWrapper(AVSValue args, IScriptEnvironment* env)
+      : _args(args), _env(env) {}
+    
+    void Initialize()
+    {
+      clip = _args[0].AsClip();
+      auto input_vi = DSVideoInfo(clip->GetVideoInfo());
+      functor = new AVSFetchFrameFunctor(clip, clip->GetVideoInfo(), _env);
+      auto Arguments = AVSInDelegator(_args, Data.Params());
+      Data.Initialize(&Arguments, input_vi, functor);
+    }
+
+    PVideoFrame __stdcall GetFrame(int n, IScriptEnvironment * env) override {
+      std::vector<int> requests = Data.RequestReferenceFrames(n);
+      std::unordered_map<int, DSFrame> in_frames;
+      for (auto &&i : requests)
+        in_frames[i] = DSFrame(clip->GetFrame(i, env), vi, env);
+      
+      return Data.GetFrame(n, in_frames).ToAVSFrame();
+    }
+
+    const VideoInfo& __stdcall GetVideoInfo() override {
+      auto output_vi = Data.GetOutputVI();
+      vi = output_vi.ToAVSVI();
+      return vi;
+    }
+
+    void __stdcall GetAudio(void* buf, int64_t start, int64_t count, IScriptEnvironment* env) { clip->GetAudio(buf, start, count, env); }
+    bool __stdcall GetParity(int n) { return clip->GetParity(n); }
+    int __stdcall SetCacheHints(int cachehints, int frame_range) { return Data.SetCacheHints(cachehints, frame_range); }
+    ~AVSWrapper() {
+      delete functor;
+    }
+  };
+
+  template<typename FilterType>
+  AVSValue __cdecl Create(AVSValue args, void* user_data, IScriptEnvironment* env)
+  {
+    auto filter = new AVSWrapper<FilterType>(args, env);
+    try {
+      filter->Initialize();
+    }
+    catch (const char *err) {
+      env->ThrowError("%s: %s", filter->Data.AVSName(), err);
+    }
+    return filter;
+  }
+
+  template<typename FilterType>
+  void RegisterFilter(IScriptEnvironment* env) {
+    FilterType filter;
+    env->AddFunction(filter.AVSName(), filter.AVSParams().c_str(), Create<FilterType>, nullptr);
+  }
+
+  struct AVSInDelegator final : InDelegator {
+    const AVSValue _args;
+    std::unordered_map<std::string, int> _params_index_map;
+    int NameToIndex(const char* name) {
+      std::string name_string(name);
+      if (_params_index_map.find(name_string) == _params_index_map.end())
+        throw "Unknown parameter during NameToIndex";
+      return _params_index_map[name_string];
+    }
+    void Read(const char* name, int& output) override {
+      output = _args[NameToIndex(name)].AsInt(output);
+    }
+    void Read(const char* name, int64_t& output) override {
+      output = _args[NameToIndex(name)].AsInt(static_cast<int>(output));
+    }
+    void Read(const char* name, float& output) override {
+      output = static_cast<float>(_args[NameToIndex(name)].AsFloat(output));
+    }
+    void Read(const char* name, double& output) override {
+      auto default = output;
+      output = _args[NameToIndex(name)].AsFloat(NAN);
+      if (output == NAN)
+        output = default;
+    }
+    void Read(const char* name, bool& output) override {
+      auto output_int = _args[NameToIndex(name)].AsBool(output);
+    }
+    void Read(const char* name, void*& output) {
+      output = (void *)(_args[NameToIndex(name)].AsClip());
+    }
+    void Read(const char* name, std::vector<int>& output) override {
+      auto arg = _args[NameToIndex(name)];
+      if (!arg.IsArray())
+        throw "Argument is not array";
+      auto size = arg.ArraySize();
+      output.clear();
+      for (int i = 0; i < size; i++)
+        output.push_back(arg[i].AsInt());
+    }
+    void Read(const char* name, std::vector<int64_t>& output) override {
+      auto arg = _args[NameToIndex(name)];
+      if (!arg.IsArray())
+        throw "Argument is not array";
+      auto size = arg.ArraySize();
+      output.clear();
+      for (int i = 0; i < size; i++)
+        output.push_back(arg[i].AsInt());
+    }
+    void Read(const char* name, std::vector<float>& output) override {
+      auto arg = _args[NameToIndex(name)];
+      if (!arg.IsArray())
+        throw "Argument is not array";
+      auto size = arg.ArraySize();
+      output.clear();
+      for (int i = 0; i < size; i++)
+        output.push_back(static_cast<float>(arg[i].AsFloat()));
+    }
+    void Read(const char* name, std::vector<double>& output) override {
+      auto arg = _args[NameToIndex(name)];
+      if (!arg.IsArray())
+        throw "Argument is not array";
+      auto size = arg.ArraySize();
+      output.clear();
+      for (int i = 0; i < size; i++)
+        output.push_back(arg[i].AsFloat());
+    }
+    void Read(const char* name, std::vector<bool>& output) override {
+      auto arg = _args[NameToIndex(name)];
+      if (!arg.IsArray())
+        throw "Argument is not array";
+      auto size = arg.ArraySize();
+      output.clear();
+      for (int i = 0; i < size; i++)
+        output.push_back(arg[i].AsBool());
+    }
+
+    AVSInDelegator(const AVSValue args, std::vector<Param> params) : _args(args)
+    {
+      int idx = 0;
+      for (auto &&param : params)
+      {
+        if (!param.AVSEnabled) continue;
+        _params_index_map[param.Name] = idx++;
+      }
+    }
+  };
+
+  struct AVSFetchFrameFunctor final : FetchFrameFunctor {
+    PClip _clip;
+    VideoInfo _vi;
+    IScriptEnvironment* _env;
+    AVSFetchFrameFunctor(PClip clip, VideoInfo vi, IScriptEnvironment * env)
+      : _clip(clip), _vi(vi), _env(env) {}
+    DSFrame operator()(int n) {
+      return DSFrame(_clip->GetFrame(n, _env), _vi, _env);
+    }
+  };
+}
+
+const AVS_Linkage *AVS_linkage = NULL;
+
+extern "C" __declspec(dllexport) const char* __stdcall AvisynthPluginInit3(IScriptEnvironment* env, AVS_Linkage* linkage)
+{
+  AVS_linkage = linkage;
+  auto filters = RegisterAVSFilters();
+  for (auto &&RegisterFilter : filters) {
+    RegisterFilter(env);
+  }
+  return Plugin::Description;
+}

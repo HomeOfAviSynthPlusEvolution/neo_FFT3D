@@ -1,5 +1,4 @@
-#ifndef __COMMON_H__
-#define __COMMON_H__
+#pragma once
 
 #include <cstdio>
 #include <cstdint>
@@ -9,6 +8,7 @@
 #include <algorithm>
 
 #include "fftwlite.h"
+#include "../wrapper/common.hpp"
 
 typedef unsigned char byte;
 
@@ -55,24 +55,17 @@ struct EngineParams {
   float dehalo; // remove halo strength - v.1.9
   float hr; // halo radius - v1.9
   float ht; // halo threshold - v1.9
-  int ncpu; // max number of threads
   int l, t, r, b; // cropping
 
-  int byte_per_channel;
-  int bit_per_channel;
-  bool IsYUV;
-  bool IsRGB;
-  bool IsY;
-  int plane;
+  DSVideoInfo vi;
   bool IsChroma;
-  int ssw;
-  int ssh;
 
+  void* clip;
   int framewidth; // in pixels, not bytes
   int frameheight;
   int framepitch; // in pixels, not bytes
-  int frames;
 };
+
 
 struct IOParams {
   int nox, noy;
@@ -85,5 +78,3 @@ struct IOParams {
   float *wsharpen;
   float *wdehalo;
 };
-
-#endif

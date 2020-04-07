@@ -1,7 +1,16 @@
-#ifndef __FFT3DENGINE_H__
-#define __FFT3DENGINE_H__
+/*
+ * Copyright 2004-2007 A.G.Balakhnin aka Fizick
+ * Copyright 2015 martin53
+ * Copyright 2017-2019 Ferenc Pinter aka printerf
+ * Copyright 2020 Xinyue Lu
+ *
+ * Main file.
+ *
+ */
 
-#include "common.h"
+#pragma once
+
+#include "fft3d_common.h"
 #include "functions.h"
 #include "helper.h"
 #include "buffer.h"
@@ -11,12 +20,11 @@
 #include <thread>
 #include <unordered_map>
 
-template <typename Interface>
 class FFT3DEngine {
-  Interface* super;
   EngineParams* ep;
-  IOParams *iop;
+  IOParams* iop;
   int plane; // color plane
+  FetchFrameFunctor* fetch_frame;
 
   // additional parameterss
   fftwf_complex *gridsample; //v1.8
@@ -38,14 +46,14 @@ class FFT3DEngine {
   int btcurlast;  //v1.7 to prevent multiple Pattern2Dto3D for the same btcurrent. btcurrent can change and may differ from bt for e.g. first/last frame
 
   fftwf_complex *outLast, *covar, *covarProcess;
-  float sigmaSquaredNoiseNormed;
-  float sigmaSquaredNoiseNormed2D;
-  float sigmaNoiseNormed2D;
-  float sigmaMotionNormed;
-  float sigmaSquaredSharpenMinNormed;
-  float sigmaSquaredSharpenMaxNormed;
-  float ht2n; // halo threshold squared normed
-  float norm; // normalization factor
+  float sigmaSquaredNoiseNormed {0};
+  float sigmaSquaredNoiseNormed2D {0};
+  float sigmaNoiseNormed2D {0};
+  float sigmaMotionNormed {0};
+  float sigmaSquaredSharpenMinNormed {0};
+  float sigmaSquaredSharpenMaxNormed {0};
+  float ht2n {0}; // halo threshold squared normed
+  float norm {0}; // normalization factor
 
   int coverwidth;
   int coverheight;
@@ -58,7 +66,7 @@ class FFT3DEngine {
   float *pattern2d;
   float *pattern3d;
   bool isPatternSet;
-  float psigma;
+  float psigma {0};
   char *messagebuf;
 
   // added in v.0.9 for delayed FFTW3.DLL loading
@@ -66,11 +74,6 @@ class FFT3DEngine {
 
   int CPUFlags;
 
-  // avs+
-  int pixelsize;
-  int bits_per_pixel;
-
-  int cachesize;//v1.8
   cache<fftwf_complex> *fftcache;
 
   std::mutex fft_mutex;
@@ -84,14 +87,14 @@ class FFT3DEngine {
   struct FilterFunctionPointers ffp;
 
 public:
-  FFT3DEngine(Interface* _super, EngineParams _ep, int _plane) :
-  super(_super), ep(new EngineParams(_ep)), iop(new IOParams()), plane(_plane) {
+  FFT3DEngine(EngineParams _ep, int _plane, FetchFrameFunctor* _fetch_frame) :
+  ep(new EngineParams(_ep)), iop(new IOParams()), plane(_plane), fetch_frame(_fetch_frame) {
     int i, j;
 
     float factor;
-    switch(ep->byte_per_channel) {
+    switch(ep->vi.Format.BytesPerSample) {
       case 1: factor = 1.0f; break;
-      case 2: factor = float(1 << (ep->bit_per_channel-8)); break;
+      case 2: factor = float(1 << (ep->vi.Format.BitsPerSample-8)); break;
       default: factor = 1 / 255.0f;
     }
 
@@ -109,16 +112,17 @@ public:
 
     if (ep->bt < -1 || ep->bt > 5) throw("bt must be -1 (Sharpen), 0 (Kalman), 1..5 (Wiener)");
 
-    int xRatioShift = ep->IsChroma ? ep->ssw : 0;
-    int yRatioShift = ep->IsChroma ? ep->ssh : 0;
+    int xRatioShift = ep->IsChroma ? ep->vi.Format.SSW : 0;
+    int yRatioShift = ep->IsChroma ? ep->vi.Format.SSH : 0;
 
-    iop->nox = (((super->width() - ep->l - ep->r) >> xRatioShift) - ep->ow + (ep->bw - ep->ow - 1)) / (ep->bw - ep->ow);
-    iop->noy = (((super->height() - ep->t - ep->b) >> yRatioShift) - ep->oh + (ep->bh - ep->oh - 1)) / (ep->bh - ep->oh);
+    iop->nox = (((ep->vi.Width - ep->l - ep->r) >> xRatioShift) - ep->ow + (ep->bw - ep->ow - 1)) / (ep->bw - ep->ow);
+    iop->noy = (((ep->vi.Height - ep->t - ep->b) >> yRatioShift) - ep->oh + (ep->bh - ep->oh - 1)) / (ep->bh - ep->oh);
 
 
     // padding by 1 block per side
     iop->nox += 2;
     iop->noy += 2;
+    BufferInit(ep, iop);
     mirw = ep->bw - ep->ow; // set mirror size as block interval
     mirh = ep->bh - ep->oh;
 
@@ -142,19 +146,18 @@ public:
     outsize = outpitch*ep->bh*iop->nox*iop->noy; // replace outwidth to outpitch here and below in v1.7
     if (ep->bt == 0) // Kalman
     {
-      outLast = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, 64);
-      covar = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, 64);
-      covarProcess = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, 64);
+      outLast = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN);
+      covar = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN);
+      covarProcess = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN);
     }
     // in and out are thread dependent now // neo-r1
-    auto in = (float *)_aligned_malloc(sizeof(float) * insize, 64);
-    auto outrez = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, 64); //v1.8
-    gridsample = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, 64); //v1.8
+    auto in = (float *)_aligned_malloc(sizeof(float) * insize, FRAME_ALIGN);
+    auto outrez = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN); //v1.8
+    gridsample = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN); //v1.8
 
-    cachesize = ep->bt + 8; // extra cache to work with MT
     fftcache = NULL;
     if (ep->bt > 1)
-      fftcache = new cache<fftwf_complex>(cachesize, outsize);
+      fftcache = new cache<fftwf_complex>(ep->bt + 3, outsize);
 
     int planFlags;
     // use FFTW_ESTIMATE or FFTW_MEASURE (more optimal plan, but with time calculation at load stage)
@@ -179,7 +182,7 @@ public:
     //	*inembed = NULL;
     //	*onembed = NULL;
 
-    fftfp.fftwf_plan_with_nthreads(ep->ncpu);
+    fftfp.fftwf_plan_with_nthreads(1);
 
     plan = fftfp.fftwf_plan_many_dft_r2c(rank, ndim, howmanyblocks,
       in, inembed, istride, idist, outrez, onembed, ostride, odist, planFlags);
@@ -191,7 +194,6 @@ public:
     if (planinv == NULL)
       throw("FFTW plan error");
 
-    fftfp.fftwf_plan_with_nthreads(1);
 
     iop->wanxl = new float[ep->ow];
     iop->wanxr = new float[ep->ow];
@@ -203,8 +205,8 @@ public:
     iop->wsynyl = new float[ep->oh];
     iop->wsynyr = new float[ep->oh];
 
-    wsharpen = (float*)_aligned_malloc(ep->bh*outpitch * sizeof(float), 64);
-    wdehalo = (float*)_aligned_malloc(ep->bh*outpitch * sizeof(float), 64);
+    wsharpen = (float*)_aligned_malloc(ep->bh*outpitch * sizeof(float), FRAME_ALIGN);
+    wdehalo = (float*)_aligned_malloc(ep->bh*outpitch * sizeof(float), FRAME_ALIGN);
 
     // define analysis and synthesis windows
     // combining window (analize mult by synthesis) is raised cosine (Hanning)
@@ -373,8 +375,8 @@ public:
     }
     pwin -= outpitch*ep->bh; // restore pointer
 
-    pattern2d = (float*)_aligned_malloc(ep->bh*outpitch * sizeof(float), 64); // noise pattern window array
-    pattern3d = (float*)_aligned_malloc(ep->bh*outpitch * sizeof(float), 64); // noise pattern window array
+    pattern2d = (float*)_aligned_malloc(ep->bh*outpitch * sizeof(float), FRAME_ALIGN); // noise pattern window array
+    pattern3d = (float*)_aligned_malloc(ep->bh*outpitch * sizeof(float), FRAME_ALIGN); // noise pattern window array
 
     if ((ep->sigma2 != ep->sigma || ep->sigma3 != ep->sigma || ep->sigma4 != ep->sigma) && ep->pfactor == 0)
     {// we have different sigmas, so create pattern from sigmas
@@ -394,12 +396,12 @@ public:
     plan1 = fftfp.fftwf_plan_many_dft_r2c(rank, ndim, 1,
       in, inembed, istride, idist, outrez, onembed, ostride, odist, planFlags); // 1 block
 
-    byte* coverbuf = new byte[coverheight*coverpitch*ep->byte_per_channel];
+    byte* coverbuf = new byte[coverheight*coverpitch*ep->vi.Format.BytesPerSample];
     // avs+
-    switch (ep->byte_per_channel) {
+    switch (ep->vi.Format.BytesPerSample) {
     case 1: memset(coverbuf, 255, coverheight*coverpitch); 
       break;
-    case 2: std::fill_n((uint16_t *)coverbuf, coverheight*coverpitch, (1 << ep->bit_per_channel) - 1); 
+    case 2: std::fill_n((uint16_t *)coverbuf, coverheight*coverpitch, (1 << ep->vi.Format.BitsPerSample) - 1); 
       break; // 255 
     case 4: std::fill_n((float *)coverbuf, coverheight*coverpitch, 1.0f); 
       break; // 255 
@@ -452,9 +454,9 @@ public:
     free(messagebuf); //v1.8.5
   }
 
-  typename Interface::Frametype GetFrame(int n, void *ctx) {
+  DSFrame GetFrame(int n, std::unordered_map<int, DSFrame> in_frames) {
     auto thread_id = std::this_thread::get_id();
-    typename Interface::Frametype src, psrc, dst;
+    DSFrame src, psrc, dst;
     int pxf, pyf;
 
     byte* coverbuf;
@@ -468,9 +470,11 @@ public:
         outrez = mt_out.find(thread_id)->second;
       }
       else {
-        mt_coverbuf[thread_id] = coverbuf = (byte*)_aligned_malloc(coverheight*coverpitch*ep->byte_per_channel, 64);
-        mt_in[thread_id] = in = (float *)_aligned_malloc(sizeof(float) * insize, 64);
-        mt_out[thread_id] = outrez = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, 64);
+        mt_coverbuf[thread_id] = coverbuf = (byte*)_aligned_malloc(coverheight*coverpitch*ep->vi.Format.BytesPerSample, FRAME_ALIGN);
+        mt_in[thread_id] = in = (float *)_aligned_malloc(sizeof(float) * insize, FRAME_ALIGN);
+        mt_out[thread_id] = outrez = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN);
+        std::lock_guard<std::mutex> lock2(cache_mutex);
+        fftcache->resize(ep->bt + mt_coverbuf.size() + 2);
       }
     }
     //	char debugbuf[1536];
@@ -478,15 +482,16 @@ public:
     //	OutputDebugString(debugbuf);
     //	fftwf_complex * tmpoutrez, *tmpoutnext, *tmpoutprev, *tmpoutnext2; // store pointers
 
-    {
+    if (ep->pfactor != 0) {
       std::lock_guard<std::mutex> guard(fft_mutex);
       if (ep->pfactor != 0 && isPatternSet == false && ep->pshow == false) // get noise pattern
       {
-        psrc = super->GetFrame(super->child, ep->pframe, ctx); // get noise patterme
-        auto sptr = psrc->GetReadPtr(plane);
-        ep->framewidth = super->width(psrc, plane);
-        ep->frameheight = super->height(psrc, plane);
-        ep->framepitch = super->stride(psrc, plane) / ep->byte_per_channel;
+        if (in_frames.find(ep->pframe) == in_frames.end())
+          psrc = (*fetch_frame)(ep->pframe);
+        else
+          psrc = in_frames[ep->pframe];
+        auto sptr = psrc.SrcPointers[plane];
+        ep->framepitch = psrc.StrideBytes[plane] / ep->vi.Format.BytesPerSample;
 
         // put source bytes to float array of overlapped blocks
         FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
@@ -496,19 +501,18 @@ public:
           FindPatternBlock(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin, ep->degrid, gridsample);
         SetPattern(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin, pattern2d, psigma, ep->degrid, gridsample);
         isPatternSet = true;
-        super->FreeFrame(psrc);
       }
       else if (ep->pfactor != 0 && ep->pshow == true)
       {
         // show noise pattern window
-        src = super->GetFrame(super->child, n, ctx); // get noise pattern frame
-        dst = super->NewVideoFrame();
-        auto sptr = src->GetReadPtr(plane);
-        auto dptr = dst->GetWritePtr(plane);
-        ep->framewidth = super->width(src, plane);
-        ep->frameheight = super->height(src, plane);
-        ep->framepitch = super->stride(src, plane) / ep->byte_per_channel;
-        // TODO: CopyFrame(src, dst, vi, plane, env);
+        if (in_frames.find(n) == in_frames.end())
+          src = (*fetch_frame)(n);
+        else
+          src = in_frames[n];
+        dst = src.Create(true);
+        auto sptr = src.SrcPointers[plane];
+        auto dptr = dst.DstPointers[plane];
+        ep->framepitch = src.StrideBytes[plane] / ep->vi.Format.BytesPerSample;
 
         // put source bytes to float array of overlapped blocks
         FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
@@ -537,7 +541,7 @@ public:
         // put source bytes to float array of overlapped blocks
         // cur frame
         FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
-        CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, !ep->IsRGB);
+        CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, !ep->vi.Format.IsFamilyRGB);
         // make FFT 2D
         fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
 
@@ -546,29 +550,29 @@ public:
         fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
 
         // make destination frame plane from current overlaped blocks
-        OverlapToCover(ep, iop, in, norm, coverbuf, coverwidth, coverpitch, !ep->IsRGB);
+        OverlapToCover(ep, iop, in, norm, coverbuf, coverwidth, coverpitch, !ep->vi.Format.IsFamilyRGB);
         CoverToFrame(ep, plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
         int psigmaint = ((int)(10 * psigma)) / 10;
         int psigmadec = (int)((psigma - psigmaint) * 10);
         wsprintf(messagebuf, " frame=%d, px=%d, py=%d, sigma=%d.%d", n, pxf, pyf, psigmaint, psigmadec);
         // TODO: DrawString(dst, vi, 0, 0, messagebuf);
-        super->FreeFrame(src);
         return dst; // return pattern frame to show
       }
     }
 
     // Request frame 'n' from the child (source) clip.
-    src = super->GetFrame(super->child, n, ctx);
-    dst = super->NewVideoFrame();
-    auto sptr = src->GetReadPtr(plane);
-    auto dptr = dst->GetWritePtr(plane);
-    ep->framewidth = super->width(src, plane);
-    ep->frameheight = super->height(src, plane);
-    ep->framepitch = super->stride(src, plane) / ep->byte_per_channel;
+    if (in_frames.find(n) == in_frames.end())
+      src = (*fetch_frame)(n);
+    else
+      src = in_frames[n];
+    dst = src.Create(false);
+    auto sptr = src.SrcPointers[plane];
+    auto dptr = dst.DstPointers[plane];
+    ep->framepitch = src.StrideBytes[plane] / ep->vi.Format.BytesPerSample;
 
     int btcur = ep->bt; // bt used for current frame
   //	if ( (bt/2 > n) || bt==3 && n==vi.num_frames-1 )
-    if ((ep->bt / 2 > n) || (ep->bt - 1) / 2 > (ep->frames - 1 - n))
+    if ((ep->bt / 2 > n) || (ep->bt - 1) / 2 > (ep->vi.Frames - 1 - n))
       btcur = 1; //	do 2D filter for first and last frames
 
     SharedFunctionParams sfp {
@@ -605,11 +609,7 @@ public:
         // cur frame
         FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
         CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
-        {
-          std::lock_guard<std::mutex> lock(fft_mutex);
-                // make FFT 2D
-          fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
-        }
+        fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
         ffp.Apply2D(outrez, sfp);
         if (ep->pfactor != 0)
           ffp.Sharpen(outrez, sfp);
@@ -634,7 +634,7 @@ public:
         * +---+-------+-------+-------+-------+-------+
         * | 2 |       |   o   |   o   |       |       |
         * | 3 |       |   o   |   o   |   o   |       |
-        * | 4 |   o   |   o   |   o   |   o   |       |build\Release_\msvc-x64
+        * | 4 |   o   |   o   |   o   |   o   |       |
         * | 5 |   o   |   o   |   o   |   o   |   o   |
         *
         */
@@ -645,14 +645,17 @@ public:
             apply_in[2+i] = fftcache->get_read(n+i);
           }
           else {
+            DSFrame frame;
+            DSFrame* pframe;
             apply_in[2+i] = fftcache->get_write(n+i);
-            auto frame = i == 0 ? src : super->GetFrame(super->child, n+i, ctx);
-            FrameToCover(ep, plane, frame->GetReadPtr(plane), coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
+            if (in_frames.find(n+i) == in_frames.end())
+              pframe = &(frame = (*fetch_frame)(n+i));
+            else
+              pframe = &in_frames[n+i];
+            FrameToCover(ep, plane, pframe->SrcPointers[plane], coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
             CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
 
-            std::lock_guard<std::mutex> lock2(fft_mutex);
             fftfp.fftwf_execute_dft_r2c(plan, in, apply_in[2+i]);
-            if (i != 0) super->FreeFrame(frame);
           }
         }
 
@@ -660,19 +663,15 @@ public:
         ffp.Sharpen(outrez, sfp);
       }
 
-      {
-        std::lock_guard<std::mutex> lock(fft_mutex);
-        // do inverse FFT, get filtered 'in' array
-        fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
-        // make destination frame plane from current overlaped blocks
-      }
+      // do inverse FFT, get filtered 'in' array
+      fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
+      // make destination frame plane from current overlaped blocks
       OverlapToCover(ep, iop, in, norm, coverbuf, coverwidth, coverpitch, ep->IsChroma);
       CoverToFrame(ep, plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
     }
     else if (ep->bt == 0) //Kalman filter
     {
       if (n == 0) {
-        super->FreeFrame(dst);
         return src; // first frame  not processed
       }
       /* PF 170302 comment: accumulated error?
@@ -685,24 +684,17 @@ public:
       // cur frame
       FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
       CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
-      {
-        std::lock_guard<std::mutex> lock(fft_mutex);
-        // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
-      }
+      fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
       ffp.Kalman(outrez, outLast, sfp);
 
       // copy outLast to outrez
       memcpy(outrez, outLast, outsize * sizeof(fftwf_complex));  //v.0.9.2
       ffp.Sharpen(outrez, sfp);
-      {
-        std::lock_guard<std::mutex> lock(fft_mutex);
-        // do inverse FFT 2D, get filtered 'in' array
-        // note: input "out" array is destroyed by execute algo.
-        // that is why we must have its copy in "outLast" array
-        fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
-        // make destination frame plane from current overlaped blocks
-      }
+      // do inverse FFT 2D, get filtered 'in' array
+      // note: input "out" array is destroyed by execute algo.
+      // that is why we must have its copy in "outLast" array
+      fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
+      // make destination frame plane from current overlaped blocks
       OverlapToCover(ep, iop, in, norm, coverbuf, coverwidth, coverpitch, ep->IsChroma);
       CoverToFrame(ep, plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
 
@@ -711,18 +703,11 @@ public:
     {
       FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
       CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
-      {
-        std::lock_guard<std::mutex> lock(fft_mutex);
-        // make FFT 2D
-        fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
-      }
+      fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
       ffp.Sharpen(outrez, sfp);
-      {
-        std::lock_guard<std::mutex> lock(fft_mutex);
-        // do inverse FFT 2D, get filtered 'in' array
-        fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
-        // make destination frame plane from current overlaped blocks
-      }
+      // do inverse FFT 2D, get filtered 'in' array
+      fftfp.fftwf_execute_dft_c2r(planinv, outrez, in);
+      // make destination frame plane from current overlaped blocks
       OverlapToCover(ep, iop, in, norm, coverbuf, coverwidth, coverpitch, ep->IsChroma);
       CoverToFrame(ep, plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
 
@@ -734,10 +719,13 @@ public:
     }
     btcurlast = btcur;
 
-    super->FreeFrame(src);
     // As we now are finished processing the image, we return the destination image.
     return dst;
   }
-};
 
-#endif
+  bool CacheRefresh(int n) {
+    if (!fftcache) return false;
+    std::lock_guard<std::mutex> lock(cache_mutex);
+    return fftcache->refresh(n);
+  }
+};

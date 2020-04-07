@@ -9,7 +9,9 @@
 #ifndef __CODE_IMPL_H__
 #define __CODE_IMPL_H__
 
-#include "common.h"
+#include "../fft3d_common.h"
+
+#pragma warning(disable:4101)
 
 struct SharedFunctionParams {
     int outwidth;
