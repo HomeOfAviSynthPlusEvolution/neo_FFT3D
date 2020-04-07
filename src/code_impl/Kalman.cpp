@@ -24,7 +24,7 @@ void Kalman_C(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionParam
       auto inprev = dummy[1];
       auto out = outLast;
 
-      if (pattern) {
+      if constexpr (pattern) {
         sigma = lfp.pattern2d[lfp.w];
         // Prevent bad blocks, maybe incorrect -- by XL
         if (sigma < 1e-15f)

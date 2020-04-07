@@ -19,7 +19,7 @@ static inline void Apply2D_C_impl(fftwf_complex *out, SharedFunctionParams sfp)
       float gridcorrection0 = 0.0f;
       float gridcorrection1 = 0.0f;
 
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection0 = lfp.gridfraction * lfp.gridsample[lfp.w][0]; // grid correction
         gridcorrection1 = lfp.gridfraction * lfp.gridsample[lfp.w][1];
       }
@@ -30,7 +30,7 @@ static inline void Apply2D_C_impl(fftwf_complex *out, SharedFunctionParams sfp)
       float psd = cr * cr + ci * ci + 1e-15f;
       float factor = MAX((psd - (pattern ? lfp.pattern2d[lfp.w] : sfp.sigmaSquaredNoiseNormed) ) / psd, lfp.lowlimit); // limited Wiener filter
 
-      if (!pattern) {
+      if constexpr (!pattern) {
         // Skip sharpen and dehalo for ApplyPattern family
         float s_fact = 1 + sfp.sharpen * lfp.wsharpen[lfp.w] * sqrt(
           psd * sfp.sigmaSquaredSharpenMaxNormed / ((psd + sfp.sigmaSquaredSharpenMinNormed) * (psd + sfp.sigmaSquaredSharpenMaxNormed))
@@ -74,7 +74,7 @@ void Apply3D2_C(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp
       auto incur = in[2];
       auto inprev = in[1];
 
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection0 = lfp.gridfraction * lfp.gridsample[lfp.w][0] * 2; // grid correction
         gridcorrection1 = lfp.gridfraction * lfp.gridsample[lfp.w][1] * 2;
       }
@@ -109,7 +109,7 @@ void Apply3D3_C(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp
       auto inprev = in[1];
       auto innext = in[3];
 
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection0 = lfp.gridfraction * lfp.gridsample[lfp.w][0] * 3;
         gridcorrection1 = lfp.gridfraction * lfp.gridsample[lfp.w][1] * 3;
       }
@@ -151,7 +151,7 @@ void Apply3D4_C(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp
       auto inprev2 = in[0];
       float fcr, fci, fpr, fpi, fnr, fni, fp2r, fp2i;
 
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection0 = lfp.gridfraction * lfp.gridsample[lfp.w][0] * 4;
         gridcorrection1 = lfp.gridfraction * lfp.gridsample[lfp.w][1] * 4;
       }
@@ -196,7 +196,7 @@ void Apply3D5_C(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp
       auto inprev2 = in[0];
       auto innext2 = in[4];
 
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection0 = lfp.gridfraction * lfp.gridsample[lfp.w][0] * 5;
         gridcorrection1 = lfp.gridfraction * lfp.gridsample[lfp.w][1] * 5;
       }

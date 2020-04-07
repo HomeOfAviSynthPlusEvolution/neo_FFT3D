@@ -30,7 +30,7 @@ void Kalman_SSE2(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionPa
       __m128 m_covar = _mm_load_ps((const float*)lfp.covar);
       __m128 m_covarProcess = _mm_load_ps((const float*)lfp.covarProcess);
 
-      if (pattern) {
+      if constexpr (pattern) {
         // Prevent bad blocks, maybe incorrect -- by XL
         sigma = _mm_max_ps(lfp.m_pattern2d, lfp.epsilon);
       }

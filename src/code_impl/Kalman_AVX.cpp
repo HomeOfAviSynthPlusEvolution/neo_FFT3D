@@ -30,7 +30,7 @@ void Kalman_AVX(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionPar
       __m256 m_covar = _mm256_load_ps((const float*)lfp.covar);
       __m256 m_covarProcess = _mm256_load_ps((const float*)lfp.covarProcess);
 
-      if (pattern) {
+      if constexpr (pattern) {
         // Prevent bad blocks, maybe incorrect -- by XL
         sigma = _mm256_max_ps(lfp.m_pattern2d, lfp.epsilon);
       }

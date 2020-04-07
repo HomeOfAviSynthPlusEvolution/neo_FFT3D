@@ -22,7 +22,7 @@ void Kalman_AVX512(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunction
       __m512 m_covar = _mm512_load_ps((const float*)lfp.covar);
       __m512 m_covarProcess = _mm512_load_ps((const float*)lfp.covarProcess);
 
-      if (pattern) {
+      if constexpr (pattern) {
         // Prevent bad blocks, maybe incorrect -- by XL
         sigma = _mm512_max_ps(lfp.m_pattern2d, lfp.epsilon);
       }

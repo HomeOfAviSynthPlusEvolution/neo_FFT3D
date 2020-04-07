@@ -25,7 +25,7 @@ static inline void Sharpen_SSE2_impl(fftwf_complex *out, SharedFunctionParams sf
 
       __m128 cur = _mm_load_ps((const float*)out);
 
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection = lfp.m_gridcorrection;
         cur -= gridcorrection;
       }
@@ -47,15 +47,15 @@ static inline void Sharpen_SSE2_impl(fftwf_complex *out, SharedFunctionParams sf
 
       __m128 factor;
 
-      if (sharpen && !dehalo)
+      if constexpr (sharpen && !dehalo)
         factor = s_fact;
-      else if (!sharpen && dehalo)
+      else if constexpr (!sharpen && dehalo)
         factor = d_fact;
-      else if (sharpen && dehalo)
+      else if constexpr (sharpen && dehalo)
         factor = s_fact * d_fact;
 
       __m128 result = cur * factor;
-      if (degrid) {
+      if constexpr (degrid) {
         result += gridcorrection;
       }
 

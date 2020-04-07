@@ -25,7 +25,7 @@ static inline void Apply2D_SSE2_impl(fftwf_complex *out, SharedFunctionParams sf
 
       __m128 cur = _mm_load_ps((const float*)out);
 
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection = lfp.m_gridcorrection;
         cur -= gridcorrection;
       }
@@ -34,7 +34,7 @@ static inline void Apply2D_SSE2_impl(fftwf_complex *out, SharedFunctionParams sf
       __m128 factor = (psd - sigma) / psd;
       factor = _mm_max_ps(factor, lfp.m_lowlimit); // limited Wiener filter
 
-      if (!pattern) {
+      if constexpr (!pattern) {
         const __m128 m_sigma_min = _mm_set1_ps(sfp.sigmaSquaredSharpenMinNormed);
         const __m128 m_sigma_max = _mm_set1_ps(sfp.sigmaSquaredSharpenMaxNormed);
         const __m128 m_sharpen = _mm_set1_ps(sfp.sharpen);
@@ -58,7 +58,7 @@ static inline void Apply2D_SSE2_impl(fftwf_complex *out, SharedFunctionParams sf
       }
 
       __m128 result = cur * factor;
-      if (degrid) {
+      if constexpr (degrid) {
         result += gridcorrection;
       }
 
@@ -94,7 +94,7 @@ void Apply3D2_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
       __m128 prev = _mm_load_ps((const float*)in[1]);
 
       __m128 f3d0 = cur + prev;
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection = lfp.m_gridcorrection * _mm_set1_ps(scale);
         f3d0 -= gridcorrection;
       }
@@ -104,7 +104,7 @@ void Apply3D2_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
       lfp.wiener_factor_3d<pattern>(f3d1);
 
       __m128 result = f3d0 + f3d1;
-      if (degrid) {
+      if constexpr (degrid) {
         result += gridcorrection;
       }
 
@@ -132,7 +132,7 @@ void Apply3D3_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
 
       __m128 pn = prev + next;
       __m128 fc = cur + pn;
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection = lfp.m_gridcorrection * _mm_set1_ps(scale);
         fc -= gridcorrection;
       }
@@ -148,7 +148,7 @@ void Apply3D3_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
       lfp.wiener_factor_3d<pattern>(fn);
 
       __m128 result = fc + fp + fn;
-      if (degrid) {
+      if constexpr (degrid) {
         result += gridcorrection;
       }
 
@@ -180,7 +180,7 @@ void Apply3D4_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
       __m128 fc  = (cur + prev2) + (prev + next);
       __m128 fn  = (cur - prev2) - p_n;
 
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection = lfp.m_gridcorrection * _mm_set1_ps(scale);
         fc -= gridcorrection;
       }
@@ -191,7 +191,7 @@ void Apply3D4_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
       lfp.wiener_factor_3d<pattern>(fn);
 
       __m128 result = (fp2 + fp) + (fc + fn);
-      if (degrid) {
+      if constexpr (degrid) {
         result += gridcorrection;
       }
 
@@ -245,7 +245,7 @@ void Apply3D5_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
 
       __m128 fc = (prev2 + prev) + cur + (next + next2);
 
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection = lfp.m_gridcorrection * _mm_set1_ps(scale);
         fc -= gridcorrection;
       }
@@ -257,7 +257,7 @@ void Apply3D5_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
       lfp.wiener_factor_3d<pattern>(fn2);
 
       __m128 result = (fp2 + fp) + (fc + fn) + fn2;
-      if (degrid) {
+      if constexpr (degrid) {
         result += gridcorrection;
       }
 

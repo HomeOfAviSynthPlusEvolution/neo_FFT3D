@@ -17,7 +17,7 @@ static inline void Apply2D_AVX512_impl(fftwf_complex *out, SharedFunctionParams 
 
       __m512 cur = _mm512_load_ps((const float*)out);
 
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection = lfp.m_gridcorrection;
         cur -= gridcorrection;
       }
@@ -26,7 +26,7 @@ static inline void Apply2D_AVX512_impl(fftwf_complex *out, SharedFunctionParams 
       __m512 factor = (psd - sigma) / psd;
       factor = _mm512_max_ps(factor, lfp.m_lowlimit); // limited Wiener filter
 
-      if (!pattern) {
+      if constexpr (!pattern) {
         const __m512 m_sigma_min = _mm512_set1_ps(sfp.sigmaSquaredSharpenMinNormed);
         const __m512 m_sigma_max = _mm512_set1_ps(sfp.sigmaSquaredSharpenMaxNormed);
         const __m512 m_sharpen = _mm512_set1_ps(sfp.sharpen);
@@ -50,7 +50,7 @@ static inline void Apply2D_AVX512_impl(fftwf_complex *out, SharedFunctionParams 
       }
 
       __m512 result = cur * factor;
-      if (degrid) {
+      if constexpr (degrid) {
         result += gridcorrection;
       }
 
@@ -84,7 +84,7 @@ void Apply3D2_AVX512(fftwf_complex **in, fftwf_complex *out, SharedFunctionParam
       __m512 prev = _mm512_load_ps((const float*)in[1]);
 
       __m512 f3d0 = cur + prev;
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection = lfp.m_gridcorrection * _mm512_set1_ps(scale);
         f3d0 -= gridcorrection;
       }
@@ -94,7 +94,7 @@ void Apply3D2_AVX512(fftwf_complex **in, fftwf_complex *out, SharedFunctionParam
       lfp.wiener_factor_3d<pattern>(f3d1);
 
       __m512 result = f3d0 + f3d1;
-      if (degrid) {
+      if constexpr (degrid) {
         result += gridcorrection;
       }
 
@@ -120,7 +120,7 @@ void Apply3D3_AVX512(fftwf_complex **in, fftwf_complex *out, SharedFunctionParam
 
       __m512 pn = prev + next;
       __m512 fc = cur + pn;
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection = lfp.m_gridcorrection * _mm512_set1_ps(scale);
         fc -= gridcorrection;
       }
@@ -136,7 +136,7 @@ void Apply3D3_AVX512(fftwf_complex **in, fftwf_complex *out, SharedFunctionParam
       lfp.wiener_factor_3d<pattern>(fn);
 
       __m512 result = fc + fp + fn;
-      if (degrid) {
+      if constexpr (degrid) {
         result += gridcorrection;
       }
 
@@ -166,7 +166,7 @@ void Apply3D4_AVX512(fftwf_complex **in, fftwf_complex *out, SharedFunctionParam
       __m512 fc  = (cur + prev2) + (prev + next);
       __m512 fn  = (cur - prev2) - p_n;
 
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection = lfp.m_gridcorrection * _mm512_set1_ps(scale);
         fc -= gridcorrection;
       }
@@ -177,7 +177,7 @@ void Apply3D4_AVX512(fftwf_complex **in, fftwf_complex *out, SharedFunctionParam
       lfp.wiener_factor_3d<pattern>(fn);
 
       __m512 result = (fp2 + fp) + (fc + fn);
-      if (degrid) {
+      if constexpr (degrid) {
         result += gridcorrection;
       }
 
@@ -229,7 +229,7 @@ void Apply3D5_AVX512(fftwf_complex **in, fftwf_complex *out, SharedFunctionParam
 
       __m512 fc = (prev2 + prev) + cur + (next + next2);
 
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection = lfp.m_gridcorrection * _mm512_set1_ps(scale);
         fc -= gridcorrection;
       }
@@ -241,7 +241,7 @@ void Apply3D5_AVX512(fftwf_complex **in, fftwf_complex *out, SharedFunctionParam
       lfp.wiener_factor_3d<pattern>(fn2);
 
       __m512 result = (fp2 + fp) + (fc + fn) + fn2;
-      if (degrid) {
+      if constexpr (degrid) {
         result += gridcorrection;
       }
 

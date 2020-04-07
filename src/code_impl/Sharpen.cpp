@@ -19,7 +19,7 @@ static inline void Sharpen_C_impl(fftwf_complex *out, SharedFunctionParams sfp)
       float gridcorrection0 = 0.0f;
       float gridcorrection1 = 0.0f;
 
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection0 = lfp.gridfraction * lfp.gridsample[lfp.w][0]; // grid correction
         gridcorrection1 = lfp.gridfraction * lfp.gridsample[lfp.w][1];
       }
@@ -36,11 +36,11 @@ static inline void Sharpen_C_impl(fftwf_complex *out, SharedFunctionParams sfp)
 
       float factor;
 
-      if (sharpen && !dehalo)
+      if constexpr (sharpen && !dehalo)
         factor = s_fact;
-      else if (!sharpen && dehalo)
+      else if constexpr (!sharpen && dehalo)
         factor = d_fact;
-      else if (sharpen && dehalo)
+      else if constexpr (sharpen && dehalo)
         factor = s_fact * d_fact;
 
       out[lfp.w][0] = cr * factor + gridcorrection0;

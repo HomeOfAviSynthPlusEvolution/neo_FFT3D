@@ -17,7 +17,7 @@ static inline void Sharpen_AVX512_impl(fftwf_complex *out, SharedFunctionParams 
 
       __m512 cur = _mm512_load_ps((const float*)out);
 
-      if (degrid) {
+      if constexpr (degrid) {
         gridcorrection = lfp.m_gridcorrection;
         cur -= gridcorrection;
       }
@@ -39,15 +39,15 @@ static inline void Sharpen_AVX512_impl(fftwf_complex *out, SharedFunctionParams 
 
       __m512 factor;
 
-      if (sharpen && !dehalo)
+      if constexpr (sharpen && !dehalo)
         factor = s_fact;
-      else if (!sharpen && dehalo)
+      else if constexpr (!sharpen && dehalo)
         factor = d_fact;
-      else if (sharpen && dehalo)
+      else if constexpr (sharpen && dehalo)
         factor = s_fact * d_fact;
 
       __m512 result = cur * factor;
-      if (degrid) {
+      if constexpr (degrid) {
         result += gridcorrection;
       }
 
