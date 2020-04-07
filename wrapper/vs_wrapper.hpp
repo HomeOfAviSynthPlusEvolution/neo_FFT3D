@@ -100,8 +100,10 @@ namespace VSInterface {
   template<typename FilterType>
   void VS_CC Delete(void *instanceData, VSCore *core, const VSAPI *vsapi) {
     auto Data = reinterpret_cast<FilterType*>(instanceData);
+    auto functor = reinterpret_cast<VSFetchFrameFunctor*>(Data->fetch_frame);
     if (Data->clip)
       vsapi->freeNode(reinterpret_cast<VSNodeRef*>(Data->clip));
+    vsapi->freeNode(functor->_vs_clip);
     delete Data;
   }
 
@@ -112,21 +114,19 @@ namespace VSInterface {
     functor->_frameCtx = frameCtx;
 
     std::vector<int> ref_frames;
-    auto vs_clip = reinterpret_cast<VSNodeRef*>(Data->clip);
     if (activationReason == VSActivationReason::arInitial) {
       ref_frames = Data->RequestReferenceFrames(n);
       for (auto &&i : ref_frames) {
-        vsapi->requestFrameFilter(i, vs_clip, frameCtx);
+        vsapi->requestFrameFilter(i, functor->_vs_clip, frameCtx);
       }
     }
     else if (activationReason == VSActivationReason::arAllFramesReady) {
       ref_frames = Data->RequestReferenceFrames(n);
       std::unordered_map<int, DSFrame> in_frames;
       for (auto &&i : ref_frames) {
-        in_frames[i] = DSFrame(vsapi->getFrameFilter(i, vs_clip, frameCtx), core, vsapi);
+        in_frames[i] = DSFrame(vsapi->getFrameFilter(i, functor->_vs_clip, frameCtx), core, vsapi);
       }
-      
-      //vsapi->cloneFrameRef
+
       auto vs_frame = (Data->GetFrame(n, in_frames).ToVSFrame());
       return vs_frame;
     }

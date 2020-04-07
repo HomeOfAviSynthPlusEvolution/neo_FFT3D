@@ -90,7 +90,12 @@ struct DSFrame
     return DSFrame();
   }
 
-  const VSFrameRef* ToVSFrame() {return _vsdst ? _vsdst : _vssrc ? _vssrc : nullptr;}
+  const VSFrameRef* ToVSFrame()
+  {
+    return _vsdst ? _vsapi->cloneFrameRef(_vsdst) :
+           _vssrc ? _vsapi->cloneFrameRef(_vssrc) :
+           nullptr;
+  }
   PVideoFrame ToAVSFrame() {return _avssrc ? _avssrc : nullptr;}
 
   ~DSFrame()
@@ -171,6 +176,8 @@ struct DSFrame
     old.SrcPointers = nullptr;
     old.DstPointers = nullptr;
     old.StrideBytes = nullptr;
+    old._vssrc = nullptr;
+    old._vsdst = nullptr;
   }
   DSFrame& operator =(DSFrame && old) noexcept
   {
