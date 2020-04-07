@@ -1,21 +1,24 @@
 cmake_minimum_required (VERSION 3.1)
-project (neo_fft3d)
-file(GLOB CODE_IMPL "code_impl/*.cpp")
-file(GLOB AVX_CODE_IMPL "code_impl/*AVX.cpp")
-file(GLOB AVX512_CODE_IMPL "code_impl/*AVX512.cpp")
-add_library(neo-fft3d SHARED avs_interface.cpp vs_interface.cpp buffer.cpp helper.cpp cpuid.cpp version.rc ${CODE_IMPL})
+project (neo_fft3d CXX)
+file(GLOB CODE "src/*.cpp")
+file(GLOB CODE_IMPL "src/code_impl/*.cpp")
+file(GLOB AVX_CODE_IMPL "src/code_impl/*AVX.cpp")
+file(GLOB AVX512_CODE_IMPL "src/code_impl/*AVX512.cpp")
+add_library(neo-fft3d SHARED main.cpp src/version.rc ${CODE} ${CODE_IMPL})
+set_property(TARGET neo-fft3d PROPERTY CXX_STANDARD 17)
 
 find_package(Git REQUIRED)
 execute_process(COMMAND ${GIT_EXECUTABLE} describe --first-parent --tags --always OUTPUT_VARIABLE GIT_REPO_VERSION)
+string(APPEND GIT_REPO_VERSION "r0")
 string(REGEX REPLACE "(r[0-9]+).*" "\\1" VERSION ${GIT_REPO_VERSION})
 
 configure_file (
-  "${PROJECT_SOURCE_DIR}/version.hpp.in"
-  "${PROJECT_SOURCE_DIR}/version.hpp"
+  "${PROJECT_SOURCE_DIR}/src/version.hpp.in"
+  "${PROJECT_SOURCE_DIR}/src/version.hpp"
 )
 configure_file (
-  "${PROJECT_SOURCE_DIR}/version.rc.in"
-  "${PROJECT_SOURCE_DIR}/version.rc"
+  "${PROJECT_SOURCE_DIR}/src/version.rc.in"
+  "${PROJECT_SOURCE_DIR}/src/version.rc"
 )
 
 find_package(PkgConfig REQUIRED)
