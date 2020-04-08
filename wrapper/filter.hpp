@@ -2,7 +2,6 @@
 
 struct Filter
 {
-  void * clip;
   DSVideoInfo in_vi;
   FetchFrameFunctor* fetch_frame;
   virtual const char* VSName() const { return "FilterFoo"; }
@@ -57,7 +56,6 @@ struct Filter
   virtual void Initialize(InDelegator* in, DSVideoInfo in_vi, FetchFrameFunctor* fetch_frame)
   {
     this->in_vi = in_vi;
-    in->Read("clip", this->clip);
     this->fetch_frame = fetch_frame;
   };
   virtual std::vector<int> RequestReferenceFrames(int n) const

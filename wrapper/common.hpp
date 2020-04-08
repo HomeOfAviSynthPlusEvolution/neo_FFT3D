@@ -46,9 +46,11 @@ struct InDelegator
   virtual void Read(const char* name, std::vector<double>& output) = 0;
   virtual void Read(const char* name, std::vector<bool>& output) = 0;
   virtual void Read(const char* name, void*& output) = 0;
+  virtual void Free(void*& clip) = 0;
 };
 
 struct FetchFrameFunctor
 {
   virtual DSFrame operator()(int n) { return DSFrame{}; };
+  virtual ~FetchFrameFunctor() {}
 };

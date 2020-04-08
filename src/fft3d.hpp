@@ -100,7 +100,6 @@ struct FFT3D final : Filter {
       0, 0, 0, 0,
       in_vi
     };
-    ep->clip = clip;
     in->Read("beta", ep->beta);
     in->Read("bw", ep->bw);
     in->Read("bh", ep->bh);

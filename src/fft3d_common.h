@@ -61,7 +61,6 @@ struct EngineParams {
   DSVideoInfo vi;
   bool IsChroma;
 
-  void* clip;
   int framewidth; // in pixels, not bytes
   int frameheight;
   int framepitch; // in pixels, not bytes
