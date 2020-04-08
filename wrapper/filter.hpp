@@ -8,7 +8,6 @@ struct Filter
   virtual const char* AVSName() const { return "FilterFoo"; }
   virtual const MtMode AVSMode() const { return MT_SERIALIZED; }
   virtual const VSFilterMode VSMode() const { return fmSerial; }
-  virtual const char* Description() const { return "Foo plugin, a DualSynth example plugin."; }
   virtual const std::vector<Param> Params() const = 0;
   virtual const std::string VSParams() const
   {

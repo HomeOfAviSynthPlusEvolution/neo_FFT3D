@@ -449,7 +449,7 @@ public:
   }
 
   DSFrame GetFrame(int n, std::unordered_map<int, DSFrame> in_frames) {
-    int thread_id;
+    unsigned int thread_id;
     DSFrame src, psrc, dst;
     int pxf, pyf;
 
