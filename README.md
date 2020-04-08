@@ -4,8 +4,7 @@ Neo FFT3D Copyright(C) 2020 Xinyue Lu, and previous developers
 
 FFT3DFilter is a 3D Frequency Domain filter - strong denoiser and moderate sharpener. It was originally written by Alexander G. Balakhnin aka Fizick, and later modified by martin53 for AviSynth 2.6 and later modified by Ferenc Pintér aka pinterf for further improvement, high bit depth, and more. Kudos to them for creating and improving this fantastic tool.
 
-In this project, legacy format like YUY2 has been removed, legacy parameter like multiplane has been removed, and SIMD code has been completely re-written for all core parts of the code. Due to API change, the project has been renamed from FFT3DFilter to Neo_FFT3D to avoid confusion. SSE is required to run optimized routine. AVX routine is also available.
-
+In this project, legacy format like YUY2 has been removed, legacy parameter like multiplane has been removed, and SIMD code has been completely re-written for all core parts of the code. Due to API change, the project has been renamed from FFT3DFilter to Neo_FFT3D to avoid confusion. SSE is required to run optimized routine. AVX and AVX512 routine is also available. AVX512 is untested due to lack of hardware.
 
 ## Usage
 
@@ -13,6 +12,8 @@ In this project, legacy format like YUY2 has been removed, legacy parameter like
 # AviSynth+
 LoadPlugin("neo-fft3d.dll")
 neo_fft3d(clip, sigma=2.0, bt=3, y=3, u=3, v=3, ...)
+# VapourSynth
+core.neo_fft3d.FFT3D(clip, sigma=2.0, bt=3, planes=[0,1,2], ...)
 ```
 
 Parameters:
@@ -46,7 +47,7 @@ Parameters:
 
     Default: 2.0.
 
-- *y*, *u*, *v*
+- *y*, *u*, *v* (AviSynth+ only)
 
     Whether a plane is to be filtered.
 
@@ -55,6 +56,12 @@ Parameters:
         3 - Process
 
     Default: 3.
+
+- *planes* (VapourSynth only)
+
+    Planes to be filtered.
+
+    Default: [0,1,2].
 
 - *l*, *t*, *r*, *b*
 
@@ -66,7 +73,9 @@ Parameters:
 
 ### Note on MT (multi-threading)
 
-Neo_FFT3D is MT-compatible. Do not invoke more than 6 threads, or otherwise it'll start missing cache hits and lose speed by a lot. The sweet spot is likely be 2-4.
+Neo_FFT3D is MT-compatible. Do not invoke more than 6 threads, or otherwise it'll start using lots of memory. The sweet spot is likely be 2-4.
+
+Neo_FFT3D is partially multi-threaded inside. Without MT it still runs quick.
 
 ## License
 
