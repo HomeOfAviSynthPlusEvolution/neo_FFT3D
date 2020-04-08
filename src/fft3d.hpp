@@ -28,6 +28,8 @@ struct FFT3D final : Filter {
 
   const char* VSName() const override { return "FFT3D"; }
   const char* AVSName() const override { return "neo_fft3d"; }
+  const MtMode AVSMode() const override { return ep->bt == 0 ? MT_SERIALIZED : MT_NICE_FILTER; }
+  const VSFilterMode VSMode() const override { return ep->bt == 0 ? fmSerial : fmParallel; }
   const std::vector<Param> Params() const override {
     return std::vector<Param> {
       Param {"clip", Clip, false, true, true, false},
