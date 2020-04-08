@@ -28,7 +28,7 @@ struct FFT3D final : Filter {
   bool crop;
 
   const char* VSName() const override { return "FFT3D"; }
-  const char* AVSName() const override { return "neo_fft3d_dual"; }
+  const char* AVSName() const override { return "neo_fft3d"; }
   const std::vector<Param> Params() const override {
     return std::vector<Param> {
       Param {"clip", Clip, false, true, true, false},

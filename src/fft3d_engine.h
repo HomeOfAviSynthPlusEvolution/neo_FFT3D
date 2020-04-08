@@ -42,9 +42,6 @@ class FFT3DEngine {
   float *wsharpen;
   float *wdehalo;
 
-  int nlast;// frame number at last step, PF: multithread warning, used for cacheing when sequential access detected
-  int btcurlast;  //v1.7 to prevent multiple Pattern2Dto3D for the same btcurrent. btcurrent can change and may differ from bt for e.g. first/last frame
-
   fftwf_complex *outLast, *covar, *covarProcess;
   float sigmaSquaredNoiseNormed2D {0};
   float sigmaNoiseNormed2D {0};
@@ -77,11 +74,12 @@ class FFT3DEngine {
 
   std::mutex fft_mutex;
   std::mutex cache_mutex;
-  std::mutex buffer_mutex;
+  std::mutex thread_check_mutex;
 
-  std::unordered_map<std::thread::id, float *> mt_in;
-  std::unordered_map<std::thread::id, fftwf_complex *> mt_out;
-  std::unordered_map<std::thread::id, byte *> mt_coverbuf;
+  std::vector<bool> thread_id_store;
+  std::vector<float *> mt_in;
+  std::vector<fftwf_complex *> mt_out;
+  std::vector<byte *> mt_coverbuf;
 
   struct FilterFunctionPointers ffp;
 
@@ -150,8 +148,10 @@ public:
       covarProcess = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN);
     }
     // in and out are thread dependent now // neo-r1
-    auto in = (float *)_aligned_malloc(sizeof(float) * insize, FRAME_ALIGN);
-    auto outrez = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN); //v1.8
+    mt_in.push_back((float *)_aligned_malloc(sizeof(float) * insize, FRAME_ALIGN));
+    auto in = mt_in[0];
+    mt_out.push_back((fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN)); //v1.8
+    auto outrez = mt_out[0];
     gridsample = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN); //v1.8
 
     fftcache = NULL;
@@ -332,10 +332,6 @@ public:
       tmp_wdehalo += outpitch;
     }
 
-    // init nlast
-    nlast = -999; // init as nonexistant
-    btcurlast = -999; // init as nonexistant
-
     norm = 1.0f / (ep->bw*ep->bh); // do not forget set FFT normalization factor
 
     sigmaSquaredNoiseNormed2D = ep->sigma*ep->sigma / norm;
@@ -443,18 +439,18 @@ public:
     delete iop;
     _aligned_free(gridsample); //fixed memory leakage in v1.8.5
     for (auto it : mt_in)
-      _aligned_free(it.second);
+      _aligned_free(it);
     for (auto it : mt_out)
-      _aligned_free(it.second);
+      _aligned_free(it);
     for (auto it : mt_coverbuf)
-      _aligned_free(it.second);
+      _aligned_free(it);
 
     fftfp.free();
     free(messagebuf); //v1.8.5
   }
 
   DSFrame GetFrame(int n, std::unordered_map<int, DSFrame> in_frames) {
-    auto thread_id = std::this_thread::get_id();
+    int thread_id;
     DSFrame src, psrc, dst;
     int pxf, pyf;
 
@@ -462,25 +458,27 @@ public:
     float *in;
     fftwf_complex *outrez;
     {
-      std::lock_guard<std::mutex> lock(buffer_mutex);
-      if (mt_coverbuf.find(thread_id) != mt_coverbuf.end()) {
-        coverbuf = mt_coverbuf.find(thread_id)->second;
-        in = mt_in.find(thread_id)->second;
-        outrez = mt_out.find(thread_id)->second;
-      }
-      else {
-        mt_coverbuf[thread_id] = coverbuf = (byte*)_aligned_malloc(coverheight*coverpitch*ep->vi.Format.BytesPerSample, FRAME_ALIGN);
-        mt_in[thread_id] = in = (float *)_aligned_malloc(sizeof(float) * insize, FRAME_ALIGN);
-        mt_out[thread_id] = outrez = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN);
-        std::lock_guard<std::mutex> lock2(cache_mutex);
+      std::lock_guard<std::mutex> lock(thread_check_mutex);
+      // Find empty slot
+      auto it = std::find(thread_id_store.begin(), thread_id_store.end(), false);
+      thread_id = static_cast<int>(std::distance(thread_id_store.begin(), it));
+      if (it == thread_id_store.end()) {
+        thread_id_store.push_back(false);
         if (fftcache)
-          fftcache->resize(ep->bt + mt_coverbuf.size() + 2);
+          fftcache->resize(ep->bt + thread_id_store.size() + 2);
       }
+      thread_id_store[thread_id] = true;
+
+      while (mt_coverbuf.size() <= thread_id)
+        mt_coverbuf.push_back((byte*)_aligned_malloc(coverheight*coverpitch*ep->vi.Format.BytesPerSample, FRAME_ALIGN));
+      while (mt_in.size() <= thread_id)
+        mt_in.push_back((float *)_aligned_malloc(sizeof(float) * insize, FRAME_ALIGN));
+      while (mt_out.size() <= thread_id)
+        mt_out.push_back((fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN));
     }
-    //	char debugbuf[1536];
-    //	wsprintf(debugbuf,"FFT3DFilter: n=%d \n", n);
-    //	OutputDebugString(debugbuf);
-    //	fftwf_complex * tmpoutrez, *tmpoutnext, *tmpoutprev, *tmpoutnext2; // store pointers
+    coverbuf = mt_coverbuf[thread_id];
+    in = mt_in[thread_id];
+    outrez = mt_out[thread_id];
 
     if (ep->pfactor != 0) {
       std::lock_guard<std::mutex> guard(fft_mutex);
@@ -556,6 +554,7 @@ public:
         int psigmadec = (int)((psigma - psigmaint) * 10);
         wsprintf(messagebuf, " frame=%d, px=%d, py=%d, sigma=%d.%d", n, pxf, pyf, psigmaint, psigmadec);
         // TODO: DrawString(dst, vi, 0, 0, messagebuf);
+        thread_id_store[thread_id] = false;
         return dst; // return pattern frame to show
       }
     }
@@ -672,6 +671,7 @@ public:
     else if (ep->bt == 0) //Kalman filter
     {
       if (n == 0) {
+        thread_id_store[thread_id] = false;
         return src; // first frame  not processed
       }
       /* PF 170302 comment: accumulated error?
@@ -713,11 +713,7 @@ public:
 
     }
 
-    if (btcur == ep->bt)
-    {// for normal step
-      nlast = n; // set last frame to current
-    }
-    btcurlast = btcur;
+    thread_id_store[thread_id] = false;
 
     // As we now are finished processing the image, we return the destination image.
     return dst;

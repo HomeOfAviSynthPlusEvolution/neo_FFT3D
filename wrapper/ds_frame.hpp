@@ -70,6 +70,8 @@ struct DSFrame
       auto vsframe = copy ?
         _vsapi->newVideoFrame2(_vsformat, FrameWidth, FrameHeight, copy_frames, copy_planes, NULL, const_cast<VSCore*>(_vscore)) :
         _vsapi->newVideoFrame(_vsformat, FrameWidth, FrameHeight, NULL, const_cast<VSCore*>(_vscore));
+      _vsapi->freeFrame(copy_frames[0]);
+
       DSFrame new_frame(vsframe, _vscore, _vsapi);
       new_frame._vsdst = vsframe;
       new_frame.DstPointers = new unsigned char*[Format.Planes];
