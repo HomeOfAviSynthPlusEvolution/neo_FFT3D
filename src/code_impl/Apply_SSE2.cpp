@@ -19,11 +19,12 @@ template <bool pattern, bool degrid, bool sharpen, bool dehalo>
 static inline void Apply2D_SSE2_impl(fftwf_complex *out, SharedFunctionParams sfp)
 {
   fftwf_complex * dummy[5] = {0, 0, out, 0, 0};
-  loop_wrapper_SSE2(dummy, out, sfp,
-    [&](LambdaFunctionParams lfp) {
+  loop_wrapper_SSE2(std::execution::par_unseq, dummy, out, sfp,
+    [&sfp](LambdaFunctionParams lfp) {
+      (void)sfp;
       __m128 gridcorrection;
 
-      __m128 cur = _mm_load_ps((const float*)out);
+      __m128 cur = _mm_load_ps((const float*)lfp.in[2]);
 
       if constexpr (degrid) {
         gridcorrection = lfp.m_gridcorrection;
@@ -62,7 +63,7 @@ static inline void Apply2D_SSE2_impl(fftwf_complex *out, SharedFunctionParams sf
         result += gridcorrection;
       }
 
-      _mm_store_ps((float*)out, result);
+      _mm_store_ps((float*)lfp.out, result);
     }
   );
 }
@@ -85,13 +86,13 @@ void Apply2D_SSE2(fftwf_complex *out, SharedFunctionParams sfp)
 template <bool pattern, bool degrid>
 void Apply3D2_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp)
 {
-  loop_wrapper_SSE2(in, out, sfp,
-    [&](LambdaFunctionParams lfp) {
+  loop_wrapper_SSE2(std::execution::par_unseq, in, out, sfp,
+    [](LambdaFunctionParams lfp) {
       __m128 gridcorrection;
       constexpr float scale = 2.0f;
 
-      __m128 cur = _mm_load_ps((const float*)in[2]);
-      __m128 prev = _mm_load_ps((const float*)in[1]);
+      __m128 cur = _mm_load_ps((const float*)lfp.in[2]);
+      __m128 prev = _mm_load_ps((const float*)lfp.in[1]);
 
       __m128 f3d0 = cur + prev;
       if constexpr (degrid) {
@@ -109,7 +110,7 @@ void Apply3D2_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
       }
 
       result *= _mm_set1_ps(1 / scale);
-      _mm_store_ps((float*)out, result);
+      _mm_store_ps((float*)lfp.out, result);
     }
   );
 }
@@ -119,16 +120,16 @@ void Apply3D2_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
 template <bool pattern, bool degrid>
 void Apply3D3_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp)
 {
-  loop_wrapper_SSE2(in, out, sfp,
-    [&](LambdaFunctionParams lfp) {
+  loop_wrapper_SSE2(std::execution::par_unseq, in, out, sfp,
+    [](LambdaFunctionParams lfp) {
       __m128 gridcorrection;
       constexpr float scale = 3.0f;
       const __m128 sin120 = _mm_set1_ps(0.86602540378443864676372317075294f);//sqrtf(3.0f)*0.5f;
       const __m128 m_0_5 = _mm_set1_ps(0.5f);
 
-      __m128 cur = _mm_load_ps((const float*)in[2]);
-      __m128 prev = _mm_load_ps((const float*)in[1]);
-      __m128 next = _mm_load_ps((const float*)in[3]);
+      __m128 cur = _mm_load_ps((const float*)lfp.in[2]);
+      __m128 prev = _mm_load_ps((const float*)lfp.in[1]);
+      __m128 next = _mm_load_ps((const float*)lfp.in[3]);
 
       __m128 pn = prev + next;
       __m128 fc = cur + pn;
@@ -153,7 +154,7 @@ void Apply3D3_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
       }
 
       result *= _mm_set1_ps(1 / scale);
-      _mm_store_ps((float*)out, result);
+      _mm_store_ps((float*)lfp.out, result);
     }
   );
 }
@@ -163,15 +164,15 @@ void Apply3D3_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
 template <bool pattern, bool degrid>
 void Apply3D4_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp)
 {
-  loop_wrapper_SSE2(in, out, sfp,
-    [&](LambdaFunctionParams lfp) {
+  loop_wrapper_SSE2(std::execution::par_unseq, in, out, sfp,
+    [](LambdaFunctionParams lfp) {
       __m128 gridcorrection;
       constexpr float scale = 4.0f;
 
-      __m128 cur = _mm_load_ps((const float*)in[2]);
-      __m128 prev = _mm_load_ps((const float*)in[1]);
-      __m128 next = _mm_load_ps((const float*)in[3]);
-      __m128 prev2 = _mm_load_ps((const float*)in[0]);
+      __m128 cur = _mm_load_ps((const float*)lfp.in[2]);
+      __m128 prev = _mm_load_ps((const float*)lfp.in[1]);
+      __m128 next = _mm_load_ps((const float*)lfp.in[3]);
+      __m128 prev2 = _mm_load_ps((const float*)lfp.in[0]);
 
       __m128 p_n = _mm_swap_ri(_mm_sign_r(prev - next));
 
@@ -196,7 +197,7 @@ void Apply3D4_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
       }
 
       result *= _mm_set1_ps(1 / scale);
-      _mm_store_ps((float*)out, result);
+      _mm_store_ps((float*)lfp.out, result);
     }
   );
 }
@@ -206,8 +207,8 @@ void Apply3D4_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
 template <bool pattern, bool degrid>
 void Apply3D5_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp)
 {
-  loop_wrapper_SSE2(in, out, sfp,
-    [&](LambdaFunctionParams lfp) {
+  loop_wrapper_SSE2(std::execution::par_unseq, in, out, sfp,
+    [](LambdaFunctionParams lfp) {
       __m128 gridcorrection;
       constexpr float scale = 5.0f;
       __m128 sin72 = _mm_set1_ps(0.95105651629515357211643933337938f);
@@ -215,11 +216,11 @@ void Apply3D5_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
       __m128 sin144 = _mm_set1_ps(0.58778525229247312916870595463907f);
       __m128 cos144 = _mm_set1_ps(-0.80901699437494742410229341718282f);
 
-      __m128 cur = _mm_load_ps((const float*)in[2]);
-      __m128 prev = _mm_load_ps((const float*)in[1]);
-      __m128 next = _mm_load_ps((const float*)in[3]);
-      __m128 prev2 = _mm_load_ps((const float*)in[0]);
-      __m128 next2 = _mm_load_ps((const float*)in[4]);
+      __m128 cur = _mm_load_ps((const float*)lfp.in[2]);
+      __m128 prev = _mm_load_ps((const float*)lfp.in[1]);
+      __m128 next = _mm_load_ps((const float*)lfp.in[3]);
+      __m128 prev2 = _mm_load_ps((const float*)lfp.in[0]);
+      __m128 next2 = _mm_load_ps((const float*)lfp.in[4]);
 
       __m128 sum2 = (next2 + prev2) * cos72
                   + (prev + next) * cos144
@@ -262,7 +263,7 @@ void Apply3D5_SSE2(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams 
       }
 
       result *= _mm_set1_ps(1 / scale);
-      _mm_store_ps((float*)out, result);
+      _mm_store_ps((float*)lfp.out, result);
     }
   );
 }

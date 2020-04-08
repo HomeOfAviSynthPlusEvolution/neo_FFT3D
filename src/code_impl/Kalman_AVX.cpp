@@ -18,16 +18,16 @@
 template <bool pattern>
 void Kalman_AVX(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionParams sfp)
 {
-  const __m256 epsilon = _mm256_set1_ps(1.0e-15f);
   fftwf_complex * dummy[5] = {0, outLast, outcur, 0, 0};
-  loop_wrapper_AVX(dummy, outLast, sfp,
-    [&](LambdaFunctionParams lfp) {
+  loop_wrapper_AVX(std::execution::seq, dummy, outLast, sfp,
+    [&sfp](LambdaFunctionParams lfp) {
+      const __m256 epsilon = _mm256_set1_ps(1.0e-15f);
       const __m256 m_one = _mm256_set1_ps(1.0f);
 
       __m256 sigma;
 
-      __m256 cur = _mm256_load_ps((const float*)(dummy[2]));
-      __m256 prev = _mm256_load_ps((const float*)(dummy[1]));
+      __m256 cur = _mm256_load_ps((const float*)(lfp.in[2]));
+      __m256 prev = _mm256_load_ps((const float*)(lfp.in[1]));
       __m256 m_covar = _mm256_load_ps((const float*)lfp.covar);
       __m256 m_covarProcess = _mm256_load_ps((const float*)lfp.covarProcess);
 
@@ -48,7 +48,7 @@ void Kalman_AVX(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionPar
       if (motion_mask == 255) {
         _mm256_store_ps((float*)lfp.covar, sigma);
         _mm256_store_ps((float*)lfp.covarProcess, sigma);
-        _mm256_store_ps((float*)outLast, cur);
+        _mm256_store_ps((float*)lfp.out, cur);
         return;
       }
 
@@ -66,7 +66,7 @@ void Kalman_AVX(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionPar
 
       _mm256_store_ps((float*)lfp.covar, out_covar);
       _mm256_store_ps((float*)lfp.covarProcess, out_covarProcess);
-      _mm256_store_ps((float*)outLast, out_value);
+      _mm256_store_ps((float*)lfp.out, out_value);
     }
   );
 }

@@ -18,16 +18,16 @@
 template <bool pattern>
 void Kalman_SSE2(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionParams sfp)
 {
-  const __m128 epsilon = _mm_set1_ps(1.0e-15f);
   fftwf_complex * dummy[5] = {0, outLast, outcur, 0, 0};
-  loop_wrapper_SSE2(dummy, outLast, sfp,
-    [&](LambdaFunctionParams lfp) {
+  loop_wrapper_SSE2(std::execution::seq, dummy, outLast, sfp,
+    [&sfp](LambdaFunctionParams lfp) {
+      const __m128 epsilon = _mm_set1_ps(1.0e-15f);
       const __m128 m_one = _mm_set1_ps(1.0f);
 
       __m128 sigma;
 
-      __m128 cur = _mm_load_ps((const float*)(dummy[2]));
-      __m128 prev = _mm_load_ps((const float*)(dummy[1]));
+      __m128 cur = _mm_load_ps((const float*)lfp.in[2]);
+      __m128 prev = _mm_load_ps((const float*)lfp.in[1]);
       __m128 m_covar = _mm_load_ps((const float*)lfp.covar);
       __m128 m_covarProcess = _mm_load_ps((const float*)lfp.covarProcess);
 
@@ -48,7 +48,7 @@ void Kalman_SSE2(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionPa
       if (motion_mask == 3) {
         _mm_store_ps((float*)lfp.covar, sigma);
         _mm_store_ps((float*)lfp.covarProcess, sigma);
-        _mm_store_ps((float*)outLast, cur);
+        _mm_store_ps((float*)lfp.out, cur);
         return;
       }
 
@@ -60,7 +60,7 @@ void Kalman_SSE2(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionPa
       __m128 out_value = gain * cur + (m_one - gain) * prev;
       _mm_store_ps((float*)lfp.covar, out_covar);
       _mm_store_ps((float*)lfp.covarProcess, out_covarProcess);
-      _mm_store_ps((float*)outLast, out_value);
+      _mm_store_ps((float*)lfp.out, out_value);
       if (motion_mask == 0)
         return;
 
@@ -74,8 +74,8 @@ void Kalman_SSE2(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionPa
         lfp.covar[1][1] = sigma_array[1][1];
         lfp.covarProcess[1][0] = sigma_array[1][0];
         lfp.covarProcess[1][1] = sigma_array[1][1];
-        outLast[1][0] = dummy[2][1][0];
-        outLast[1][1] = dummy[2][1][1];
+        lfp.out[1][0] = lfp.in[2][1][0];
+        lfp.out[1][1] = lfp.in[2][1][1];
       }
       else {
         // NOT using slow _mm_maskmoveu_si128
@@ -84,8 +84,8 @@ void Kalman_SSE2(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionPa
         lfp.covar[0][1] = sigma_array[0][1];
         lfp.covarProcess[0][0] = sigma_array[0][0];
         lfp.covarProcess[0][1] = sigma_array[0][1];
-        outLast[0][0] = dummy[2][0][0];
-        outLast[0][1] = dummy[2][0][1];
+        lfp.out[0][0] = lfp.in[2][0][0];
+        lfp.out[0][1] = lfp.in[2][0][1];
       }
     }
   );

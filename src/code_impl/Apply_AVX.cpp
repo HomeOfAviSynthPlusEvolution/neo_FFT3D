@@ -19,11 +19,12 @@ template <bool pattern, bool degrid, bool sharpen, bool dehalo>
 static inline void Apply2D_AVX_impl(fftwf_complex *out, SharedFunctionParams sfp)
 {
   fftwf_complex * dummy[5] = {0, 0, out, 0, 0};
-  loop_wrapper_AVX(dummy, out, sfp,
-    [&](LambdaFunctionParams lfp) {
+  loop_wrapper_AVX(std::execution::par_unseq, dummy, out, sfp,
+    [&sfp](LambdaFunctionParams lfp) {
+      (void)sfp;
       __m256 gridcorrection;
 
-      __m256 cur = _mm256_load_ps((const float*)out);
+      __m256 cur = _mm256_load_ps((const float*)lfp.in[2]);
 
       if constexpr (degrid) {
         gridcorrection = lfp.m_gridcorrection;
@@ -62,7 +63,7 @@ static inline void Apply2D_AVX_impl(fftwf_complex *out, SharedFunctionParams sfp
         result += gridcorrection;
       }
 
-      _mm256_store_ps((float*)out, result);
+      _mm256_store_ps((float*)lfp.out, result);
     }
   );
 }
@@ -85,13 +86,13 @@ void Apply2D_AVX(fftwf_complex *out, SharedFunctionParams sfp)
 template <bool pattern, bool degrid>
 void Apply3D2_AVX(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp)
 {
-  loop_wrapper_AVX(in, out, sfp,
-    [&](LambdaFunctionParams lfp) {
+  loop_wrapper_AVX(std::execution::par_unseq, in, out, sfp,
+    [](LambdaFunctionParams lfp) {
       __m256 gridcorrection;
       constexpr float scale = 2.0f;
 
-      __m256 cur = _mm256_load_ps((const float*)in[2]);
-      __m256 prev = _mm256_load_ps((const float*)in[1]);
+      __m256 cur = _mm256_load_ps((const float*)lfp.in[2]);
+      __m256 prev = _mm256_load_ps((const float*)lfp.in[1]);
 
       __m256 f3d0 = cur + prev;
       if constexpr (degrid) {
@@ -109,7 +110,7 @@ void Apply3D2_AVX(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams s
       }
 
       result *= _mm256_set1_ps(1 / scale);
-      _mm256_store_ps((float*)out, result);
+      _mm256_store_ps((float*)lfp.out, result);
     }
   );
 }
@@ -119,16 +120,16 @@ void Apply3D2_AVX(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams s
 template <bool pattern, bool degrid>
 void Apply3D3_AVX(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp)
 {
-  loop_wrapper_AVX(in, out, sfp,
-    [&](LambdaFunctionParams lfp) {
+  loop_wrapper_AVX(std::execution::par_unseq, in, out, sfp,
+    [](LambdaFunctionParams lfp) {
       __m256 gridcorrection;
       constexpr float scale = 3.0f;
       const __m256 sin120 = _mm256_set1_ps(0.86602540378443864676372317075294f);//sqrtf(3.0f)*0.5f;
       const __m256 m_0_5 = _mm256_set1_ps(0.5f);
 
-      __m256 cur = _mm256_load_ps((const float*)in[2]);
-      __m256 prev = _mm256_load_ps((const float*)in[1]);
-      __m256 next = _mm256_load_ps((const float*)in[3]);
+      __m256 cur = _mm256_load_ps((const float*)lfp.in[2]);
+      __m256 prev = _mm256_load_ps((const float*)lfp.in[1]);
+      __m256 next = _mm256_load_ps((const float*)lfp.in[3]);
 
       __m256 pn = prev + next;
       __m256 fc = cur + pn;
@@ -153,7 +154,7 @@ void Apply3D3_AVX(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams s
       }
 
       result *= _mm256_set1_ps(1 / scale);
-      _mm256_store_ps((float*)out, result);
+      _mm256_store_ps((float*)lfp.out, result);
     }
   );
 }
@@ -163,15 +164,15 @@ void Apply3D3_AVX(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams s
 template <bool pattern, bool degrid>
 void Apply3D4_AVX(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp)
 {
-  loop_wrapper_AVX(in, out, sfp,
-    [&](LambdaFunctionParams lfp) {
+  loop_wrapper_AVX(std::execution::par_unseq, in, out, sfp,
+    [](LambdaFunctionParams lfp) {
       __m256 gridcorrection;
       constexpr float scale = 4.0f;
 
-      __m256 cur = _mm256_load_ps((const float*)in[2]);
-      __m256 prev = _mm256_load_ps((const float*)in[1]);
-      __m256 next = _mm256_load_ps((const float*)in[3]);
-      __m256 prev2 = _mm256_load_ps((const float*)in[0]);
+      __m256 cur = _mm256_load_ps((const float*)lfp.in[2]);
+      __m256 prev = _mm256_load_ps((const float*)lfp.in[1]);
+      __m256 next = _mm256_load_ps((const float*)lfp.in[3]);
+      __m256 prev2 = _mm256_load_ps((const float*)lfp.in[0]);
 
       __m256 p_n = _mm256_swap_ri(_mm256_sign_r(prev - next));
 
@@ -196,7 +197,7 @@ void Apply3D4_AVX(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams s
       }
 
       result *= _mm256_set1_ps(1 / scale);
-      _mm256_store_ps((float*)out, result);
+      _mm256_store_ps((float*)lfp.out, result);
     }
   );
 }
@@ -206,8 +207,8 @@ void Apply3D4_AVX(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams s
 template <bool pattern, bool degrid>
 void Apply3D5_AVX(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp)
 {
-  loop_wrapper_AVX(in, out, sfp,
-    [&](LambdaFunctionParams lfp) {
+  loop_wrapper_AVX(std::execution::par_unseq, in, out, sfp,
+    [](LambdaFunctionParams lfp) {
       __m256 gridcorrection;
       constexpr float scale = 5.0f;
       __m256 sin72 = _mm256_set1_ps(0.95105651629515357211643933337938f);
@@ -215,11 +216,11 @@ void Apply3D5_AVX(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams s
       __m256 sin144 = _mm256_set1_ps(0.58778525229247312916870595463907f);
       __m256 cos144 = _mm256_set1_ps(-0.80901699437494742410229341718282f);
 
-      __m256 cur = _mm256_load_ps((const float*)in[2]);
-      __m256 prev = _mm256_load_ps((const float*)in[1]);
-      __m256 next = _mm256_load_ps((const float*)in[3]);
-      __m256 prev2 = _mm256_load_ps((const float*)in[0]);
-      __m256 next2 = _mm256_load_ps((const float*)in[4]);
+      __m256 cur = _mm256_load_ps((const float*)lfp.in[2]);
+      __m256 prev = _mm256_load_ps((const float*)lfp.in[1]);
+      __m256 next = _mm256_load_ps((const float*)lfp.in[3]);
+      __m256 prev2 = _mm256_load_ps((const float*)lfp.in[0]);
+      __m256 next2 = _mm256_load_ps((const float*)lfp.in[4]);
 
       __m256 sum2 = (next2 + prev2) * cos72
                   + (prev + next) * cos144
@@ -262,7 +263,7 @@ void Apply3D5_AVX(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams s
       }
 
       result *= _mm256_set1_ps(1 / scale);
-      _mm256_store_ps((float*)out, result);
+      _mm256_store_ps((float*)lfp.out, result);
     }
   );
 }

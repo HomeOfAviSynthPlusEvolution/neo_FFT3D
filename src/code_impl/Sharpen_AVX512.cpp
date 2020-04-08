@@ -11,11 +11,11 @@ template <bool degrid, bool sharpen, bool dehalo>
 static inline void Sharpen_AVX512_impl(fftwf_complex *out, SharedFunctionParams sfp)
 {
   fftwf_complex * dummy[5] = {0, 0, out, 0, 0};
-  loop_wrapper_AVX512(dummy, out, sfp,
-    [&](LambdaFunctionParams lfp) {
+  loop_wrapper_AVX512(std::execution::par_unseq, dummy, out, sfp,
+    [&sfp](LambdaFunctionParams lfp) {
       __m512 gridcorrection;
 
-      __m512 cur = _mm512_load_ps((const float*)out);
+      __m512 cur = _mm512_load_ps((const float*)lfp.in[2]);
 
       if constexpr (degrid) {
         gridcorrection = lfp.m_gridcorrection;
@@ -51,7 +51,7 @@ static inline void Sharpen_AVX512_impl(fftwf_complex *out, SharedFunctionParams 
         result += gridcorrection;
       }
 
-      _mm512_store_ps((float*)out, result);
+      _mm512_store_ps((float*)lfp.out, result);
     }
   );
 }

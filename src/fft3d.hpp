@@ -18,7 +18,6 @@ using namespace std::chrono_literals;
 
 struct FFT3D final : Filter {
   int process[4];
-  std::vector<int> idx {0, 1, 2, 3};
   FFT3DEngine* engine[4];
   int plane_index[4];
   int engine_count {0};
@@ -215,7 +214,8 @@ struct FFT3D final : Filter {
     if (engine_count == 0) return src;
     auto dst = src.Create(false);
 
-    std::for_each_n(std::execution::par_unseq, idx.begin(), ep->vi.Format.Planes, [&](int i) {
+    std::for_each_n(std::execution::par_unseq, reinterpret_cast<char*>(0), ep->vi.Format.Planes, [&](char&idx) {
+      int i = static_cast<int>(reinterpret_cast<intptr_t>(&idx));
       bool chroma = ep->vi.Format.IsFamilyYUV && i > 0 && i < 3;
 
       if (process[i] == 3) {

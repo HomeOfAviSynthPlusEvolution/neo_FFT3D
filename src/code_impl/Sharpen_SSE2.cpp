@@ -19,11 +19,11 @@ template <bool degrid, bool sharpen, bool dehalo>
 static inline void Sharpen_SSE2_impl(fftwf_complex *out, SharedFunctionParams sfp)
 {
   fftwf_complex * dummy[5] = {0, 0, out, 0, 0};
-  loop_wrapper_SSE2(dummy, out, sfp,
-    [&](LambdaFunctionParams lfp) {
+  loop_wrapper_SSE2(std::execution::par_unseq, dummy, out, sfp,
+    [&sfp](LambdaFunctionParams lfp) {
       __m128 gridcorrection;
 
-      __m128 cur = _mm_load_ps((const float*)out);
+      __m128 cur = _mm_load_ps((const float*)lfp.in[2]);
 
       if constexpr (degrid) {
         gridcorrection = lfp.m_gridcorrection;
@@ -59,7 +59,7 @@ static inline void Sharpen_SSE2_impl(fftwf_complex *out, SharedFunctionParams sf
         result += gridcorrection;
       }
 
-      _mm_store_ps((float*)out, result);
+      _mm_store_ps((float*)lfp.out, result);
     }
   );
 }

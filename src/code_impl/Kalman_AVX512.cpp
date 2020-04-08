@@ -10,16 +10,16 @@
 template <bool pattern>
 void Kalman_AVX512(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionParams sfp)
 {
-  const __m512 epsilon = _mm512_set1_ps(1.0e-15f);
   fftwf_complex * dummy[5] = {0, outLast, outcur, 0, 0};
-  loop_wrapper_AVX512(dummy, outLast, sfp,
-    [&](LambdaFunctionParams lfp) {
+  loop_wrapper_AVX512(std::execution::seq, dummy, outLast, sfp,
+    [&sfp](LambdaFunctionParams lfp) {
+      const __m512 epsilon = _mm512_set1_ps(1.0e-15f);
       const __m512 m_one = _mm512_set1_ps(1.0f);
 
       __m512 sigma;
 
-      __m512 cur = _mm512_load_ps((const float*)(dummy[2]));
-      __m512 prev = _mm512_load_ps((const float*)(dummy[1]));
+      __m512 cur = _mm512_load_ps((const float*)(lfp.in[2]));
+      __m512 prev = _mm512_load_ps((const float*)(lfp.in[1]));
       __m512 m_covar = _mm512_load_ps((const float*)lfp.covar);
       __m512 m_covarProcess = _mm512_load_ps((const float*)lfp.covarProcess);
 
@@ -41,7 +41,7 @@ void Kalman_AVX512(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunction
       if (motion_mask == 0xFFFF) {
         _mm512_store_ps((float*)lfp.covar, sigma);
         _mm512_store_ps((float*)lfp.covarProcess, sigma);
-        _mm512_store_ps((float*)outLast, cur);
+        _mm512_store_ps((float*)lfp.out, cur);
         return;
       }
 
@@ -59,7 +59,7 @@ void Kalman_AVX512(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunction
 
       _mm512_store_ps((float*)lfp.covar, out_covar);
       _mm512_store_ps((float*)lfp.covarProcess, out_covarProcess);
-      _mm512_store_ps((float*)outLast, out_value);
+      _mm512_store_ps((float*)lfp.out, out_value);
     }
   );
 }

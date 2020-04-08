@@ -5,7 +5,6 @@
 #include "fft3d_common.h"
 #include <type_traits>
 
-void BufferInit(EngineParams * ep, IOParams * iop);
 void FrameToCover(EngineParams * ep, int plane, const byte *src_ptr, byte *coverbuf, int coverwidth, int coverheight, int coverpitch, int mirw, int mirh);
 void CoverToFrame(EngineParams * ep, int plane, const byte *coverbuf, int coverwidth, int coverheight, int coverpitch, byte *dst_ptr, int mirw, int mirh);
 void CoverToOverlap(EngineParams * ep, IOParams * iop, float *dst_ptr, const byte *src_ptr, int src_width, int src_pitch, bool chroma);

@@ -119,7 +119,6 @@ public:
     // padding by 1 block per side
     iop->nox += 2;
     iop->noy += 2;
-    BufferInit(ep, iop);
     mirw = ep->bw - ep->ow; // set mirror size as block interval
     mirh = ep->bh - ep->oh;
 

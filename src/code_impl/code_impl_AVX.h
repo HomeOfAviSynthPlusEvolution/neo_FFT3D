@@ -10,6 +10,7 @@
 
 #include "code_impl.h"
 #include <immintrin.h>
+#include <execution>
 
 inline __m256 _mm256_sign_r(__m256 data) {
   return _mm256_xor_ps(data, _mm256_set_ps(0.0f, -0.0f, 0.0f, -0.0f, 0.0f, -0.0f, 0.0f, -0.0f));
@@ -58,6 +59,8 @@ struct LambdaFunctionParams {
   __m256 m_sigmaSquaredNoiseNormed2D;
   fftwf_complex *covar;
   fftwf_complex *covarProcess;
+  fftwf_complex **in;
+  fftwf_complex *out;
 
   __m256 m_lowlimit;
 
@@ -80,65 +83,85 @@ struct LambdaFunctionParams {
   }
 };
 
-template<typename ... T, typename Func>
-inline void loop_wrapper_AVX(fftwf_complex** in, fftwf_complex* &out, SharedFunctionParams sfp, Func f) {
-  LambdaFunctionParams lfp;
-
-  lfp.m_lowlimit = _mm256_set1_ps((sfp.beta - 1) / sfp.beta);
-  lfp.m_sigmaSquaredNoiseNormed = _mm256_set1_ps(sfp.sigmaSquaredNoiseNormed);
-  lfp.m_sigmaSquaredNoiseNormed2D = _mm256_set1_ps(sfp.sigmaSquaredNoiseNormed2D);
-  // Kalman
-  lfp.covar = sfp.covar;
-  lfp.covarProcess = sfp.covarProcess;
+template<typename Expo, typename Func>
+inline void loop_wrapper_AVX(Expo &&expo, fftwf_complex** in, fftwf_complex* &out, SharedFunctionParams sfp, Func f) {
   int itemsperblock = sfp.bh * sfp.outpitch;
   const int step = 4;
+  constexpr auto batch_count = 4;
+  const int batch_size = (sfp.howmanyblocks - 1) / batch_count + 1;
 
-  for (lfp.block = 0; lfp.block < sfp.howmanyblocks; lfp.block++)
+  std::for_each_n(expo, reinterpret_cast<char*>(0), batch_count, [&](char&idx)
   {
-    // Pattern
-    float* pattern2d = sfp.pattern2d;
-    float* pattern3d = sfp.pattern3d;
-    // Wiener
-    float* wsharpen = sfp.wsharpen;
-    float* wdehalo = sfp.wdehalo;
-    // Grid
-    fftwf_complex* gridsample = sfp.gridsample;
-    __m256 gridfraction = _mm256_set1_ps(sfp.degrid * in[2][0][0] / gridsample[0][0]);
+    int i = static_cast<int>(reinterpret_cast<intptr_t>(&idx));
+    LambdaFunctionParams lfp;
+    lfp.m_lowlimit = _mm256_set1_ps((sfp.beta - 1) / sfp.beta);
+    lfp.m_sigmaSquaredNoiseNormed = _mm256_set1_ps(sfp.sigmaSquaredNoiseNormed);
+    lfp.m_sigmaSquaredNoiseNormed2D = _mm256_set1_ps(sfp.sigmaSquaredNoiseNormed2D);
+    auto block_start = i * batch_size;
+    auto block_end = MIN(block_start + batch_size, sfp.howmanyblocks);
+    auto offset = block_start * itemsperblock;
 
-    for (lfp.pos = 0; lfp.pos < itemsperblock; lfp.pos += step)
+    // IO
+    fftwf_complex* local_in[5];
+    local_in[0] = in[0] + offset;
+    local_in[1] = in[1] + offset;
+    local_in[2] = in[2] + offset;
+    local_in[3] = in[3] + offset;
+    local_in[4] = in[4] + offset;
+    lfp.in = local_in;
+    lfp.out = out + offset;
+
+    // Kalman
+    lfp.covar = sfp.covar + offset;
+    lfp.covarProcess = sfp.covarProcess + offset;
+
+    for (lfp.block = block_start; lfp.block < block_end; lfp.block++)
     {
       // Pattern
-      lfp.m_pattern2d = _mm256_loadu_2ps(pattern2d);
-      lfp.m_pattern3d = _mm256_loadu_2ps(pattern3d);
+      float* pattern2d = sfp.pattern2d;
+      float* pattern3d = sfp.pattern3d;
       // Wiener
-      lfp.m_wsharpen = _mm256_loadu_2ps(wsharpen);
-      lfp.m_wdehalo = _mm256_loadu_2ps(wdehalo);
+      float* wsharpen = sfp.wsharpen;
+      float* wdehalo = sfp.wdehalo;
       // Grid
-      lfp.m_gridsample = _mm256_load_ps((const float*)gridsample);
-      lfp.m_gridcorrection = _mm256_mul_ps(gridfraction, lfp.m_gridsample);
+      fftwf_complex* gridsample = sfp.gridsample;
+      __m256 gridfraction = _mm256_set1_ps(sfp.degrid * in[2][0][0] / gridsample[0][0]);
 
-      f(lfp);
+      for (lfp.pos = 0; lfp.pos < itemsperblock; lfp.pos += step)
+      {
+        // Pattern
+        lfp.m_pattern2d = _mm256_loadu_2ps(pattern2d);
+        lfp.m_pattern3d = _mm256_loadu_2ps(pattern3d);
+        // Wiener
+        lfp.m_wsharpen = _mm256_loadu_2ps(wsharpen);
+        lfp.m_wdehalo = _mm256_loadu_2ps(wdehalo);
+        // Grid
+        lfp.m_gridsample = _mm256_load_ps((const float*)gridsample);
+        lfp.m_gridcorrection = _mm256_mul_ps(gridfraction, lfp.m_gridsample);
 
-      // Data
-      in[0] += step;
-      in[1] += step;
-      in[2] += step;
-      in[3] += step;
-      in[4] += step;
-      out += step;
-      // Pattern
-      pattern2d += step;
-      pattern3d += step;
-      // Wiener
-      wsharpen += step;
-      wdehalo += step;
-      // Grid
-      gridsample += step;
-      // Kalman
-      lfp.covar += step;
-      lfp.covarProcess += step;
+        f(lfp);
+
+        // Data
+        lfp.in[0] += step;
+        lfp.in[1] += step;
+        lfp.in[2] += step;
+        lfp.in[3] += step;
+        lfp.in[4] += step;
+        lfp.out += step;
+        // Pattern
+        pattern2d += step;
+        pattern3d += step;
+        // Wiener
+        wsharpen += step;
+        wdehalo += step;
+        // Grid
+        gridsample += step;
+        // Kalman
+        lfp.covar += step;
+        lfp.covarProcess += step;
+      }
     }
-  }
+  });
 }
 
 #endif

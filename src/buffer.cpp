@@ -3,15 +3,6 @@
 #include <execution>
 #pragma warning (disable: 26451)
 
-std::vector<int> parallel_index;
-
-void BufferInit(EngineParams * ep, IOParams * iop)
-{
-  auto count = MAX(iop->nox, iop->noy) + 2;
-  for (int i = 0; i < count; i++)
-    parallel_index.push_back(i);
-}
-
 template<typename pixel_t>
 static void FrameToCover_impl(const pixel_t *srcp, int src_width, int src_height, int src_pitch, pixel_t *coverbuf, int coverwidth, int coverheight, int coverpitch, int mirw, int mirh, bool interlaced)
 {
@@ -228,8 +219,9 @@ static void CoverToOverlap_impl(EngineParams * ep, IOParams * iop, float *dst_pt
   }
 
   // for (ihy = 1; ihy < iop->noy; ihy += 1) // middle vertical
-  std::for_each(std::execution::par_unseq, &parallel_index[1], &parallel_index[iop->noy], [&](int ihy)
+  std::for_each_n(std::execution::par_unseq, (char*)1, iop->noy - 1, [&](char&idx)
   {
+    int ihy = static_cast<int>(reinterpret_cast<intptr_t>(&idx));
     int w, h;
     int ihx;
     float ftmp;
@@ -438,8 +430,9 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
   }
 
   // for (ihy = 1; ihy < iop->noy; ihy += 1) // middle vertical
-  std::for_each(std::execution::par_unseq, &parallel_index[1], &parallel_index[iop->noy], [&](int ihy)
+  std::for_each_n(std::execution::par_unseq, (char*)1, iop->noy - 1, [&](char&idx)
   {
+    int ihy = static_cast<int>(reinterpret_cast<intptr_t>(&idx));
     int w, h;
     int ihx;
     auto dstp0 = dstp + dst_pitch * (ihy - 1)  * (ep->bh - ep->oh);
