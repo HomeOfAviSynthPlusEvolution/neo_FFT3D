@@ -1,3 +1,9 @@
+/*
+ * Copyright 2020 Xinyue Lu
+ *
+ * DualSynth wrapper - Common header+.
+ *
+ */
 #pragma once
 
 #include <avisynth.h>
@@ -20,7 +26,7 @@ std::vector<register_avsfilter_proc> RegisterAVSFilters();
 
 enum ParamType
 {
-  Clip, Integer, Float, Boolean
+  Clip, Integer, Float, Boolean, String
 };
 
 struct Param
@@ -40,6 +46,7 @@ struct InDelegator
   virtual void Read(const char* name, float& output) = 0;
   virtual void Read(const char* name, double& output) = 0;
   virtual void Read(const char* name, bool& output) = 0;
+  virtual void Read(const char* name, std::string& output) = 0;
   virtual void Read(const char* name, std::vector<int>& output) = 0;
   virtual void Read(const char* name, std::vector<int64_t>& output) = 0;
   virtual void Read(const char* name, std::vector<float>& output) = 0;
@@ -51,6 +58,6 @@ struct InDelegator
 
 struct FetchFrameFunctor
 {
-  virtual DSFrame operator()(int n) { return DSFrame{}; };
+  virtual DSFrame operator()(int n) = 0;
   virtual ~FetchFrameFunctor() {}
 };

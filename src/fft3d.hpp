@@ -35,7 +35,7 @@ struct FFT3D final : Filter {
       Param {"clip", Clip, false, true, true, false},
       Param {"sigma", Float},
       Param {"beta", Float},
-      Param {"planes", Integer, true},
+      Param {"planes", Integer, true, false, true},
       Param {"bw", Integer},
       Param {"bh", Integer},
       Param {"bt", Integer},

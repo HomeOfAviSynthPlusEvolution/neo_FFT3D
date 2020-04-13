@@ -1,3 +1,12 @@
+/*
+ * Copyright 2020 Xinyue Lu
+ *
+ * DualSynth wrapper - DSFrame.
+ *
+ */
+
+#pragma once
+
 struct DSFrame
 {
   int FrameWidth {0}, FrameHeight {0};
@@ -23,12 +32,14 @@ struct DSFrame
   int *planes {0};
 
   DSFrame() {}
+  DSFrame(const VSCore* vscore, const VSAPI* vsapi)
+    : _vscore(vscore), _vsapi(vsapi) {}
   DSFrame(const VSFrameRef* src, const VSCore* vscore, const VSAPI* vsapi)
     : _vssrc(src), _vscore(vscore), _vsapi(vsapi)
     , _vsformat(src ? _vsapi->getFrameFormat(src) : nullptr)
   {
     if (_vssrc) {
-      Format = DSFormat(_vsformat, _vscore, _vsapi);
+      Format = DSFormat(_vsformat);
       FrameWidth = _vsapi->getFrameWidth(src, 0);
       FrameHeight = _vsapi->getFrameHeight(src, 0);
 
@@ -41,6 +52,8 @@ struct DSFrame
     }
   }
 
+  DSFrame(IScriptEnvironment * env)
+    : _env(env) {}
   DSFrame(PVideoFrame &src, VideoInfo vi, IScriptEnvironment * env)
     : _avssrc(src), _vi(vi), _env(env)
   {
@@ -63,10 +76,10 @@ struct DSFrame
   DSFrame Create(bool copy) { return Create(copy, false); }
   DSFrame Create(bool copy, bool inplace)
   {
-    const VSFrameRef* copy_frames[1] {ToVSFrame()};
-    int copy_planes[4] = {0};
     if (_vssrc) {
       // Create a new VS frame
+      const VSFrameRef* copy_frames[1] {ToVSFrame()};
+      int copy_planes[4] = {0};
       auto vsframe = copy ?
         _vsapi->newVideoFrame2(_vsformat, FrameWidth, FrameHeight, copy_frames, copy_planes, NULL, const_cast<VSCore*>(_vscore)) :
         _vsapi->newVideoFrame(_vsformat, FrameWidth, FrameHeight, NULL, const_cast<VSCore*>(_vscore));
@@ -81,15 +94,32 @@ struct DSFrame
     }
     else if(_avssrc) {
       // Create a new AVS frame
-      auto new_avsframe = _env->NewVideoFrame(_vi);
+      return Create(_vi);
+    }
+    throw "Unable to create from nothing.";
+  }
+  DSFrame Create(DSVideoInfo vi) {
+    planes = vi.Format.IsFamilyYUV ? planes_y : planes_r;
+    if (_vsapi) {
+      auto vsframe = _vsapi->newVideoFrame(vi.Format.ToVSFormat(_vscore, _vsapi), vi.Width, vi.Height, NULL, const_cast<VSCore*>(_vscore));
+      DSFrame new_frame(vsframe, _vscore, _vsapi);
+      new_frame._vsdst = vsframe;
+      new_frame.DstPointers = new unsigned char*[Format.Planes];
+      for (int i = 0; i < Format.Planes; i++)
+        new_frame.DstPointers[i] = _vsapi->getWritePtr(vsframe, i);
+      return new_frame;
+    }
+    else if (_env) {
+      auto avsvi = vi.ToAVSVI();
+      auto new_avsframe = _env->NewVideoFrame(avsvi);
       auto dstp = new unsigned char*[Format.Planes];
       for (int i = 0; i < Format.Planes; i++)
         dstp[i] = new_avsframe->GetWritePtr(planes[i]);
-      DSFrame new_frame(new_avsframe, _vi, _env);
+      DSFrame new_frame(new_avsframe, avsvi, _env);
       new_frame.DstPointers = dstp;
       return new_frame;
     }
-    return DSFrame();
+    throw "Unable to create from nothing.";
   }
 
   const VSFrameRef* ToVSFrame()

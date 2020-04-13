@@ -38,6 +38,7 @@ else()
 endif()
 
 include_directories(.)
+include_directories(include/dualsynth)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   set_source_files_properties(${AVX_CODE_IMPL} PROPERTIES COMPILE_FLAGS "/arch:AVX")

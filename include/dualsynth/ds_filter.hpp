@@ -1,3 +1,10 @@
+/*
+ * Copyright 2020 Xinyue Lu
+ *
+ * DualSynth wrapper - Filter parent class.
+ *
+ */
+
 #pragma once
 
 struct Filter
@@ -22,6 +29,7 @@ struct Filter
         case Integer: type_name = "int"; break;
         case Float: type_name = "float"; break;
         case Boolean: type_name = "int"; break;
+        case String: type_name = "data"; break;
       }
       ss << p.Name << ':' << type_name;
       if (p.IsArray)
@@ -45,6 +53,7 @@ struct Filter
         case Integer: type_name = 'i'; break;
         case Float: type_name = 'f'; break;
         case Boolean: type_name = 'b'; break;
+        case String: type_name = 's'; break;
       }
       if (p.IsOptional)
         ss << '[' << p.Name << ']';
@@ -71,6 +80,6 @@ struct Filter
   }
   virtual int SetCacheHints(int cachehints, int frame_range)
   {
-    return 0;
+    return cachehints == CACHE_GET_MTMODE ? AVSMode() : 0;
   }
 };

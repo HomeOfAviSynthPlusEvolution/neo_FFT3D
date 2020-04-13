@@ -9,7 +9,7 @@
 #include <string>
 
 #include "fftwlite.h"
-#include "../wrapper/common.hpp"
+#include <ds_common.hpp>
 
 typedef unsigned char byte;
 

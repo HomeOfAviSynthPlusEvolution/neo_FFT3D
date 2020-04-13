@@ -1,5 +1,5 @@
-#include "wrapper/common.hpp"
-#include "wrapper/avs_wrapper.hpp"
-#include "wrapper/vs_wrapper.hpp"
-#include "wrapper/filter.hpp"
+#include <ds_common.hpp>
+#include <avs_wrapper.hpp>
+#include <vs_wrapper.hpp>
+#include <ds_filter.hpp>
 #include "src/neo_fft3d.hpp"

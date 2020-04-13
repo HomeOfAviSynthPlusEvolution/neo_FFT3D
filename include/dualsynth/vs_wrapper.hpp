@@ -1,3 +1,10 @@
+/*
+ * Copyright 2020 Xinyue Lu
+ *
+ * DualSynth wrapper - VapourSynth.
+ *
+ */
+
 #pragma once
 
 namespace Plugin {
@@ -36,6 +43,10 @@ namespace VSInterface {
     void Read(const char* name, bool& output) override {
       auto output_int = _vsapi->propGetInt(_in, name, 0, &_err);
       if (!_err) output = output_int != 0;
+    }
+    void Read(const char* name, std::string& output) override {
+      auto output_str = _vsapi->propGetData(_in, name, 0, &_err);
+      if (!_err) output = output_str;
     }
     void Read(const char* name, std::vector<int>& output) override {
       auto size = _vsapi->propNumElements(_in, name);
@@ -101,38 +112,49 @@ namespace VSInterface {
   void VS_CC Initialize(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi) {
     auto Data = reinterpret_cast<FilterType*>(*instanceData);
     auto output_vi = Data->GetOutputVI();
-    vsapi->setVideoInfo(output_vi.ToVSVI(), 1, node);
+    vsapi->setVideoInfo(output_vi.ToVSVI(core, vsapi), 1, node);
   }
 
   template<typename FilterType>
   void VS_CC Delete(void *instanceData, VSCore *core, const VSAPI *vsapi) {
-    auto Data = reinterpret_cast<FilterType*>(instanceData);
-    auto functor = reinterpret_cast<VSFetchFrameFunctor*>(Data->fetch_frame);
+    auto filter = reinterpret_cast<FilterType*>(instanceData);
+    auto functor = reinterpret_cast<VSFetchFrameFunctor*>(filter->fetch_frame);
     delete functor;
-    delete Data;
+    delete filter;
   }
 
   template<typename FilterType>
   const VSFrameRef* VS_CC GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi) {
-    auto Data = reinterpret_cast<FilterType*>(*instanceData);
-    auto functor = reinterpret_cast<VSFetchFrameFunctor*>(Data->fetch_frame);
-    functor->_frameCtx = frameCtx;
+    auto filter = reinterpret_cast<FilterType*>(*instanceData);
+    auto functor = reinterpret_cast<VSFetchFrameFunctor*>(filter->fetch_frame);
+    if (functor)
+      functor->_frameCtx = frameCtx;
 
     std::vector<int> ref_frames;
     if (activationReason == VSActivationReason::arInitial) {
-      ref_frames = Data->RequestReferenceFrames(n);
-      for (auto &&i : ref_frames) {
-        vsapi->requestFrameFilter(i, functor->_vs_clip, frameCtx);
+      if (functor) {
+        ref_frames = filter->RequestReferenceFrames(n);
+        for (auto &&i : ref_frames)
+          vsapi->requestFrameFilter(i, functor->_vs_clip, frameCtx);
+      }
+      else {
+        std::unordered_map<int, DSFrame> in_frames;
+        in_frames[n] = DSFrame(core, vsapi);
+        auto vs_frame = (filter->GetFrame(n, in_frames).ToVSFrame());
+        return vs_frame;
       }
     }
     else if (activationReason == VSActivationReason::arAllFramesReady) {
-      ref_frames = Data->RequestReferenceFrames(n);
       std::unordered_map<int, DSFrame> in_frames;
-      for (auto &&i : ref_frames) {
-        in_frames[i] = DSFrame(vsapi->getFrameFilter(i, functor->_vs_clip, frameCtx), core, vsapi);
+      if (functor) {
+        ref_frames = filter->RequestReferenceFrames(n);
+        for (auto &&i : ref_frames)
+          in_frames[i] = DSFrame(vsapi->getFrameFilter(i, functor->_vs_clip, frameCtx), core, vsapi);
       }
+      else
+        in_frames[n] = DSFrame(core, vsapi);
 
-      auto vs_frame = (Data->GetFrame(n, in_frames).ToVSFrame());
+      auto vs_frame = (filter->GetFrame(n, in_frames).ToVSFrame());
       return vs_frame;
     }
     return nullptr;
@@ -140,22 +162,29 @@ namespace VSInterface {
 
   template<typename FilterType>
   void VS_CC Create(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi) {
-    auto Data = new FilterType{};
-    auto Arguments = VSInDelegator(in, vsapi);
+    auto filter = new FilterType{};
+    auto argument = VSInDelegator(in, vsapi);
     try {
-      void* clip;
-      Arguments.Read("clip", clip);
-      auto vs_clip = reinterpret_cast<VSNodeRef*>(clip);
-      auto functor = new VSFetchFrameFunctor(vs_clip, core, vsapi);
-      auto input_vi = DSVideoInfo(vsapi->getVideoInfo(vs_clip), core, vsapi);
-      Data->Initialize(&Arguments, input_vi, functor);
-      vsapi->createFilter(in, out, Data->VSName(), Initialize<FilterType>, GetFrame<FilterType>, Delete<FilterType>, Data->VSMode(), 0, Data, core);
+      void* clip = nullptr;
+      VSFetchFrameFunctor* functor = nullptr;
+      DSVideoInfo input_vi;
+      try {
+        argument.Read("clip", clip);
+        if (clip) {
+          auto vs_clip = reinterpret_cast<VSNodeRef*>(clip);
+          functor = new VSFetchFrameFunctor(vs_clip, core, vsapi);
+          input_vi = DSVideoInfo(vsapi->getVideoInfo(vs_clip));
+        }
+      }
+      catch(const char *) { /* No clip, source filter */ }
+      filter->Initialize(&argument, input_vi, functor);
+      vsapi->createFilter(in, out, filter->VSName(), Initialize<FilterType>, GetFrame<FilterType>, Delete<FilterType>, filter->VSMode(), 0, filter, core);
     }
     catch(const char *err){
       char msg_buff[256];
-      snprintf(msg_buff, 256, "%s: %s", Data->VSName(), err);
+      snprintf(msg_buff, 256, "%s: %s", filter->VSName(), err);
       vsapi->setError(out, msg_buff);
-      delete Data;
+      delete filter;
     }
   }
 
