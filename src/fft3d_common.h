@@ -57,6 +57,7 @@ struct EngineParams {
   float hr; // halo radius - v1.9
   float ht; // halo threshold - v1.9
   int l, t, r, b; // cropping
+  int opt;
 
   DSVideoInfo vi;
   bool IsChroma;

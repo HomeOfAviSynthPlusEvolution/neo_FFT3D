@@ -69,7 +69,8 @@ struct FFT3D final : Filter {
       Param {"l", Integer},
       Param {"t", Integer},
       Param {"r", Integer},
-      Param {"b", Integer}
+      Param {"b", Integer},
+      Param {"opt", Integer}
     };
   }
   void Initialize(InDelegator* in, DSVideoInfo in_vi, FetchFrameFunctor* fetch_frame) override
@@ -100,6 +101,7 @@ struct FFT3D final : Filter {
       0.0f,
       2.0f, 50.0f,
       0, 0, 0, 0,
+      0,
       in_vi
     };
     in->Read("beta", ep->beta);
@@ -134,6 +136,7 @@ struct FFT3D final : Filter {
     in->Read("t", ep->t); ep->t = MAX(ep->t, 0);
     in->Read("r", ep->r); ep->r = MAX(ep->r, 0);
     in->Read("b", ep->b); ep->b = MAX(ep->b, 0);
+    in->Read("opt", ep->opt);
 
     this->crop = ep->l > 0 || ep->r > 0 || ep->t > 0 || ep->b > 0;
 

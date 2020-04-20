@@ -349,7 +349,7 @@ public:
     }
 
     CPUFlags = GetCPUFlags(); //re-enabled in v.1.9
-    ffp.set_ffp(CPUFlags, ep->degrid, ep->pfactor, ep->bt);
+    ffp.set_ffp(CPUFlags, ep->degrid, ep->pfactor, ep->bt, ep->opt);
 
     pwin = new float[ep->bh*outpitch]; // pattern window array
 

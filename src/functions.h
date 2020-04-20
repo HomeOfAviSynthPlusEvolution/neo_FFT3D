@@ -54,8 +54,15 @@ struct FilterFunctionPointers {
     void (*Sharpen)(fftwf_complex *, SharedFunctionParams);
     void (*Kalman)(fftwf_complex *, fftwf_complex *, SharedFunctionParams);
 
-  void set_ffp(int CPUFlags, float degrid, float pfactor, int bt)
+  void set_ffp(int CPUFlags, float degrid, float pfactor, int bt, int opt)
   {
+    // opt
+    // 1: C
+    // 2: SSE
+    // 3: AVX
+    // 4: AVX512
+    // 0: auto-detect without AVX512
+    // -1: auto-detect with AVX512
     if (degrid != 0 && pfactor == 0) {
       // Default Dispatcher
       Apply2D_C_Dispatch = Apply2D_C<false, true>;;
@@ -162,22 +169,26 @@ struct FilterFunctionPointers {
       Sharpen_C_Dispatch = Sharpen_C<true>;
       Sharpen_SSE2_Dispatch = Sharpen_SSE2<true>;
       Sharpen_AVX_Dispatch = Sharpen_AVX<true>;
+      Sharpen_AVX512_Dispatch = Sharpen_AVX512<true>;
     }
     else {
       Sharpen_C_Dispatch = Sharpen_C<false>;
       Sharpen_SSE2_Dispatch = Sharpen_SSE2<false>;
       Sharpen_AVX_Dispatch = Sharpen_AVX<false>;
+      Sharpen_AVX512_Dispatch = Sharpen_AVX512<false>;
     }
 
     if (pfactor != 0) {
       Kalman_C_Dispatch = Kalman_C<true>;
       Kalman_SSE2_Dispatch = Kalman_SSE2<true>;
       Kalman_AVX_Dispatch = Kalman_AVX<true>;
+      Kalman_AVX512_Dispatch = Kalman_AVX512<true>;
     }
     else {
       Kalman_C_Dispatch = Kalman_C<false>;
       Kalman_SSE2_Dispatch = Kalman_SSE2<false>;
       Kalman_AVX_Dispatch = Kalman_AVX<false>;
+      Kalman_AVX512_Dispatch = Kalman_AVX512<false>;
     }
 
     switch(bt) {
@@ -185,21 +196,25 @@ struct FilterFunctionPointers {
         Apply3D_C_Dispatch = Apply3D2_C_Dispatch;
         Apply3D_SSE2_Dispatch = Apply3D2_SSE2_Dispatch;
         Apply3D_AVX_Dispatch = Apply3D2_AVX_Dispatch;
+        Apply3D_AVX512_Dispatch = Apply3D2_AVX512_Dispatch;
         break;
       case 3:
         Apply3D_C_Dispatch = Apply3D3_C_Dispatch;
         Apply3D_SSE2_Dispatch = Apply3D3_SSE2_Dispatch;
         Apply3D_AVX_Dispatch = Apply3D3_AVX_Dispatch;
+        Apply3D_AVX512_Dispatch = Apply3D3_AVX512_Dispatch;
         break;
       case 4:
         Apply3D_C_Dispatch = Apply3D4_C_Dispatch;
         Apply3D_SSE2_Dispatch = Apply3D4_SSE2_Dispatch;
         Apply3D_AVX_Dispatch = Apply3D4_AVX_Dispatch;
+        Apply3D_AVX512_Dispatch = Apply3D4_AVX512_Dispatch;
         break;
       case 5:
         Apply3D_C_Dispatch = Apply3D5_C_Dispatch;
         Apply3D_SSE2_Dispatch = Apply3D5_SSE2_Dispatch;
         Apply3D_AVX_Dispatch = Apply3D5_AVX_Dispatch;
+        Apply3D_AVX512_Dispatch = Apply3D5_AVX512_Dispatch;
         break;
     }
 
@@ -210,19 +225,19 @@ struct FilterFunctionPointers {
 
     // We actually only used SSE code.
     // Let's try SSE and if it breaks on pure SSE we'll change it to SSE2.
-    if (CPUFlags & CPUF_SSE) {
+    if ((CPUFlags & CPUF_SSE) && (opt <= 0 || opt > 1)) {
       Apply2D = Apply2D_SSE2_Dispatch;
       Apply3D = Apply3D_SSE2_Dispatch;
       Sharpen = Sharpen_SSE2_Dispatch;
       Kalman = Kalman_SSE2_Dispatch;
     }
-    if (CPUFlags & CPUF_AVX) {
+    if ((CPUFlags & CPUF_AVX) && (opt <= 0 || opt > 2)) {
       Apply2D = Apply2D_AVX_Dispatch;
       Apply3D = Apply3D_AVX_Dispatch;
       Sharpen = Sharpen_AVX_Dispatch;
       Kalman = Kalman_AVX_Dispatch;
     }
-    if (CPUFlags & CPUF_AVX512F) {
+    if ((CPUFlags & CPUF_AVX512F) && (opt < 0 || opt > 3)) {
       Apply2D = Apply2D_AVX512_Dispatch;
       Apply3D = Apply3D_AVX512_Dispatch;
       Sharpen = Sharpen_AVX512_Dispatch;
