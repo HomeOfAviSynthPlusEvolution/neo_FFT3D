@@ -20,6 +20,8 @@
 #include <thread>
 #include <unordered_map>
 
+static std::mutex init_fft_mutex;
+
 class FFT3DEngine {
   EngineParams* ep;
   IOParams* iop;
@@ -72,7 +74,6 @@ class FFT3DEngine {
 
   cache<fftwf_complex> *fftcache;
 
-  std::mutex fft_mutex;
   std::mutex cache_mutex;
   std::mutex thread_check_mutex;
 
@@ -82,6 +83,8 @@ class FFT3DEngine {
   std::vector<byte *> mt_coverbuf;
 
   struct FilterFunctionPointers ffp;
+  bool pattern3d_initialized {false};
+  std::mutex init3d_mutex;
 
 public:
   FFT3DEngine(EngineParams _ep, int _plane, FetchFrameFunctor* _fetch_frame) :
@@ -182,16 +185,19 @@ public:
 
     fftfp.fftwf_plan_with_nthreads(1);
 
-    plan = fftfp.fftwf_plan_many_dft_r2c(rank, ndim, howmanyblocks,
-      in, inembed, istride, idist, outrez, onembed, ostride, odist, planFlags);
-    if (plan == NULL)
-      throw("FFTW plan error");
+    {
+      std::lock_guard<std::mutex> lock(init_fft_mutex);
 
-    planinv = fftfp.fftwf_plan_many_dft_c2r(rank, ndim, howmanyblocks,
-      outrez, onembed, ostride, odist, in, inembed, istride, idist, planFlags);
-    if (planinv == NULL)
-      throw("FFTW plan error");
+      plan = fftfp.fftwf_plan_many_dft_r2c(rank, ndim, howmanyblocks,
+        in, inembed, istride, idist, outrez, onembed, ostride, odist, planFlags);
+      if (plan == NULL)
+        throw("FFTW plan error");
 
+      planinv = fftfp.fftwf_plan_many_dft_c2r(rank, ndim, howmanyblocks,
+        outrez, onembed, ostride, odist, in, inembed, istride, idist, planFlags);
+      if (planinv == NULL)
+        throw("FFTW plan error");
+    }
 
     iop->wanxl = new float[ep->ow];
     iop->wanxr = new float[ep->ow];
@@ -269,7 +275,7 @@ public:
       std::fill_n(iop->wanxr, ep->ow, 1.0f);
       std::fill_n(iop->wanyl, ep->oh, 1.0f);
       std::fill_n(iop->wanyr, ep->oh, 1.0f);
-      
+
       // define synthesis as rised cosine (Hanning)
       for (i = 0; i < ep->ow; i++)
       {
@@ -387,18 +393,22 @@ public:
     // allocate large array for simplicity :)
     // but use one block only for speed
     // Attention: other block could be the same, but we do not calculate them!
-    plan1 = fftfp.fftwf_plan_many_dft_r2c(rank, ndim, 1,
-      in, inembed, istride, idist, outrez, onembed, ostride, odist, planFlags); // 1 block
+    {
+      std::lock_guard<std::mutex> lock(init_fft_mutex);
+
+      plan1 = fftfp.fftwf_plan_many_dft_r2c(rank, ndim, 1,
+        in, inembed, istride, idist, outrez, onembed, ostride, odist, planFlags); // 1 block
+    }
 
     byte* coverbuf = new byte[coverheight*coverpitch*ep->vi.Format.BytesPerSample];
     // avs+
     switch (ep->vi.Format.BytesPerSample) {
-    case 1: memset(coverbuf, 255, coverheight*coverpitch); 
+    case 1: memset(coverbuf, 255, coverheight*coverpitch);
       break;
-    case 2: std::fill_n((uint16_t *)coverbuf, coverheight*coverpitch, (1 << ep->vi.Format.BitsPerSample) - 1); 
-      break; // 255 
-    case 4: std::fill_n((float *)coverbuf, coverheight*coverpitch, 1.0f); 
-      break; // 255 
+    case 2: std::fill_n((uint16_t *)coverbuf, coverheight*coverpitch, (1 << ep->vi.Format.BitsPerSample) - 1);
+      break; // 255
+    case 4: std::fill_n((float *)coverbuf, coverheight*coverpitch, 1.0f);
+      break; // 255
     }
     CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, false);
     delete[] coverbuf;
@@ -480,7 +490,7 @@ public:
     outrez = mt_out[thread_id];
 
     if (ep->pfactor != 0) {
-      std::lock_guard<std::mutex> guard(fft_mutex);
+      std::lock_guard<std::mutex> guard(init_fft_mutex);
       if (ep->pfactor != 0 && isPatternSet == false && ep->pshow == false) // get noise pattern
       {
         if (in_frames.find(ep->pframe) == in_frames.end())
@@ -614,8 +624,6 @@ public:
       }
       else // 3D
       {
-        static bool pattern3d_initialized = false;
-        static std::mutex init3d_mutex;
         if (!pattern3d_initialized) {
           std::lock_guard<std::mutex> lock(init3d_mutex);
           if (!pattern3d_initialized)
@@ -636,24 +644,27 @@ public:
         * | 5 |   o   |   o   |   o   |   o   |   o   |
         *
         */
-        for (auto i = from; i <= to; i++)
+
         {
           std::lock_guard<std::mutex> lock1(cache_mutex);
-          if (fftcache->exists(n+i)) {
-            apply_in[2+i] = fftcache->get_read(n+i);
-          }
-          else {
-            DSFrame frame;
-            DSFrame* pframe;
-            apply_in[2+i] = fftcache->get_write(n+i);
-            if (in_frames.find(n+i) == in_frames.end())
-              pframe = &(frame = (*fetch_frame)(n+i));
-            else
-              pframe = &in_frames[n+i];
-            FrameToCover(ep, plane, pframe->SrcPointers[plane], coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
-            CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
+          for (auto i = from; i <= to; i++)
+          {
+            if (fftcache->exists(n+i)) {
+              apply_in[2+i] = fftcache->get_read(n+i);
+            }
+            else {
+              DSFrame frame;
+              DSFrame* pframe;
+              apply_in[2+i] = fftcache->get_write(n+i);
+              if (in_frames.find(n+i) == in_frames.end())
+                pframe = &(frame = (*fetch_frame)(n+i));
+              else
+                pframe = &in_frames[n+i];
+              FrameToCover(ep, plane, pframe->SrcPointers[plane], coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
+              CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
 
-            fftfp.fftwf_execute_dft_r2c(plan, in, apply_in[2+i]);
+              fftfp.fftwf_execute_dft_r2c(plan, in, apply_in[2+i]);
+            }
           }
         }
 
