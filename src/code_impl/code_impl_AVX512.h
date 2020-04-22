@@ -124,7 +124,7 @@ inline void loop_wrapper_AVX512(Expo &&expo, fftwf_complex** in, fftwf_complex* 
       float* wdehalo = sfp.wdehalo;
       // Grid
       fftwf_complex* gridsample = sfp.gridsample;
-      __m512 gridfraction = _mm512_set1_ps(sfp.degrid * in[2][0][0] / gridsample[0][0]);
+      __m512 gridfraction = _mm512_set1_ps(sfp.degrid * local_in[2][0][0] / gridsample[0][0]);
 
       for (lfp.pos = 0; lfp.pos < itemsperblock; lfp.pos += step)
       {
