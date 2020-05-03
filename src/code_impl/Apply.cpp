@@ -218,8 +218,8 @@ void Apply3D5_C(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp
       dif =  (- inprev2[lfp.w][0] + innext2[lfp.w][0])*sin144 + (- inprev[lfp.w][0] + innext[lfp.w][0])*sin72;
       float fpi = sum + dif; // im prev
       float fni = sum - dif; // im next
-      float fcr = inprev2[lfp.w][0] + inprev[lfp.w][0] + incur[lfp.w][0] + innext[lfp.w][0] + innext2[lfp.w][0] - gridcorrection0;
-      float fci = inprev2[lfp.w][1] + inprev[lfp.w][1] + incur[lfp.w][1] + innext[lfp.w][1] + innext2[lfp.w][1] - gridcorrection1;
+      float fcr = (inprev2[lfp.w][0] + inprev[lfp.w][0]) + incur[lfp.w][0] + (innext[lfp.w][0] + innext2[lfp.w][0]) - gridcorrection0;
+      float fci = (inprev2[lfp.w][1] + inprev[lfp.w][1]) + incur[lfp.w][1] + (innext[lfp.w][1] + innext2[lfp.w][1]) - gridcorrection1;
 
       lfp.wiener_factor_3d<pattern>(fp2r, fp2i);
       lfp.wiener_factor_3d<pattern>(fpr, fpi);
@@ -228,8 +228,8 @@ void Apply3D5_C(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp
       lfp.wiener_factor_3d<pattern>(fn2r, fn2i);
 
       // reverse dft for 5 points
-      out[lfp.w][0] = (fp2r + fpr + fcr + fnr + fn2r + gridcorrection0) * 0.2f; // get real part
-      out[lfp.w][1] = (fp2i + fpi + fci + fni + fn2i + gridcorrection1) * 0.2f; // get imaginary part
+      out[lfp.w][0] = ((fp2r + fpr) + (fcr + fnr) + fn2r + gridcorrection0) * 0.2f; // get real part
+      out[lfp.w][1] = ((fp2i + fpi) + (fci + fni) + fn2i + gridcorrection1) * 0.2f; // get imaginary part
     }
   );
 }
