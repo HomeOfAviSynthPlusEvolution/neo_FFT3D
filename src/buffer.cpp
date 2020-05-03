@@ -133,7 +133,7 @@ static void CoverToOverlap_impl(EngineParams * ep, IOParams * iop, float *dst_pt
   //	OutputDebugString(debugbuf);
   typedef typename std::conditional<sizeof(pixel_t) == 4, float, int>::type cast_t;
   // for float: chroma center is also 0.0
-  constexpr cast_t planeBase = sizeof(pixel_t) == 4 ? cast_t(chroma ? 0.0f : 0.0f) : cast_t(chroma ? (1 << (_bits_per_pixel - 1)) : 0); // anti warning
+  constexpr cast_t planeBase = sizeof(pixel_t) == 4 ? 0 : cast_t(chroma ? (1 << (_bits_per_pixel - 1)) : 0); // anti warning
 
   ihy = 0; // first top (big non-overlapped) part
   {
@@ -388,9 +388,9 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
   constexpr float rounder = sizeof(pixel_t) == 4 ? 0.0f : 0.5f; // v2.6
 
   // for float: chroma center is also 0.0
-  constexpr cast_t planeBase = sizeof(pixel_t) == 4 ? cast_t(chroma ? 0.0f : 0.0f) : cast_t(chroma ? (1 << (_bits_per_pixel-1)) : 0); // anti warning
+  constexpr cast_t planeBase = sizeof(pixel_t) == 4 ? 0 : cast_t(chroma ? (1 << (_bits_per_pixel-1)) : 0); // anti warning
 
-  constexpr cast_t max_pixel_value = sizeof(pixel_t) == 4 ? (pixel_t)1.0f : (pixel_t)((1 << _bits_per_pixel) - 1);
+  constexpr cast_t max_pixel_value = sizeof(pixel_t) == 4 ? (pixel_t)1 : (pixel_t)((1 << _bits_per_pixel) - 1);
 
   ihy = 0; // first top big non-overlapped) part
   {
@@ -399,7 +399,7 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
       inp = src_ptr + h*ep->bw;
       for (w = 0; w < ep->bw - ep->ow; w++)   // first half line of first block
       {
-        dstp[w] = MIN(cast_t(max_pixel_value), MAX((cast_t)0, (cast_t)(inp[w] * norm + rounder) + planeBase));   // Copy each byte from float array to dest with windows
+        dstp[w] = MIN(cast_t(max_pixel_value), MAX((cast_t)0, (cast_t)(inp[w] * norm + rounder + planeBase)));   // Copy each byte from float array to dest with windows
       }
       inp += ep->bw - ep->ow;
       dstp += ep->bw - ep->ow;
@@ -407,20 +407,20 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
       {
         for (w = 0; w < ep->ow; w++)   // half line of block
         {
-          dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * iop->wsynxr[w] + inp[w + xoffset] * iop->wsynxl[w])*norm + rounder) + planeBase));   // overlapped Copy
+          dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * iop->wsynxr[w] + inp[w + xoffset] * iop->wsynxl[w])*norm + rounder + planeBase)));   // overlapped Copy
         }
         inp += xoffset + ep->ow;
         dstp += ep->ow;
         for (w = 0; w < ep->bw - ep->ow - ep->ow; w++)   // first half line of first block
         {
-          dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)(inp[w] * norm + rounder) + planeBase));   // Copy each byte from float array to dest with windows
+          dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)(inp[w] * norm + rounder + planeBase)));   // Copy each byte from float array to dest with windows
         }
         inp += ep->bw - ep->ow - ep->ow;
         dstp += ep->bw - ep->ow - ep->ow;
       }
       for (w = 0; w < ep->ow; w++)   // last half line of last block
       {
-        dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)(inp[w] * norm + rounder) + planeBase));
+        dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)(inp[w] * norm + rounder + planeBase)));
       }
       inp += ep->ow;
       dstp += ep->ow;
@@ -454,20 +454,20 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
         for (w = 0; w < ep->ow; w++)   // half overlapped line of block
         {
           dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)(((inp[w] * iop->wsynxr[w] + inp[w + xoffset] * iop->wsynxl[w])*wsynyrh
-            + (inp[w + yoffset] * iop->wsynxr[w] + inp[w + xoffset + yoffset] * iop->wsynxl[w])*wsynylh) + rounder) + planeBase));   // x overlapped
+            + (inp[w + yoffset] * iop->wsynxr[w] + inp[w + xoffset + yoffset] * iop->wsynxl[w])*wsynylh) + rounder + planeBase)));   // x overlapped
         }
         inp += xoffset + ep->ow;
         dstp0 += ep->ow;
         for (w = 0; w < ep->bw - ep->ow - ep->ow; w++)   // double minus - half non-overlapped line of block
         {
-          dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * wsynyrh + inp[w + yoffset] * wsynylh) + rounder) + planeBase));
+          dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * wsynyrh + inp[w + yoffset] * wsynylh) + rounder + planeBase)));
         }
         inp += ep->bw - ep->ow - ep->ow;
         dstp0 += ep->bw - ep->ow - ep->ow;
       }
       for (w = 0; w < ep->ow; w++)   // last half line of last block
       {
-        dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * wsynyrh + inp[w + yoffset] * wsynylh) + rounder) + planeBase));
+        dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * wsynyrh + inp[w + yoffset] * wsynylh) + rounder + planeBase)));
       }
       inp += ep->ow;
       dstp0 += ep->ow;
@@ -480,7 +480,7 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
       auto inp = src_ptr + (ihy - 1)*(yoffset + (ep->bh - ep->oh)*ep->bw) + (ep->bh)*ep->bw + h*ep->bw + yoffset;
       for (w = 0; w < ep->bw - ep->ow; w++)   // first half line of first block
       {
-        dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w])*norm + rounder) + planeBase));
+        dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w])*norm + rounder + planeBase)));
       }
       inp += ep->bw - ep->ow;
       dstp0 += ep->bw - ep->ow;
@@ -488,20 +488,20 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
       {
         for (w = 0; w < ep->ow; w++)   // half overlapped line of block
         {
-          dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * iop->wsynxr[w] + inp[w + xoffset] * iop->wsynxl[w])*norm + rounder) + planeBase));   // x overlapped
+          dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * iop->wsynxr[w] + inp[w + xoffset] * iop->wsynxl[w])*norm + rounder + planeBase)));   // x overlapped
         }
         inp += xoffset + ep->ow;
         dstp0 += ep->ow;
         for (w = 0; w < ep->bw - ep->ow - ep->ow; w++)   // half non-overlapped line of block
         {
-          dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w])*norm + rounder) + planeBase));
+          dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w])*norm + rounder + planeBase)));
         }
         inp += ep->bw - ep->ow - ep->ow;
         dstp0 += ep->bw - ep->ow - ep->ow;
       }
       for (w = 0; w < ep->ow; w++)   // last half line of last block
       {
-        dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w])*norm + rounder) + planeBase));
+        dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w])*norm + rounder + planeBase)));
       }
       inp += ep->ow;
       dstp0 += ep->ow;
@@ -519,7 +519,7 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
       inp = src_ptr + (ihy - 1)*(yoffset + (ep->bh - ep->oh)*ep->bw) + (ep->bh - ep->oh)*ep->bw + h*ep->bw;
       for (w = 0; w < ep->bw - ep->ow; w++)   // first half line of first block
       {
-        dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)(inp[w] * norm + rounder) + planeBase));
+        dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)(inp[w] * norm + rounder + planeBase)));
       }
       inp += ep->bw - ep->ow;
       dstp += ep->bw - ep->ow;
@@ -527,20 +527,20 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
       {
         for (w = 0; w < ep->ow; w++)   // half line of block
         {
-          dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * iop->wsynxr[w] + inp[w + xoffset] * iop->wsynxl[w])*norm + rounder) + planeBase));   // overlapped Copy
+          dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w] * iop->wsynxr[w] + inp[w + xoffset] * iop->wsynxl[w])*norm + rounder + planeBase)));   // overlapped Copy
         }
         inp += xoffset + ep->ow;
         dstp += ep->ow;
         for (w = 0; w < ep->bw - ep->ow - ep->ow; w++)   // half line of block
         {
-          dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w])*norm + rounder) + planeBase));
+          dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w])*norm + rounder + planeBase)));
         }
         inp += ep->bw - ep->ow - ep->ow;
         dstp += ep->bw - ep->ow - ep->ow;
       }
       for (w = 0; w < ep->ow; w++)   // last half line of last block
       {
-        dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)(inp[w] * norm + rounder) + planeBase));
+        dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)(inp[w] * norm + rounder + planeBase)));
       }
       inp += ep->ow;
       dstp += ep->ow;
