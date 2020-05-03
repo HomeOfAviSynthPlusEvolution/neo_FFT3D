@@ -212,7 +212,7 @@ struct FFT3D final : Filter {
     if (engine_count == 1 && copy_count == 0 && !this->crop)
       for (int i = 0; i < ep->vi.Format.Planes; i++)
         if (process[i] == 3)
-          return in_frames[n];
+          return engine[i]->GetFrame(n, in_frames);
 
     auto src = in_frames[n];
     if (engine_count == 0) return src;
