@@ -354,9 +354,6 @@ public:
       std::fill_n((float*)covarProcess, outsize * 2, sigmaSquaredNoiseNormed2D);
     }
 
-    CPUFlags = GetCPUFlags(); //re-enabled in v.1.9
-    ffp.set_ffp(CPUFlags, ep->degrid, ep->pfactor, ep->bt, ep->opt);
-
     pwin = new float[ep->bh*outpitch]; // pattern window array
 
     float fw2, fh2;
@@ -388,6 +385,9 @@ public:
     {
       isPatternSet = false; // pattern must be estimated
     }
+
+    CPUFlags = GetCPUFlags();
+    ffp.set_ffp(CPUFlags, ep->degrid, ep->pfactor, ep->bt, ep->opt);
 
     // prepare  window compensation array gridsample
     // allocate large array for simplicity :)
