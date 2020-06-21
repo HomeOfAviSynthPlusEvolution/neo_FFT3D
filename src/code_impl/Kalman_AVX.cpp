@@ -19,7 +19,7 @@ template <bool pattern>
 void Kalman_AVX(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionParams sfp)
 {
   fftwf_complex * dummy[5] = {0, outLast, outcur, 0, 0};
-  loop_wrapper_AVX(std::execution::seq, dummy, outLast, sfp,
+  loop_wrapper_AVX(SEQ_POLICY, dummy, outLast, sfp,
     [&sfp](LambdaFunctionParams lfp) {
       const __m256 epsilon = _mm256_set1_ps(1.0e-15f);
       const __m256 m_one = _mm256_set1_ps(1.0f);

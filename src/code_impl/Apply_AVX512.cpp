@@ -11,7 +11,7 @@ template <bool pattern, bool degrid, bool sharpen, bool dehalo>
 static inline void Apply2D_AVX512_impl(fftwf_complex *out, SharedFunctionParams sfp)
 {
   fftwf_complex * dummy[5] = {0, 0, out, 0, 0};
-  loop_wrapper_AVX512(std::execution::par_unseq, dummy, out, sfp,
+  loop_wrapper_AVX512(PAR_POLICY, dummy, out, sfp,
     [&sfp](LambdaFunctionParams lfp) {
       (void)sfp;
       __m512 gridcorrection;
@@ -76,7 +76,7 @@ void Apply2D_AVX512(fftwf_complex *out, SharedFunctionParams sfp)
 template <bool pattern, bool degrid>
 void Apply3D2_AVX512(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp)
 {
-  loop_wrapper_AVX512(std::execution::par_unseq, in, out, sfp,
+  loop_wrapper_AVX512(PAR_POLICY, in, out, sfp,
     [](LambdaFunctionParams lfp) {
       __m512 gridcorrection;
       constexpr float scale = 2.0f;
@@ -108,7 +108,7 @@ void Apply3D2_AVX512(fftwf_complex **in, fftwf_complex *out, SharedFunctionParam
 template <bool pattern, bool degrid>
 void Apply3D3_AVX512(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp)
 {
-  loop_wrapper_AVX512(std::execution::par_unseq, in, out, sfp,
+  loop_wrapper_AVX512(PAR_POLICY, in, out, sfp,
     [](LambdaFunctionParams lfp) {
       __m512 gridcorrection;
       constexpr float scale = 3.0f;
@@ -150,7 +150,7 @@ void Apply3D3_AVX512(fftwf_complex **in, fftwf_complex *out, SharedFunctionParam
 template <bool pattern, bool degrid>
 void Apply3D4_AVX512(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp)
 {
-  loop_wrapper_AVX512(std::execution::par_unseq, in, out, sfp,
+  loop_wrapper_AVX512(PAR_POLICY, in, out, sfp,
     [](LambdaFunctionParams lfp) {
       __m512 gridcorrection;
       constexpr float scale = 4.0f;
@@ -191,7 +191,7 @@ void Apply3D4_AVX512(fftwf_complex **in, fftwf_complex *out, SharedFunctionParam
 template <bool pattern, bool degrid>
 void Apply3D5_AVX512(fftwf_complex **in, fftwf_complex *out, SharedFunctionParams sfp)
 {
-  loop_wrapper_AVX512(std::execution::par_unseq, in, out, sfp,
+  loop_wrapper_AVX512(PAR_POLICY, in, out, sfp,
     [](LambdaFunctionParams lfp) {
       __m512 gridcorrection;
       constexpr float scale = 5.0f;

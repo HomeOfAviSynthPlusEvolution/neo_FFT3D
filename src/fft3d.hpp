@@ -8,13 +8,6 @@
 #pragma once
 
 #include "fft3d_engine.h"
-#include <atomic>
-#include <queue>
-#include <thread>
-#include <functional>
-#include <chrono>
-#include <execution>
-using namespace std::chrono_literals;
 
 struct FFT3D final : Filter {
   int process[4];
@@ -218,8 +211,12 @@ struct FFT3D final : Filter {
     if (engine_count == 0) return src;
     auto dst = src.Create(false);
 
-    std::for_each_n(std::execution::par_unseq, reinterpret_cast<char*>(0), ep->vi.Format.Planes, [&](char&idx) {
+#ifdef ENABLE_PAR
+    std::for_each_n(PAR_POLICY, reinterpret_cast<char*>(0), ep->vi.Format.Planes, [&](char&idx) {
       int i = static_cast<int>(reinterpret_cast<intptr_t>(&idx));
+#else
+    for (int i = 0; i < ep->vi.Format.Planes; i++) {
+#endif
       bool chroma = ep->vi.Format.IsFamilyYUV && i > 0 && i < 3;
 
       if (process[i] == 3) {
@@ -233,7 +230,10 @@ struct FFT3D final : Filter {
       else if(process[i] == 2) {
         copy_frame(dst, src, i, chroma);
       }
-    });
+    }
+#ifdef ENABLE_PAR
+    );
+#endif
 
     return dst;
   }

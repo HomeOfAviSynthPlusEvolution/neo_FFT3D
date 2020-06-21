@@ -8,6 +8,22 @@
 #include <algorithm>
 #include <string>
 
+#ifdef HAS_EXECUTION
+  #include <execution>
+#endif
+
+#ifndef __cpp_lib_execution
+  #undef ENABLE_PAR
+#endif
+
+#ifdef ENABLE_PAR
+  #define PAR_POLICY std::execution::par
+  #define SEQ_POLICY std::execution::seq
+#else
+  #define PAR_POLICY nullptr
+  #define SEQ_POLICY nullptr
+#endif
+
 #include "fftwlite.h"
 #include <ds_common.hpp>
 

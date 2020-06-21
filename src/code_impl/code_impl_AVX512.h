@@ -10,7 +10,6 @@
 
 #include "code_impl.h"
 #include <immintrin.h>
-#include <execution>
 
 inline __m512 _mm512_sign_r(__m512 data) {
   return _mm512_castsi512_ps(_mm512_xor_epi32(_mm512_castps_si512(data), _mm512_set1_epi64(0x80000000LL)));
@@ -86,12 +85,19 @@ template<typename Expo, typename Func>
 inline void loop_wrapper_AVX512(Expo &&expo, fftwf_complex** in, fftwf_complex* &out, SharedFunctionParams sfp, Func f) {
   int itemsperblock = sfp.bh * sfp.outpitch;
   const int step = 8;
+
+#ifdef ENABLE_PAR
   constexpr auto batch_count = 4;
   const int batch_size = (sfp.howmanyblocks - 1) / batch_count + 1;
 
   std::for_each_n(expo, reinterpret_cast<char*>(0), batch_count, [&](char&idx)
   {
     int i = static_cast<int>(reinterpret_cast<intptr_t>(&idx));
+#else
+  constexpr auto batch_count = 1;
+  const int batch_size = sfp.howmanyblocks;
+  int i = 0;
+#endif
     LambdaFunctionParams lfp;
     lfp.m_lowlimit = _mm512_set1_ps((sfp.beta - 1) / sfp.beta);
     lfp.m_sigmaSquaredNoiseNormed = _mm512_set1_ps(sfp.sigmaSquaredNoiseNormed);
@@ -160,7 +166,9 @@ inline void loop_wrapper_AVX512(Expo &&expo, fftwf_complex** in, fftwf_complex* 
         lfp.covarProcess += step;
       }
     }
+#ifdef ENABLE_PAR
   });
+#endif
 }
 
 #endif

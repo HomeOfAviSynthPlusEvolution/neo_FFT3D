@@ -10,7 +10,6 @@
 
 #include "code_impl.h"
 #include <immintrin.h>
-#include <execution>
 
 inline __m256 _mm256_sign_r(__m256 data) {
   return _mm256_xor_ps(data, _mm256_set_ps(0.0f, -0.0f, 0.0f, -0.0f, 0.0f, -0.0f, 0.0f, -0.0f));
@@ -22,6 +21,7 @@ inline __m256 _mm256_swap_ri(__m256 data) {
   return _mm256_shuffle_ps(data, data, 177); // 10 11 00 01
 }
 inline __m256 _mm256_loadu_2ps(const float* mem) {
+  // TODO: _mm_load_si128 + _mm256_cvtepu32_epi64
   __m256 src1 = _mm256_loadu_ps(mem);
   __m256 src2 = _mm256_loadu_ps(mem-2);
   __m256 blended = _mm256_blend_ps(src1, src2, 0xF0);
@@ -87,12 +87,19 @@ template<typename Expo, typename Func>
 inline void loop_wrapper_AVX(Expo &&expo, fftwf_complex** in, fftwf_complex* &out, SharedFunctionParams sfp, Func f) {
   int itemsperblock = sfp.bh * sfp.outpitch;
   const int step = 4;
+
+#ifdef ENABLE_PAR
   constexpr auto batch_count = 4;
   const int batch_size = (sfp.howmanyblocks - 1) / batch_count + 1;
 
   std::for_each_n(expo, reinterpret_cast<char*>(0), batch_count, [&](char&idx)
   {
     int i = static_cast<int>(reinterpret_cast<intptr_t>(&idx));
+#else
+  constexpr auto batch_count = 1;
+  const int batch_size = sfp.howmanyblocks;
+  int i = 0;
+#endif
     LambdaFunctionParams lfp;
     lfp.m_lowlimit = _mm256_set1_ps((sfp.beta - 1) / sfp.beta);
     lfp.m_sigmaSquaredNoiseNormed = _mm256_set1_ps(sfp.sigmaSquaredNoiseNormed);
@@ -161,7 +168,9 @@ inline void loop_wrapper_AVX(Expo &&expo, fftwf_complex** in, fftwf_complex* &ou
         lfp.covarProcess += step;
       }
     }
+#ifdef ENABLE_PAR
   });
+#endif
 }
 
 #endif

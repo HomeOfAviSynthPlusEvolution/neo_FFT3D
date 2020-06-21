@@ -10,7 +10,6 @@
 
 #include "code_impl.h"
 #include <emmintrin.h>
-#include <execution>
 
 inline __m128 _mm_sign_r(__m128 data) {
   return _mm_xor_ps(data, _mm_set_ps(0.0f, -0.0f, 0.0f, -0.0f));
@@ -81,12 +80,19 @@ template<typename Expo, typename Func>
 inline void loop_wrapper_SSE2(Expo &&expo, fftwf_complex** in, fftwf_complex* out, SharedFunctionParams sfp, Func f) {
   int itemsperblock = sfp.bh * sfp.outpitch;
   const int step = 2;
+
+#ifdef ENABLE_PAR
   constexpr auto batch_count = 4;
   const int batch_size = (sfp.howmanyblocks - 1) / batch_count + 1;
 
   std::for_each_n(expo, reinterpret_cast<char*>(0), batch_count, [&](char&idx)
   {
     int i = static_cast<int>(reinterpret_cast<intptr_t>(&idx));
+#else
+  constexpr auto batch_count = 1;
+  const int batch_size = sfp.howmanyblocks;
+  int i = 0;
+#endif
     LambdaFunctionParams lfp;
     lfp.m_lowlimit = _mm_set1_ps((sfp.beta - 1) / sfp.beta);
     lfp.m_sigmaSquaredNoiseNormed = _mm_set1_ps(sfp.sigmaSquaredNoiseNormed);
@@ -158,7 +164,9 @@ inline void loop_wrapper_SSE2(Expo &&expo, fftwf_complex** in, fftwf_complex* ou
         lfp.covarProcess += step;
       }
     }
+#ifdef ENABLE_PAR
   });
+#endif
 }
 
 #endif

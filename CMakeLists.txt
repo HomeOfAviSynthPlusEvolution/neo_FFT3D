@@ -6,6 +6,7 @@ file(GLOB AVX_CODE_IMPL "src/code_impl/*AVX.cpp")
 file(GLOB AVX512_CODE_IMPL "src/code_impl/*AVX512.cpp")
 add_library(neo-fft3d SHARED main.cpp src/version.rc ${CODE} ${CODE_IMPL})
 set_property(TARGET neo-fft3d PROPERTY CXX_STANDARD 17)
+option(ENABLE_PAR "Enable C++17 Parallel Execution" ON)
 
 find_package(Git REQUIRED)
 execute_process(COMMAND ${GIT_EXECUTABLE} describe --first-parent --tags --always OUTPUT_VARIABLE GIT_REPO_VERSION)
@@ -59,8 +60,17 @@ else()
 
 endif()
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  target_link_libraries(neo-fft3d tbb)
+include(CheckIncludeFileCXX)
+CHECK_INCLUDE_FILE_CXX(execution HAS_EXECUTION)
+if(HAS_EXECUTION)
+  add_definitions(-DHAS_EXECUTION)
+endif()
+if(ENABLE_PAR AND HAS_EXECUTION)
+  add_definitions(-DENABLE_PAR)
+
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_link_libraries(neo-fft3d tbb)
+  endif()
 endif()
 
 add_custom_command(

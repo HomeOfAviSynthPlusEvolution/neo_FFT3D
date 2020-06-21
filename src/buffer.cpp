@@ -1,6 +1,5 @@
 #include "buffer.h"
 #include <numeric>
-#include <execution>
 #pragma warning (disable: 26451)
 
 template<typename pixel_t>
@@ -218,10 +217,12 @@ static void CoverToOverlap_impl(EngineParams * ep, IOParams * iop, float *dst_pt
     }
   }
 
-  // for (ihy = 1; ihy < iop->noy; ihy += 1) // middle vertical
-  std::for_each_n(std::execution::par_unseq, (char*)1, iop->noy - 1, [&](char&idx)
-  {
+#ifdef ENABLE_PAR
+  std::for_each_n(std::execution::par_unseq, (char*)1, iop->noy - 1, [&](char&idx) {
     int ihy = static_cast<int>(reinterpret_cast<intptr_t>(&idx));
+#else
+  for (ihy = 1; ihy < iop->noy; ihy += 1) {
+#endif
     int w, h;
     int ihx;
     float ftmp;
@@ -322,7 +323,10 @@ static void CoverToOverlap_impl(EngineParams * ep, IOParams * iop, float *dst_pt
       srcp0 += (src_pitch - src_width);  // Add the pitch of one line (in bytes) to the source image.
     }
 
-  }); // std::for_each
+  }
+#ifdef ENABLE_PAR
+  ); // std::for_each
+#endif
 
   srcp += src_pitch * (iop->noy - 1)  * (ep->bh - ep->oh);
   ihy = iop->noy; // last bottom  part
@@ -429,10 +433,12 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
     }
   }
 
-  // for (ihy = 1; ihy < iop->noy; ihy += 1) // middle vertical
-  std::for_each_n(std::execution::par_unseq, (char*)1, iop->noy - 1, [&](char&idx)
-  {
+#ifdef ENABLE_PAR
+  std::for_each_n(std::execution::par_unseq, (char*)1, iop->noy - 1, [&](char&idx) {
     int ihy = static_cast<int>(reinterpret_cast<intptr_t>(&idx));
+#else
+  for (ihy = 1; ihy < iop->noy; ihy += 1) {
+#endif
     int w, h;
     int ihx;
     auto dstp0 = dstp + dst_pitch * (ihy - 1)  * (ep->bh - ep->oh);
@@ -509,7 +515,10 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
       dstp0 += (dst_pitch - dst_width);  // Add the pitch of one line (in bytes) to the source image.
     }
 
-  }); // std::for_each
+  }
+#ifdef ENABLE_PAR
+  ); // std::for_each
+#endif
 
   dstp += dst_pitch * (iop->noy - 1)  * (ep->bh - ep->oh);
   ihy = iop->noy; // last bottom part
