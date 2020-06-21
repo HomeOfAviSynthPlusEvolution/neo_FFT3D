@@ -54,16 +54,16 @@ struct FFTFunctionPointers {
       if (library == NULL)
         library = LoadLibraryW(L"fftw3");
       if (library == NULL)
-        #ifdef _WIN32
-          throw("libfftw3f-3.dll or fftw3.dll not found. Please put in PATH or use LoadDll() plugin");
-        #else
-          throw("libfftw3f_threads.so.3 not found. Please install libfftw3-single3 (deb) or fftw-devel (rpm) package");
-        #endif
+        throw("libfftw3f-3.dll or fftw3.dll not found. Please put in PATH or use LoadDll() plugin");
     }
     void fftw3_close() { FreeLibrary(library); }
     func_t fftw3_address(LPCSTR func) { return GetProcAddress(library, func); }
   #else
-    void fftw3_open() { library = dlopen("libfftw3f_threads.so.3", RTLD_NOW); }
+    void fftw3_open() {
+      library = dlopen("libfftw3f_threads.so.3", RTLD_NOW);
+      if (library == NULL)
+        throw("libfftw3f_threads.so.3 not found. Please install libfftw3-single3 (deb) or fftw-devel (rpm) package");
+    }
     void fftw3_close() { dlclose(library); }
     func_t fftw3_address(const char * func) { return dlsym(library, func); }
   #endif

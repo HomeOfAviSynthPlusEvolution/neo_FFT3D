@@ -73,6 +73,10 @@ if(ENABLE_PAR AND HAS_EXECUTION)
   endif()
 endif()
 
+if (NOT WIN32)
+  target_link_libraries(neo-fft3d dl)
+endif()
+
 add_custom_command(
   TARGET neo-fft3d POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:neo-fft3d> "../Release_${VERSION}/${_DIR}/$<TARGET_FILE_NAME:neo-fft3d>"
