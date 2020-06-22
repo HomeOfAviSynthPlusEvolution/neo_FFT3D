@@ -84,6 +84,12 @@ Parameters:
 
     Default: 0.
 
+- *ncpu*
+
+    Number of FFTW multi threads.
+
+    Default: 2.
+
 
 ### Note on MT (multi-threading)
 

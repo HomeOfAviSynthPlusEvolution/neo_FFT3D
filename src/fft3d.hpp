@@ -16,6 +16,8 @@ struct FFT3D final : Filter {
   int engine_count {0};
   int copy_count {0};
   EngineParams* ep {nullptr};
+  FFTFunctionPointers fftfp;
+  int fft_threads {2};
 
   bool crop;
 
@@ -63,7 +65,8 @@ struct FFT3D final : Filter {
       Param {"t", Integer},
       Param {"r", Integer},
       Param {"b", Integer},
-      Param {"opt", Integer}
+      Param {"opt", Integer},
+      Param {"ncpu", Integer}
     };
   }
   void Initialize(InDelegator* in, DSVideoInfo in_vi, FetchFrameFunctor* fetch_frame) override
@@ -160,6 +163,16 @@ struct FFT3D final : Filter {
       in->Read("u", process[1]);
       in->Read("v", process[2]);
     }
+    in->Read("ncpu", fft_threads);
+    if (fft_threads < 1)
+      fft_threads = 1;
+
+    fftfp.load();
+
+    if (fft_threads > 1 && fftfp.has_threading()) {
+      fftfp.fftwf_init_threads();
+      fftfp.fftwf_plan_with_nthreads(fft_threads);
+    }
 
     int planes_y[4] = { PLANAR_Y, PLANAR_U, PLANAR_V, PLANAR_A };
     int planes_r[4] = { PLANAR_R, PLANAR_G, PLANAR_B, PLANAR_A };
@@ -171,7 +184,7 @@ struct FFT3D final : Filter {
         ep->IsChroma = ep->vi.Format.IsFamilyYUV && i != 0;
         ep->framewidth = ep->IsChroma ? ep->vi.Width >> ep->vi.Format.SSW : ep->vi.Width;
         ep->frameheight = ep->IsChroma ? ep->vi.Height >> ep->vi.Format.SSH : ep->vi.Height;
-        engine[i] = new FFT3DEngine(*ep, i, fetch_frame);
+        engine[i] = new FFT3DEngine(*ep, i, fetch_frame, fftfp);
         engine_count++;
       }
       else if (process[i] == 2) {

@@ -87,8 +87,8 @@ class FFT3DEngine {
   std::mutex init3d_mutex;
 
 public:
-  FFT3DEngine(EngineParams _ep, int _plane, FetchFrameFunctor* _fetch_frame) :
-  ep(new EngineParams(_ep)), iop(new IOParams()), plane(_plane), fetch_frame(_fetch_frame) {
+  FFT3DEngine(EngineParams _ep, int _plane, FetchFrameFunctor* _fetch_frame, FFTFunctionPointers &_fftfp) :
+  ep(new EngineParams(_ep)), iop(new IOParams()), plane(_plane), fetch_frame(_fetch_frame), fftfp(_fftfp) {
     int i, j;
 
     float factor;
@@ -127,12 +127,6 @@ public:
 
     if (ep->beta < 1)
       throw("beta must be not less 1.0");
-
-    int istat;
-
-    fftfp.load();
-
-    istat = fftfp.fftwf_init_threads();
 
     coverwidth = iop->nox*(ep->bw - ep->ow) + ep->ow;
     coverheight = iop->noy*(ep->bh - ep->oh) + ep->oh;
@@ -182,8 +176,6 @@ public:
 
     //	*inembed = NULL;
     //	*onembed = NULL;
-
-    fftfp.fftwf_plan_with_nthreads(1);
 
     {
       std::lock_guard<std::mutex> lock(init_fft_mutex);

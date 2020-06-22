@@ -35,6 +35,7 @@ typedef int (*fftwf_init_threads_proc) ();
 typedef void (*fftwf_plan_with_nthreads_proc)(int nthreads);
 
 #define LOAD_FFT_FUNC(name) do {name = reinterpret_cast<name ## _proc>((void*)fftw3_address(#name)); if (name == NULL) throw "Library function is missing: " #name; } while(0)
+#define LOAD_FFT_FUNC_OPT(name) do {name = reinterpret_cast<name ## _proc>((void*)fftw3_address(#name)); } while(0)
 
 struct FFTFunctionPointers {
   lib_t library;
@@ -78,8 +79,8 @@ struct FFTFunctionPointers {
       LOAD_FFT_FUNC(fftwf_destroy_plan);
       LOAD_FFT_FUNC(fftwf_execute_dft_r2c);
       LOAD_FFT_FUNC(fftwf_execute_dft_c2r);
-      LOAD_FFT_FUNC(fftwf_init_threads);
-      LOAD_FFT_FUNC(fftwf_plan_with_nthreads);
+      LOAD_FFT_FUNC_OPT(fftwf_init_threads);
+      LOAD_FFT_FUNC_OPT(fftwf_plan_with_nthreads);
     }
   }
 
@@ -87,6 +88,10 @@ struct FFTFunctionPointers {
     if (library != NULL) {
       fftw3_close();
     }
+  }
+
+  bool has_threading() {
+    return library && fftwf_init_threads && fftwf_plan_with_nthreads;
   }
 };
 
