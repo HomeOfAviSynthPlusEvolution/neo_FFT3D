@@ -81,6 +81,7 @@ struct EngineParams {
   int framewidth; // in pixels, not bytes
   int frameheight;
   int framepitch; // in pixels, not bytes
+  int framepitch_dst; // in pixels, not bytes
 };
 
 

@@ -512,6 +512,7 @@ public:
         auto sptr = src.SrcPointers[plane];
         auto dptr = dst.DstPointers[plane];
         ep->framepitch = src.StrideBytes[plane] / ep->vi.Format.BytesPerSample;
+        ep->framepitch_dst = dst.StrideBytes[plane] / ep->vi.Format.BytesPerSample;
 
         // put source bytes to float array of overlapped blocks
         FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
@@ -569,6 +570,7 @@ public:
     auto sptr = src.SrcPointers[plane];
     auto dptr = dst.DstPointers[plane];
     ep->framepitch = src.StrideBytes[plane] / ep->vi.Format.BytesPerSample;
+    ep->framepitch_dst = dst.StrideBytes[plane] / ep->vi.Format.BytesPerSample;
 
     int btcur = ep->bt; // bt used for current frame
   //	if ( (bt/2 > n) || bt==3 && n==vi.num_frames-1 )
