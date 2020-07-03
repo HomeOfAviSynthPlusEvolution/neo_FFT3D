@@ -446,7 +446,6 @@ public:
     for (auto it : mt_coverbuf)
       _aligned_free(it);
 
-    fftfp.free();
     free(messagebuf); //v1.8.5
   }
 

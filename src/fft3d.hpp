@@ -353,5 +353,6 @@ struct FFT3D final : Filter {
           delete engine[i];
       delete ep;
     }
+    fftfp.free();
   }
 };
