@@ -238,10 +238,16 @@ struct FFT3D final : Filter {
         auto t = chroma ? (ep->t >> ep->vi.Format.SSH) : ep->t;
         auto b = chroma ? (ep->b >> ep->vi.Format.SSH) : ep->b;
         auto frame = engine[i]->GetFrame(n, in_frames);
-        copy_frame(dst, src, frame, i, chroma, l, t, r, b);
+        if (src.StrideBytes[i] == dst.StrideBytes[i])
+          copy_frame<false>(dst, src, frame, i, chroma, l, t, r, b);
+        else
+          copy_frame<true>(dst, src, frame, i, chroma, l, t, r, b);
       }
       else if(process[i] == 2) {
-        copy_frame(dst, src, i, chroma);
+        if (src.StrideBytes[i] == dst.StrideBytes[i])
+          copy_frame<false>(dst, src, i, chroma);
+        else
+          copy_frame<true>(dst, src, i, chroma);
       }
     }
 #ifdef ENABLE_PAR
@@ -256,22 +262,35 @@ struct FFT3D final : Filter {
     return cachehints == CACHE_GET_MTMODE ? (ep->bt == 0 ? MT_SERIALIZED : MT_NICE_FILTER) : 0;
   }
 
+  template<bool slow>
   void copy_frame(DSFrame &dst, DSFrame &src, int plane, bool chroma)
   {
     auto height = ep->vi.Height;
-    auto stride = src.StrideBytes[plane];
+    auto src_stride = src.StrideBytes[plane];
+    auto dst_stride = dst.StrideBytes[plane];
     auto src_ptr = src.SrcPointers[plane];
     auto dst_ptr = dst.DstPointers[plane];
     if (chroma)
       height >>= ep->vi.Format.SSH;
-    memcpy(dst_ptr, src_ptr, stride * height);
+    if constexpr (slow) {
+      for(int i = 0; i < height; i++) {
+        memcpy(dst_ptr, src_ptr, dst_stride);
+        src_ptr += src_stride;
+        dst_ptr += dst_stride;
+      }
+    }
+    else
+      memcpy(dst_ptr, src_ptr, dst_stride * height);
   }
 
+  template<bool slow>
   void copy_frame(DSFrame &dst, DSFrame &src, DSFrame &processed, int plane, bool chroma, int l, int t, int r, int b)
   {
     auto width = ep->vi.Width * ep->vi.Format.BytesPerSample;
     auto height = ep->vi.Height;
-    auto stride = processed.StrideBytes[plane];
+    auto src_stride = src.StrideBytes[plane];
+    auto dst_stride = dst.StrideBytes[plane];
+    auto pcs_stride = processed.StrideBytes[plane];
     auto src_ptr = src.SrcPointers[plane];
     auto pcs_ptr = processed.SrcPointers[plane];
     auto dst_ptr = dst.DstPointers[plane];
@@ -283,25 +302,47 @@ struct FFT3D final : Filter {
     auto r2 = r * ep->vi.Format.BytesPerSample;
 
     if (l == 0 && r == 0 && t == 0 && b == 0) {
-      memcpy(dst_ptr, pcs_ptr, stride * height);
+      copy_frame<slow>(dst, processed, plane, chroma);
       return;
     }
 
-    if (t > 0)
-      memcpy(dst_ptr, src_ptr, stride * t);
-    src_ptr += stride * t;
-    dst_ptr += stride * t;
-    pcs_ptr += stride * t;
+    if (t > 0) {
+      if constexpr (slow) {
+        for(int i = 0; i < t; i++) {
+          memcpy(dst_ptr, src_ptr, dst_stride);
+          src_ptr += src_stride;
+          dst_ptr += dst_stride;
+        }
+      }
+      else {
+        memcpy(dst_ptr, src_ptr, dst_stride * t);
+        src_ptr += src_stride * t;
+        dst_ptr += dst_stride * t;
+      }
+    }
+    pcs_ptr += pcs_stride * t;
     for (int y = 0; y < (height - t - b); y++) {
       if (l2 > 0) memcpy(dst_ptr, src_ptr, l2);
       memcpy(dst_ptr + l2, pcs_ptr + l2, width - l2 - r2);
       if (r2 > 0) memcpy(dst_ptr + width - r2, src_ptr + width - r2, r2);
-      src_ptr += stride;
-      dst_ptr += stride;
-      pcs_ptr += stride;
+      src_ptr += src_stride;
+      dst_ptr += dst_stride;
+      pcs_ptr += pcs_stride;
     }
-    if (b > 0)
-      memcpy(dst_ptr, src_ptr, stride * b);
+    if (b > 0) {
+      if constexpr (slow) {
+        for(int i = 0; i < b; i++) {
+          memcpy(dst_ptr, src_ptr, dst_stride);
+          src_ptr += src_stride;
+          dst_ptr += dst_stride;
+        }
+      }
+      else {
+        memcpy(dst_ptr, src_ptr, dst_stride * t);
+        src_ptr += src_stride * b;
+        dst_ptr += dst_stride * b;
+      }
+    }
   }
 
   ~FFT3D()
