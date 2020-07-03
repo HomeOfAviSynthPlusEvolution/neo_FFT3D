@@ -34,44 +34,44 @@ typedef void (*fftwf_execute_dft_c2r_proc) (fftwf_plan, fftwf_complex *fftsrc, f
 typedef int (*fftwf_init_threads_proc) ();
 typedef void (*fftwf_plan_with_nthreads_proc)(int nthreads);
 
-#define LOAD_FFT_FUNC(name) do {name = reinterpret_cast<name ## _proc>((void*)fftw3_address(#name)); if (name == NULL) throw "Library function is missing: " #name; } while(0)
+#define LOAD_FFT_FUNC(name) do {name = reinterpret_cast<name ## _proc>((void*)fftw3_address(#name)); if (name == nullptr) throw "Library function is missing: " #name; } while(0)
 #define LOAD_FFT_FUNC_OPT(name) do {name = reinterpret_cast<name ## _proc>((void*)fftw3_address(#name)); } while(0)
 
 struct FFTFunctionPointers {
-  lib_t library;
+  lib_t library {nullptr};
 
-  fftwf_malloc_proc fftwf_malloc;
-  fftwf_free_proc fftwf_free;
-  fftwf_plan_many_dft_r2c_proc fftwf_plan_many_dft_r2c;
-  fftwf_plan_many_dft_c2r_proc fftwf_plan_many_dft_c2r;
-  fftwf_destroy_plan_proc fftwf_destroy_plan;
-  fftwf_execute_dft_r2c_proc fftwf_execute_dft_r2c;
-  fftwf_execute_dft_c2r_proc fftwf_execute_dft_c2r;
-  fftwf_init_threads_proc fftwf_init_threads;
-  fftwf_plan_with_nthreads_proc fftwf_plan_with_nthreads;
+  fftwf_malloc_proc fftwf_malloc {nullptr};
+  fftwf_free_proc fftwf_free {nullptr};
+  fftwf_plan_many_dft_r2c_proc fftwf_plan_many_dft_r2c {nullptr};
+  fftwf_plan_many_dft_c2r_proc fftwf_plan_many_dft_c2r {nullptr};
+  fftwf_destroy_plan_proc fftwf_destroy_plan {nullptr};
+  fftwf_execute_dft_r2c_proc fftwf_execute_dft_r2c {nullptr};
+  fftwf_execute_dft_c2r_proc fftwf_execute_dft_c2r {nullptr};
+  fftwf_init_threads_proc fftwf_init_threads {nullptr};
+  fftwf_plan_with_nthreads_proc fftwf_plan_with_nthreads {nullptr};
   #if _WIN32
     void fftw3_open() {
       library = LoadLibraryW(L"libfftw3f-3");
-      if (library == NULL)
+      if (library == nullptr)
         library = LoadLibraryW(L"fftw3");
-      if (library == NULL)
+      if (library == nullptr)
         throw("libfftw3f-3.dll or fftw3.dll not found. Please put in PATH or use LoadDll() plugin");
     }
-    void fftw3_close() { FreeLibrary(library); }
+    void fftw3_close() { FreeLibrary(library); library = nullptr; }
     func_t fftw3_address(LPCSTR func) { return GetProcAddress(library, func); }
   #else
     void fftw3_open() {
       library = dlopen("libfftw3f_threads.so.3", RTLD_NOW);
-      if (library == NULL)
+      if (library == nullptr)
         throw("libfftw3f_threads.so.3 not found. Please install libfftw3-single3 (deb) or fftw-devel (rpm) package");
     }
-    void fftw3_close() { dlclose(library); }
+    void fftw3_close() { dlclose(library); library = nullptr; }
     func_t fftw3_address(const char * func) { return dlsym(library, func); }
   #endif
   void load() {
-    library = NULL;
+    library = nullptr;
     fftw3_open();
-    if (library != NULL) {
+    if (library != nullptr) {
       LOAD_FFT_FUNC(fftwf_malloc);
       LOAD_FFT_FUNC(fftwf_free);
       LOAD_FFT_FUNC(fftwf_plan_many_dft_r2c);
@@ -85,7 +85,7 @@ struct FFTFunctionPointers {
   }
 
   void free() {
-    if (library != NULL) {
+    if (library != nullptr) {
       fftw3_close();
     }
   }
