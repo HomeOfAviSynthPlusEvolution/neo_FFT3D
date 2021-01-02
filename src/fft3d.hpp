@@ -18,6 +18,7 @@ struct FFT3D final : Filter {
   EngineParams* ep {nullptr};
   FFTFunctionPointers fftfp;
   int fft_threads {2};
+  bool mt {false};
 
   bool crop;
 
@@ -66,7 +67,8 @@ struct FFT3D final : Filter {
       Param {"r", Integer},
       Param {"b", Integer},
       Param {"opt", Integer},
-      Param {"ncpu", Integer}
+      Param {"ncpu", Integer},
+      Param {"mt", Boolean}
     };
   }
   void Initialize(InDelegator* in, DSVideoInfo in_vi, FetchFrameFunctor* fetch_frame) override
@@ -163,6 +165,7 @@ struct FFT3D final : Filter {
       in->Read("u", process[1]);
       in->Read("v", process[2]);
     }
+    in->Read("mt", mt);
     in->Read("ncpu", fft_threads);
     if (fft_threads < 1)
       fft_threads = 1;
@@ -224,12 +227,8 @@ struct FFT3D final : Filter {
     if (engine_count == 0) return src;
     auto dst = src.Create(false);
 
-#ifdef ENABLE_PAR
-    std::for_each_n(PAR_POLICY, reinterpret_cast<char*>(0), ep->vi.Format.Planes, [&](char&idx) {
+    auto core = [&](char&idx) {
       int i = static_cast<int>(reinterpret_cast<intptr_t>(&idx));
-#else
-    for (int i = 0; i < ep->vi.Format.Planes; i++) {
-#endif
       bool chroma = ep->vi.Format.IsFamilyYUV && i > 0 && i < 3;
 
       if (process[i] == 3) {
@@ -249,10 +248,15 @@ struct FFT3D final : Filter {
         else
           copy_frame<true>(dst, src, i, chroma);
       }
-    }
+    };
+
 #ifdef ENABLE_PAR
-    );
+    if(mt)
+      std::for_each_n(PAR_POLICY, reinterpret_cast<char*>(0), ep->vi.Format.Planes, core);
+    else
 #endif
+    for (intptr_t i = 0; i < ep->vi.Format.Planes; i++)
+      core(*reinterpret_cast<char*>(i));
 
     return dst;
   }
