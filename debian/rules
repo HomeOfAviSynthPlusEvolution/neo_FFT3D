@@ -1,0 +1,13 @@
+#!/usr/bin/make -f
+
+include /usr/share/dpkg/architecture.mk
+
+%:
+	dh $@
+
+override_dh_auto_install:
+	install -m 755 -D -t debian/dualsynth-neo-fft3d-yuuki/usr/lib/$(DEB_HOST_MULTIARCH)/dualsynth obj-$(DEB_HOST_MULTIARCH)/libneo-fft3d.so
+	mkdir debian/dualsynth-neo-fft3d-yuuki/usr/lib/$(DEB_HOST_MULTIARCH)/avisynth
+	mkdir debian/dualsynth-neo-fft3d-yuuki/usr/lib/$(DEB_HOST_MULTIARCH)/vapoursynth
+	ln -s ../dualsynth/libneo-fft3d.so debian/dualsynth-neo-fft3d-yuuki/usr/lib/$(DEB_HOST_MULTIARCH)/avisynth/
+	ln -s ../dualsynth/libneo-fft3d.so debian/dualsynth-neo-fft3d-yuuki/usr/lib/$(DEB_HOST_MULTIARCH)/vapoursynth/

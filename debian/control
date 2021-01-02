@@ -1,0 +1,20 @@
+Source: neo-fft3d
+Section: libs
+Priority: optional
+Maintainer: Xinyue Lu <i@7086.in>
+Bugs: https://github.com/HomeOfAviSynthPlusEvolution/neo_FFT3D/issues
+Homepage: https://github.com/HomeOfAviSynthPlusEvolution/neo_FFT3D
+Standards-Version: 4.5.0
+Build-Depends: debhelper-compat (= 12)
+
+# -yuuki tag is used for yuuki's own builds.
+# Replace it with your own tag for your own builds.
+
+Package: dualsynth-neo-fft3d-yuuki
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}, libfftw3-single3
+Provides: dualsynth-neo-fft3d, neo-fft3d
+Conflicts: dualsynth-neo-fft3d, neo-fft3d
+Description: Plugin for AviSynthPlus and VapourSynth: neo-fft3d
+ FFT3D is a 3D Frequency Domain filter - strong denoiser and moderate sharpener.

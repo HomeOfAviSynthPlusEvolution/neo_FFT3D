@@ -1,0 +1,14 @@
+neo-fft3d (0.10) unstable; urgency=medium
+
+  * Clean up fftwlite
+  * Fix incorrect free of fftfp
+  * Fix misaligned buffer
+  * Add mt parameter to enable / disable plane based multi-threading, defaults to false
+
+ -- Xinyue Lu <i@7086.in>  Fri, 01 Jan 2021 00:00:00 -0500
+
+neo-fft3d (0.09) unstable; urgency=medium
+
+  * Initial release
+
+ -- Xinyue Lu <i@7086.in>  Sun, 21 Jun 2020 00:00:00 -0400
