@@ -22,7 +22,7 @@ inline __m512 _mm512_swap_ri(__m512 data) {
 }
 inline __m512 _mm512_loadu_4ps(const float* mem) {
   __m512 src1 = _mm512_loadu_ps(mem);
-  __m512i expander_index = _mm512_set_epi32(0,0, 1,1, 2,2, 3,3, 4,4, 5,5, 6,6, 7,7);
+  __m512i expander_index = _mm512_set_epi32(7,7, 6,6, 5,5, 4,4, 3,3, 2,2, 1,1, 0,0);
   return _mm512_permutexvar_ps(expander_index, src1);
 }
 
