@@ -90,6 +90,12 @@ Parameters:
 
     Default: 2.
 
+- *mt*
+
+    Process planes in parallel.
+
+    Default: false.
+
 
 ### Note on MT (multi-threading)
 
