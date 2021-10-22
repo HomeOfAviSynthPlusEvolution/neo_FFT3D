@@ -1,3 +1,12 @@
+neo-fft3d (0.12) unstable; urgency=medium
+
+  * Adapt to AviSynth API v8
+  * Copy frame properties
+  * Fix cropping
+  * Fix AVX512
+
+ -- Xinyue Lu <i@7086.in>  Thu, 21 Oct 2021 00:00:00 -0500
+
 neo-fft3d (0.10) unstable; urgency=medium
 
   * Clean up fftwlite
