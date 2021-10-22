@@ -342,7 +342,7 @@ struct FFT3D final : Filter {
         }
       }
       else {
-        memcpy(dst_ptr, src_ptr, dst_stride * t);
+        memcpy(dst_ptr, src_ptr, dst_stride * b);
         src_ptr += src_stride * b;
         dst_ptr += dst_stride * b;
       }
