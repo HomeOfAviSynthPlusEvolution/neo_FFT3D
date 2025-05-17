@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.1)
+cmake_minimum_required (VERSION 3.1...3.15)
 project (neo_fft3d CXX)
 file(GLOB CODE "src/*.cpp")
 file(GLOB CODE_IMPL "src/code_impl/*.cpp")
