@@ -412,9 +412,13 @@ public:
   }
   ~FFT3DEngine() {
     // This is where you can deallocate any memory you might have used.
-    fftfp.fftwf_destroy_plan(plan);
-    fftfp.fftwf_destroy_plan(plan1);
-    fftfp.fftwf_destroy_plan(planinv);
+    {
+      std::lock_guard<std::mutex> lock(init_fft_mutex);
+
+      fftfp.fftwf_destroy_plan(plan);
+      fftfp.fftwf_destroy_plan(plan1);
+      fftfp.fftwf_destroy_plan(planinv);
+    }
     //	fftfp.fftwf_free(out);
     delete[] iop->wanxl;
     delete[] iop->wanxr;
