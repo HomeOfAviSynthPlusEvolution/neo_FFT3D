@@ -20,6 +20,52 @@
 #include "ds_videoinfo.hpp"
 #include "ds_frame.hpp"
 
+inline std::mutex& GetFFTWMutex() {
+    static std::mutex m;
+    return m;
+}
+
+class GlobalLockGuard
+{
+    IScriptEnvironment* env;
+    const char* name;
+    bool acquired;
+    bool is_legacy;
+
+public:
+    GlobalLockGuard(IScriptEnvironment* _env, const char* _name, bool use_avs_lock)
+        : env(_env), name(_name), acquired(false), is_legacy(false)
+    {
+        if (!name)
+            return;
+        if (env && use_avs_lock)
+        {
+            acquired = env->AcquireGlobalLock(name);
+            if (acquired)
+                return;
+        }
+        if (strcmp(name, "fftw") == 0) {
+            GetFFTWMutex().lock();
+            acquired = true;
+            is_legacy = true;
+        }
+    }
+
+    ~GlobalLockGuard()
+    {
+        if (acquired)
+        {
+            if (is_legacy)
+                GetFFTWMutex().unlock();
+            else
+                env->ReleaseGlobalLock(name);
+        }
+    }
+
+    GlobalLockGuard(const GlobalLockGuard&) = delete;
+    GlobalLockGuard& operator=(const GlobalLockGuard&) = delete;
+};
+
 typedef void (*register_vsfilter_proc)(VSRegisterFunction, VSPlugin*);
 typedef void (*register_avsfilter_proc)(IScriptEnvironment* env);
 std::vector<register_vsfilter_proc> RegisterVSFilters();
@@ -42,6 +88,8 @@ struct Param
 
 struct InDelegator
 {
+  virtual void* GetEnv() { return nullptr; }
+  virtual bool IsAVS12() { return false; }
   virtual void Read(const char* name, int& output) = 0;
   virtual void Read(const char* name, int64_t& output) = 0;
   virtual void Read(const char* name, float& output) = 0;

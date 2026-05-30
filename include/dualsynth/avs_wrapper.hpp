@@ -15,6 +15,8 @@ namespace AVSInterface
 {
   struct AVSInDelegator final : InDelegator {
     const AVSValue _args;
+    IScriptEnvironment* _env;
+    bool _is_v12;
     std::unordered_map<std::string, int> _params_index_map;
     int NameToIndex(const char* name) {
       std::string name_string(name);
@@ -100,8 +102,21 @@ namespace AVSInterface
       clip = nullptr;
     }
 
-    AVSInDelegator(const AVSValue args, std::vector<Param> params) : _args(args)
+    void* GetEnv() override { return _env; }
+    bool IsAVS12() override { return _is_v12; }
+
+    AVSInDelegator(const AVSValue args, std::vector<Param> params, IScriptEnvironment* env) :
+        _args(args), _env(env), _is_v12(false)
     {
+        if (_env) {
+            try {
+                _env->CheckVersion(12);
+                _is_v12 = true;
+            }
+            catch (...) {
+                _is_v12 = false;
+            }
+        }
       int idx = 0;
       for (auto &&param : params)
       {
@@ -147,7 +162,7 @@ namespace AVSInterface
         input_vi = DSVideoInfo(clip->GetVideoInfo());
         functor = new AVSFetchFrameFunctor(clip, clip->GetVideoInfo(), _env);
       }
-      auto argument = AVSInDelegator(_args, data.Params());
+      auto argument = AVSInDelegator(_args, data.Params(), _env);
       data.Initialize(&argument, input_vi, functor);
     }
 

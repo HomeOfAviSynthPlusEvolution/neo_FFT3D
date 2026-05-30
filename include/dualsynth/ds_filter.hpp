@@ -43,6 +43,7 @@ struct Filter
   virtual const std::string AVSParams() const
   {
     std::stringstream ss;
+    std::stringstream ss_arrays;
     auto params = this->Params();
     for (auto &&p : params)
     {
@@ -55,11 +56,16 @@ struct Filter
         case Boolean: type_name = 'b'; break;
         case String: type_name = 's'; break;
       }
-      if (p.IsOptional)
+      if (p.IsOptional) {
         ss << '[' << p.Name << ']';
+        if (p.IsArray) {
+          ss_arrays << '[' << p.Name << "()]" << type_name;
+          type_name = 's';
+        }
+      }
       ss << type_name;
     }
-    return ss.str();
+    return ss.str() + ss_arrays.str();
   };
   virtual void Initialize(InDelegator* in, DSVideoInfo in_vi, FetchFrameFunctor* fetch_frame)
   {

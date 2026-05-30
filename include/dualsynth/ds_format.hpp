@@ -41,31 +41,22 @@ struct DSFormat
     return vsapi->registerFormat(family, IsInteger ? stInteger : stFloat, BitsPerSample, SSW, SSH, const_cast<VSCore*>(vscore));
   }
 
-  DSFormat(int format)
+  DSFormat(const VideoInfo& vi)
   {
-    const int componentBitSizes[8] = {8,16,32,0,0,10,12,14};
-    if (format == VideoInfo::CS_I420)
-      format = VideoInfo::CS_YV12;
-    
-    auto PYUV = VideoInfo::CS_PLANAR | VideoInfo::CS_YUV;
-    IsFamilyYUV = (format & PYUV) == PYUV;
-    auto PRGB = VideoInfo::CS_PLANAR | VideoInfo::CS_BGR;
-    IsFamilyRGB = (format & PRGB) == PRGB;
+    if (!vi.IsPlanar())
+      throw "neo-dfttest only supports planar formats.";
+    IsFamilyYUV = vi.IsYUV() || vi.IsYUVA();
+    IsFamilyRGB = vi.IsRGB() || vi.IsPlanarRGBA();
     IsFamilyYCC = false;
-    BitsPerSample = componentBitSizes[(format >> VideoInfo::CS_Shift_Sample_Bits) & 7];
-    BytesPerSample = BitsPerSample == 8 ? 1 : BitsPerSample == 32 ? 4 : 2;
-    IsInteger = BitsPerSample < 32;
-    IsFloat = BitsPerSample == 32;
-    if (IsFamilyYUV && (format & VideoInfo::CS_GENERIC_Y) == VideoInfo::CS_GENERIC_Y)
-      Planes = 1;
-    else if (IsFamilyYUV && (format & VideoInfo::CS_YUVA) == VideoInfo::CS_YUVA)
-      Planes = 4;
-    else if (IsFamilyRGB && (format & VideoInfo::CS_RGBA_TYPE) == VideoInfo::CS_RGBA_TYPE)
-      Planes = 4;
-    
+    IsFloat = (vi.ComponentSize() == 4);
+    IsInteger = !IsFloat;
+    Planes = vi.NumComponents();
+    BitsPerSample = vi.BitsPerComponent();
+    BytesPerSample = vi.ComponentSize();
+
     if (IsFamilyYUV && Planes > 1) {
-      SSW = ((format >> VideoInfo::CS_Shift_Sub_Width) + 1) & 3;
-      SSH = ((format >> VideoInfo::CS_Shift_Sub_Height) + 1) & 3;
+      SSW = vi.GetPlaneWidthSubsampling(PLANAR_U);
+      SSH = vi.GetPlaneHeightSubsampling(PLANAR_U);
     }
   }
 
@@ -73,22 +64,23 @@ struct DSFormat
   {
     int pixel_format = VideoInfo::CS_PLANAR | (Planes == 3 ? VideoInfo::CS_YUV : VideoInfo::CS_YUVA) | VideoInfo::CS_VPlaneFirst;
     if (IsFamilyYUV) {
-      pixel_format = VideoInfo::CS_PLANAR | (Planes == 3 ? VideoInfo::CS_YUV : VideoInfo::CS_YUVA) | VideoInfo::CS_VPlaneFirst;
-
-      switch(SSW) {
-        case 0: pixel_format |= VideoInfo::CS_Sub_Width_1; break;
-        case 1: pixel_format |= VideoInfo::CS_Sub_Width_2; break;
-        case 2: pixel_format |= VideoInfo::CS_Sub_Width_4; break;
-      }
-
-      switch(SSH) {
-        case 0: pixel_format |= VideoInfo::CS_Sub_Height_1; break;
-        case 1: pixel_format |= VideoInfo::CS_Sub_Height_2; break;
-        case 2: pixel_format |= VideoInfo::CS_Sub_Height_4; break;
-      }
-
       if (Planes == 1)
         pixel_format = VideoInfo::CS_GENERIC_Y;
+      else {
+        pixel_format = VideoInfo::CS_PLANAR | (Planes == 3 ? VideoInfo::CS_YUV : VideoInfo::CS_YUVA) | VideoInfo::CS_VPlaneFirst;
+
+        switch (SSW) {
+          case 0: pixel_format |= VideoInfo::CS_Sub_Width_1; break;
+          case 1: pixel_format |= VideoInfo::CS_Sub_Width_2; break;
+          case 2: pixel_format |= VideoInfo::CS_Sub_Width_4; break;
+        }
+
+        switch (SSH) {
+          case 0: pixel_format |= VideoInfo::CS_Sub_Height_1; break;
+          case 1: pixel_format |= VideoInfo::CS_Sub_Height_2; break;
+          case 2: pixel_format |= VideoInfo::CS_Sub_Height_4; break;
+        }
+      }
     }
     else if (IsFamilyRGB || IsFamilyYCC)
       pixel_format = VideoInfo::CS_PLANAR | VideoInfo::CS_BGR | (Planes == 3 ? VideoInfo::CS_RGB_TYPE : VideoInfo::CS_RGBA_TYPE);

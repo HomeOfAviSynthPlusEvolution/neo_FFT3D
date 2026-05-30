@@ -35,7 +35,7 @@ struct DSVideoInfo
     , Frames(vsvi->numFrames)
   { }
   DSVideoInfo(const VideoInfo avsvi)
-    : Format(avsvi.pixel_type)
+    : Format(avsvi)
     , FPSNum(avsvi.fps_numerator), FPSDenom(avsvi.fps_denominator)
     , Width(avsvi.width), Height(avsvi.height)
     , Frames(avsvi.num_frames)
