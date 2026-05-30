@@ -76,6 +76,8 @@ struct EngineParams {
   int opt;
 
   DSVideoInfo vi;
+  IScriptEnvironment* avs_env {nullptr};
+  bool has_at_least_v12 {false};
   bool IsChroma;
 
   int framewidth; // in pixels, not bytes

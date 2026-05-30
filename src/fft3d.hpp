@@ -100,7 +100,9 @@ struct FFT3D final : Filter {
       2.0f, 50.0f,
       0, 0, 0, 0,
       0,
-      in_vi
+      in_vi,
+      static_cast<IScriptEnvironment*>(in->GetEnv()),
+      in->IsAVS12()
     };
     in->Read("beta", ep->beta);
     in->Read("bw", ep->bw);

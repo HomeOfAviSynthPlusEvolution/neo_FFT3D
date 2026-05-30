@@ -16,11 +16,8 @@
 #include "buffer.h"
 #include "cache.hpp"
 #include <atomic>
-#include <mutex>
 #include <thread>
 #include <unordered_map>
-
-static std::mutex init_fft_mutex;
 
 class FFT3DEngine {
   EngineParams* ep;
@@ -178,7 +175,7 @@ public:
     //	*onembed = NULL;
 
     {
-      std::lock_guard<std::mutex> lock(init_fft_mutex);
+      GlobalLockGuard fftw_lock(ep->avs_env, "fftw", ep->has_at_least_v12);
 
       plan = fftfp.fftwf_plan_many_dft_r2c(rank, ndim, howmanyblocks,
         in, inembed, istride, idist, outrez, onembed, ostride, odist, planFlags);
@@ -386,7 +383,7 @@ public:
     // but use one block only for speed
     // Attention: other block could be the same, but we do not calculate them!
     {
-      std::lock_guard<std::mutex> lock(init_fft_mutex);
+      GlobalLockGuard fftw_lock(ep->avs_env, "fftw", ep->has_at_least_v12);
 
       plan1 = fftfp.fftwf_plan_many_dft_r2c(rank, ndim, 1,
         in, inembed, istride, idist, outrez, onembed, ostride, odist, planFlags); // 1 block
@@ -413,7 +410,7 @@ public:
   ~FFT3DEngine() {
     // This is where you can deallocate any memory you might have used.
     {
-      std::lock_guard<std::mutex> lock(init_fft_mutex);
+      GlobalLockGuard fftw_lock(ep->avs_env, "fftw", ep->has_at_least_v12);
 
       fftfp.fftwf_destroy_plan(plan);
       fftfp.fftwf_destroy_plan(plan1);
@@ -485,7 +482,7 @@ public:
     outrez = mt_out[thread_id];
 
     if (ep->pfactor != 0) {
-      std::lock_guard<std::mutex> guard(init_fft_mutex);
+      GlobalLockGuard fftw_lock(ep->avs_env, "fftw", ep->has_at_least_v12);
       if (ep->pfactor != 0 && isPatternSet == false && ep->pshow == false) // get noise pattern
       {
         if (in_frames.find(ep->pframe) == in_frames.end())
