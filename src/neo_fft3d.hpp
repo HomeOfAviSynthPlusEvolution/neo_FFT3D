@@ -16,12 +16,12 @@ namespace Plugin {
   const char* Description = "Neo FFT3D Filter " PLUGIN_VERSION;
 }
 
-std::vector<register_vsfilter_proc> RegisterVSFilters()
+inline std::vector<register_vsfilter_proc> RegisterVSFilters()
 {
   return std::vector<register_vsfilter_proc> { VSInterface::RegisterFilter<FFT3D> };
 }
 
-std::vector<register_avsfilter_proc> RegisterAVSFilters()
+inline std::vector<register_avsfilter_proc> RegisterAVSFilters()
 {
   return std::vector<register_avsfilter_proc> { AVSInterface::RegisterFilter<FFT3D> };
 }
