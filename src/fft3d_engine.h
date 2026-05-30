@@ -74,7 +74,7 @@ class FFT3DEngine {
   std::mutex cache_mutex;
   std::mutex thread_check_mutex;
 
-  std::vector<bool> thread_id_store;
+  std::vector<int> thread_id_store;
   std::vector<float *> mt_in;
   std::vector<fftwf_complex *> mt_out;
   std::vector<byte *> mt_coverbuf;
@@ -461,21 +461,23 @@ public:
     {
       std::lock_guard<std::mutex> lock(thread_check_mutex);
       // Find empty slot
-      auto it = std::find(thread_id_store.begin(), thread_id_store.end(), false);
+      auto it = std::find(thread_id_store.begin(), thread_id_store.end(), 0);
       thread_id = static_cast<int>(std::distance(thread_id_store.begin(), it));
       if (it == thread_id_store.end()) {
-        thread_id_store.push_back(false);
+        thread_id_store.push_back(1);
+
+        while (mt_coverbuf.size() <= thread_id)
+          mt_coverbuf.push_back((byte*)_aligned_malloc(coverheight * coverpitch * ep->vi.Format.BytesPerSample, FRAME_ALIGN));
+        while (mt_in.size() <= thread_id)
+          mt_in.push_back((float*)_aligned_malloc(sizeof(float) * insize, FRAME_ALIGN));
+        while (mt_out.size() <= thread_id)
+          mt_out.push_back((fftwf_complex*)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN));
+
         if (fftcache)
           fftcache->resize(ep->bt + thread_id_store.size() + 2);
       }
-      thread_id_store[thread_id] = true;
-
-      while (mt_coverbuf.size() <= thread_id)
-        mt_coverbuf.push_back((byte*)_aligned_malloc(coverheight*coverpitch*ep->vi.Format.BytesPerSample, FRAME_ALIGN));
-      while (mt_in.size() <= thread_id)
-        mt_in.push_back((float *)_aligned_malloc(sizeof(float) * insize, FRAME_ALIGN));
-      while (mt_out.size() <= thread_id)
-        mt_out.push_back((fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN));
+      else
+        thread_id_store[thread_id] = 1;
     }
     coverbuf = mt_coverbuf[thread_id];
     in = mt_in[thread_id];
@@ -556,7 +558,10 @@ public:
         int psigmadec = (int)((psigma - psigmaint) * 10);
         wsprintf(messagebuf, " frame=%d, px=%d, py=%d, sigma=%d.%d", n, pxf, pyf, psigmaint, psigmadec);
         // TODO: DrawString(dst, vi, 0, 0, messagebuf);
-        thread_id_store[thread_id] = false;
+        {
+          std::lock_guard<std::mutex> lock(thread_check_mutex);
+          thread_id_store[thread_id] = 0;
+        }
         return dst; // return pattern frame to show
       }
     }
@@ -675,8 +680,11 @@ public:
     else if (ep->bt == 0) //Kalman filter
     {
       if (n == 0) {
-        thread_id_store[thread_id] = false;
-        return src; // first frame  not processed
+       {
+         std::lock_guard<std::mutex> lock(thread_check_mutex);
+         thread_id_store[thread_id] = 0;
+       }
+       return src; // first frame  not processed
       }
       /* PF 170302 comment: accumulated error?
         orig = BlankClip(...)
@@ -717,7 +725,10 @@ public:
 
     }
 
-    thread_id_store[thread_id] = false;
+    {
+      std::lock_guard<std::mutex> lock(thread_check_mutex);
+      thread_id_store[thread_id] = 0;
+    }
 
     // As we now are finished processing the image, we return the destination image.
     return dst;
