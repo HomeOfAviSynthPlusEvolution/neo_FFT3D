@@ -187,8 +187,8 @@ void Apply3D_Hwy_Impl(
       auto gs_r = zero;
       auto gs_i = zero;
       hn::LoadInterleaved2(d, &gs_view[h, 2 * i], gs_r, gs_i);
-      gc_r = hn::Mul(grid_frac, gs_r);
-      gc_i = hn::Mul(grid_frac, gs_i);
+      gc_r = hn::Mul(hn::Mul(grid_frac, gs_r), hn::Set(d, (float)bt));
+      gc_i = hn::Mul(hn::Mul(grid_frac, gs_i), hn::Set(d, (float)bt));
     }
 
     if constexpr (bt == 2) {
@@ -382,7 +382,7 @@ void Apply3D_Hwy_Wrap(fftwf_complex** in, fftwf_complex* out, SharedFunctionPara
   const int size = sfp.outpitch;
   for (int block = 0; block < sfp.howmanyblocks; block++) {
     fftwf_complex* out_block = out + block * sfp.outpitch * sfp.bh;
-    const float gridfraction = degrid ? sfp.degrid * in[2][0][0] / sfp.gridsample[0][0] : 0.0f;
+    const float gridfraction = degrid ? sfp.degrid * (in[2] + block * sfp.outpitch * sfp.bh)[0][0] / sfp.gridsample[0][0] : 0.0f;
 
     auto out_view = ds::make_plane_view(reinterpret_cast<float*>(out_block), sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
     auto gs_view = ds::make_plane_view(reinterpret_cast<float*>(sfp.gridsample), sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));

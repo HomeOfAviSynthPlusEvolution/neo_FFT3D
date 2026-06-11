@@ -608,7 +608,7 @@ public:
       ep->kratio * ep->kratio
     };
 
-    fftwf_complex* apply_in[5];
+    fftwf_complex* apply_in[5]{};
 
     if (btcur > 0) // Wiener
     {

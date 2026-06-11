@@ -95,7 +95,7 @@ struct FilterFunctionPointers {
 
     if (opt != 1) {
       Apply2D = neo_fft3d::cpu::Apply2D_Hwy;
-      // Apply3D stays on the C implementation until a Highway 3D path exists.
+      Apply3D = neo_fft3d::cpu::Apply3D_Hwy;
       Sharpen = neo_fft3d::cpu::Sharpen_Hwy;
       Kalman = neo_fft3d::cpu::Kalman_Hwy;
     }
