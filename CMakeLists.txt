@@ -193,12 +193,12 @@ if (NEO_FFT3D_BUILD_TEST_TOOLS)
   target_link_libraries(neo-fft3d_avs_frame_dump PRIVATE avisynth_headers)
 
   if (NOT WIN32)
-    target_link_libraries(neo-fft3d_avs_frame_dump dl)
+    target_link_libraries(neo-fft3d_avs_frame_dump PRIVATE dl)
   endif()
 endif()
 
 if (NOT WIN32)
-  target_link_libraries(neo-fft3d dl)
+  target_link_libraries(neo-fft3d PRIVATE dl)
 endif()
 
 add_custom_command(

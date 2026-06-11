@@ -61,14 +61,18 @@ ds::Error invalid_argument(std::string message) {
 }
 
 template <class T>
-T get_param_val(const ds::Result<T>& res, T fallback) {
-  if (res.has_value()) return res.value();
-  return fallback;
+T get_param_val(const ds::Result<T>& res) {
+  if (!res.has_value()) {
+    throw std::runtime_error("Parameter parsing error: " + res.error().message);
+  }
+  return res.value();
 }
 
-float get_param_val(const ds::Result<double>& res, float fallback) {
-  if (res.has_value()) return static_cast<float>(res.value());
-  return fallback;
+float get_param_val(const ds::Result<double>& res, float /* fallback */) {
+  if (!res.has_value()) {
+    throw std::runtime_error("Parameter parsing error: " + res.error().message);
+  }
+  return static_cast<float>(res.value());
 }
 } // namespace
 
@@ -142,7 +146,7 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
     in_vi.Format.SSW = input.format.subsampling_w;
     in_vi.Format.SSH = input.format.subsampling_h;
 
-    float default_sigma = get_param_val(context.params->get_double("sigma", 2.0), 2.0f);
+    float default_sigma = get_param_val(context.params->get_double("sigma", 2.0));
 
     state.ep = new EngineParams {
       default_sigma, 1.0f,
@@ -174,24 +178,24 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
     };
 
     state.ep->beta = get_param_val(context.params->get_double("beta", state.ep->beta), state.ep->beta);
-    state.ep->bw = get_param_val(context.params->get_int("bw", state.ep->bw), state.ep->bw);
-    state.ep->bh = get_param_val(context.params->get_int("bh", state.ep->bh), state.ep->bh);
-    state.ep->bt = get_param_val(context.params->get_int("bt", state.ep->bt), state.ep->bt);
-    state.ep->ow = get_param_val(context.params->get_int("ow", state.ep->ow), state.ep->ow);
-    state.ep->oh = get_param_val(context.params->get_int("oh", state.ep->oh), state.ep->oh);
+    state.ep->bw = get_param_val(context.params->get_int("bw", state.ep->bw));
+    state.ep->bh = get_param_val(context.params->get_int("bh", state.ep->bh));
+    state.ep->bt = get_param_val(context.params->get_int("bt", state.ep->bt));
+    state.ep->ow = get_param_val(context.params->get_int("ow", state.ep->ow));
+    state.ep->oh = get_param_val(context.params->get_int("oh", state.ep->oh));
     state.ep->kratio = get_param_val(context.params->get_double("kratio", state.ep->kratio), state.ep->kratio);
     state.ep->sharpen = get_param_val(context.params->get_double("sharpen", state.ep->sharpen), state.ep->sharpen);
     state.ep->scutoff = get_param_val(context.params->get_double("scutoff", state.ep->scutoff), state.ep->scutoff);
     state.ep->svr = get_param_val(context.params->get_double("svr", state.ep->svr), state.ep->svr);
     state.ep->smin = get_param_val(context.params->get_double("smin", state.ep->smin), state.ep->smin);
     state.ep->smax = get_param_val(context.params->get_double("smax", state.ep->smax), state.ep->smax);
-    state.ep->measure = get_param_val(context.params->get_bool("measure", state.ep->measure), state.ep->measure);
-    state.ep->interlaced = get_param_val(context.params->get_bool("interlaced", state.ep->interlaced), state.ep->interlaced);
-    state.ep->wintype = get_param_val(context.params->get_int("wintype", state.ep->wintype), state.ep->wintype);
-    state.ep->pframe = get_param_val(context.params->get_int("pframe", state.ep->pframe), state.ep->pframe);
-    state.ep->px = get_param_val(context.params->get_int("px", state.ep->px), state.ep->px);
-    state.ep->py = get_param_val(context.params->get_int("py", state.ep->py), state.ep->py);
-    state.ep->pshow = get_param_val(context.params->get_bool("pshow", state.ep->pshow), state.ep->pshow);
+    state.ep->measure = get_param_val(context.params->get_bool("measure", state.ep->measure));
+    state.ep->interlaced = get_param_val(context.params->get_bool("interlaced", state.ep->interlaced));
+    state.ep->wintype = get_param_val(context.params->get_int("wintype", state.ep->wintype));
+    state.ep->pframe = get_param_val(context.params->get_int("pframe", state.ep->pframe));
+    state.ep->px = get_param_val(context.params->get_int("px", state.ep->px));
+    state.ep->py = get_param_val(context.params->get_int("py", state.ep->py));
+    state.ep->pshow = get_param_val(context.params->get_bool("pshow", state.ep->pshow));
     state.ep->pcutoff = get_param_val(context.params->get_double("pcutoff", state.ep->pcutoff), state.ep->pcutoff);
     state.ep->pfactor = get_param_val(context.params->get_double("pfactor", state.ep->pfactor), state.ep->pfactor);
     state.ep->sigma2 = get_param_val(context.params->get_double("sigma2", state.ep->sigma2), state.ep->sigma2);
@@ -202,11 +206,11 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
     state.ep->hr = get_param_val(context.params->get_double("hr", state.ep->hr), state.ep->hr);
     state.ep->ht = get_param_val(context.params->get_double("ht", state.ep->ht), state.ep->ht);
 
-    state.ep->l = (std::max)(get_param_val(context.params->get_int("l", state.ep->l), state.ep->l), 0);
-    state.ep->t = (std::max)(get_param_val(context.params->get_int("t", state.ep->t), state.ep->t), 0);
-    state.ep->r = (std::max)(get_param_val(context.params->get_int("r", state.ep->r), state.ep->r), 0);
-    state.ep->b = (std::max)(get_param_val(context.params->get_int("b", state.ep->b), state.ep->b), 0);
-    state.ep->opt = get_param_val(context.params->get_int("opt", state.ep->opt), state.ep->opt);
+    state.ep->l = (std::max)(get_param_val(context.params->get_int("l", state.ep->l)), 0);
+    state.ep->t = (std::max)(get_param_val(context.params->get_int("t", state.ep->t)), 0);
+    state.ep->r = (std::max)(get_param_val(context.params->get_int("r", state.ep->r)), 0);
+    state.ep->b = (std::max)(get_param_val(context.params->get_int("b", state.ep->b)), 0);
+    state.ep->opt = get_param_val(context.params->get_int("opt", state.ep->opt));
 
     state.crop = state.ep->l > 0 || state.ep->r > 0 || state.ep->t > 0 || state.ep->b > 0;
 
@@ -223,18 +227,20 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
     if (res_planes.has_value() && !res_planes.value().empty()) {
       state.process[0] = state.process[1] = state.process[2] = state.process[3] = 2;
       for (auto&& p : res_planes.value()) {
-        if (p < state.ep->vi.Format.Planes) {
+        if (p >= 0 && p < state.ep->vi.Format.Planes) {
           state.process[p] = 3;
+        } else {
+          throw "planes: plane index out of bounds";
         }
       }
     } else {
-      state.process[0] = get_param_val(context.params->get_int("y", 3), 3);
-      state.process[1] = get_param_val(context.params->get_int("u", 3), 3);
-      state.process[2] = get_param_val(context.params->get_int("v", 3), 3);
+      state.process[0] = get_param_val(context.params->get_int("y", 3));
+      state.process[1] = get_param_val(context.params->get_int("u", 3));
+      state.process[2] = get_param_val(context.params->get_int("v", 3));
     }
 
-    state.mt = get_param_val(context.params->get_bool("mt", state.mt), state.mt);
-    state.fft_threads = get_param_val(context.params->get_int("ncpu", state.fft_threads), state.fft_threads);
+    state.mt = get_param_val(context.params->get_bool("mt", state.mt));
+    state.fft_threads = get_param_val(context.params->get_int("ncpu", state.fft_threads));
     if (state.fft_threads < 1) {
       state.fft_threads = 1;
     }
@@ -254,7 +260,7 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
       auto* ctx = static_cast<ds::VideoProcessContext*>(opaque);
       auto res = ctx->frames.get(0, frame_num);
       if (!res.has_value()) {
-        return DSFrame();
+        throw std::runtime_error("neo_fft3d: failed to fetch frame " + std::to_string(frame_num));
       }
       return DSFrame(res.value().frame);
     };
@@ -305,6 +311,11 @@ ds::Result<ds::VideoRequestResult> FFT3DCore::request(ds::VideoRequestContext& c
     } else {
       context.request_frame(0, n);
     }
+
+    if (state.ep->pfactor != 0.0f) {
+      context.request_frame_clamped(0, state.ep->pframe);
+    }
+
     return ds::Result<ds::VideoRequestResult>::success(ds::VideoRequestResult{});
   } catch (const std::exception& error) {
     return ds::Result<ds::VideoRequestResult>::failure(invalid_argument(error.what()));
