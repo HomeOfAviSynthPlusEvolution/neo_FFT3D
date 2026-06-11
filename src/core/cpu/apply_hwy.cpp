@@ -8,6 +8,7 @@
 #include "fft3d_common.h"
 #include "functions.h"
 #include "core/cpu/core_hwy.h"
+#include <dualsynth/mdspan.hpp>
 
 HWY_BEFORE_NAMESPACE();
 namespace neo_fft3d::cpu {
@@ -16,7 +17,17 @@ namespace HWY_NAMESPACE {
 namespace hn = hwy::HWY_NAMESPACE;
 
 template <bool pattern, bool degrid, bool sharpen, bool dehalo>
-void Apply2D_Hwy_Impl(float* out_complex_ptr, float* gridsample_ptr, float* pattern2d_ptr, float* wsharpen_ptr, float* wdehalo_ptr, SharedFunctionParams sfp, int size, float gridfraction) {
+void Apply2D_Hwy_Impl(
+    ds::PlaneView2D<float> out_view,
+    ds::PlaneView2D<float> gs_view,
+    ds::PlaneView2D<float> pat_view,
+    ds::PlaneView2D<float> ws_view,
+    ds::PlaneView2D<float> wd_view,
+    int h,
+    SharedFunctionParams sfp,
+    int size,
+    float gridfraction
+) {
   const hn::ScalableTag<float> d;
   const size_t N = hn::Lanes(d);
 
@@ -36,12 +47,12 @@ void Apply2D_Hwy_Impl(float* out_complex_ptr, float* gridsample_ptr, float* patt
   for (int i = 0; i < size; i += N) {
     auto cr = zero;
     auto ci = zero;
-    hn::LoadInterleaved2(d, out_complex_ptr + 2 * i, cr, ci);
+    hn::LoadInterleaved2(d, &out_view[h, 2 * i], cr, ci);
 
     if constexpr (degrid) {
       auto gs_r = zero;
       auto gs_i = zero;
-      hn::LoadInterleaved2(d, gridsample_ptr + 2 * i, gs_r, gs_i);
+      hn::LoadInterleaved2(d, &gs_view[h, 2 * i], gs_r, gs_i);
       auto gc_r = hn::Mul(grid_frac, gs_r);
       auto gc_i = hn::Mul(grid_frac, gs_i);
       cr = hn::Sub(cr, gc_r);
@@ -52,7 +63,7 @@ void Apply2D_Hwy_Impl(float* out_complex_ptr, float* gridsample_ptr, float* patt
 
     auto noise = sigma_sq;
     if constexpr (pattern) {
-      noise = hn::LoadU(d, pattern2d_ptr + i);
+      noise = hn::LoadU(d, &pat_view[h, i]);
     }
 
     auto factor = hn::Div(hn::Sub(psd, noise), psd);
@@ -64,14 +75,14 @@ void Apply2D_Hwy_Impl(float* out_complex_ptr, float* gridsample_ptr, float* patt
         auto num = hn::Mul(psd, s_coef_max);
         auto den = hn::Mul(hn::Add(psd, s_coef_min), hn::Add(psd, s_coef_max));
         auto s_val = hn::Sqrt(hn::Div(num, den));
-        auto w_sharp = hn::LoadU(d, wsharpen_ptr + i);
+        auto w_sharp = hn::LoadU(d, &ws_view[h, i]);
         s_fact = hn::Add(one, hn::Mul(hn::Mul(s_factor_coef, w_sharp), s_val));
       }
 
       auto d_fact = one;
       if constexpr (dehalo) {
         auto num = hn::Add(psd, d_coef_ht);
-        auto w_dehalo = hn::LoadU(d, wdehalo_ptr + i);
+        auto w_dehalo = hn::LoadU(d, &wd_view[h, i]);
         auto den = hn::Add(num, hn::Mul(hn::Mul(d_factor_coef, w_dehalo), psd));
         d_fact = hn::Div(num, den);
       }
@@ -91,14 +102,14 @@ void Apply2D_Hwy_Impl(float* out_complex_ptr, float* gridsample_ptr, float* patt
     if constexpr (degrid) {
       auto gs_r = zero;
       auto gs_i = zero;
-      hn::LoadInterleaved2(d, gridsample_ptr + 2 * i, gs_r, gs_i);
+      hn::LoadInterleaved2(d, &gs_view[h, 2 * i], gs_r, gs_i);
       auto gc_r = hn::Mul(grid_frac, gs_r);
       auto gc_i = hn::Mul(grid_frac, gs_i);
       final_r = hn::Add(final_r, gc_r);
       final_i = hn::Add(final_i, gc_i);
     }
 
-    hn::StoreInterleaved2(final_r, final_i, d, out_complex_ptr + 2 * i);
+    hn::StoreInterleaved2(final_r, final_i, d, &out_view[h, 2 * i]);
   }
 }
 
@@ -107,25 +118,23 @@ void Apply2D_Hwy_Wrap(fftwf_complex* out, SharedFunctionParams sfp) {
   const int size = sfp.outpitch;
   for (int block = 0; block < sfp.howmanyblocks; block++) {
     fftwf_complex* out_block = out + block * sfp.outpitch * sfp.bh;
-    float* out_ptr = reinterpret_cast<float*>(out_block);
-    float* gs_ptr = reinterpret_cast<float*>(sfp.gridsample);
     const float gridfraction = degrid ? sfp.degrid * out_block[0][0] / sfp.gridsample[0][0] : 0.0f;
 
-    for (int h = 0; h < sfp.bh; h++) {
-      float* out_row = out_ptr + h * sfp.outpitch * 2;
-      float* gs_row = gs_ptr + h * sfp.outpitch * 2;
-      float* pat_row = sfp.pattern2d + h * sfp.outpitch;
-      float* ws_row = sfp.wsharpen + h * sfp.outpitch;
-      float* wd_row = sfp.wdehalo + h * sfp.outpitch;
+    auto out_view = ds::make_plane_view(reinterpret_cast<float*>(out_block), sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
+    auto gs_view = ds::make_plane_view(reinterpret_cast<float*>(sfp.gridsample), sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
+    auto pat_view = ds::make_plane_view(sfp.pattern2d, sfp.outpitch, sfp.bh, sfp.outpitch * sizeof(float));
+    auto ws_view = ds::make_plane_view(sfp.wsharpen, sfp.outpitch, sfp.bh, sfp.outpitch * sizeof(float));
+    auto wd_view = ds::make_plane_view(sfp.wdehalo, sfp.outpitch, sfp.bh, sfp.outpitch * sizeof(float));
 
+    for (int h = 0; h < sfp.bh; h++) {
       if (sfp.sharpen == 0.0f && sfp.dehalo == 0.0f) {
-        Apply2D_Hwy_Impl<pattern, degrid, false, false>(out_row, gs_row, pat_row, ws_row, wd_row, sfp, size, gridfraction);
+        Apply2D_Hwy_Impl<pattern, degrid, false, false>(out_view, gs_view, pat_view, ws_view, wd_view, h, sfp, size, gridfraction);
       } else if (sfp.sharpen != 0.0f && sfp.dehalo == 0.0f) {
-        Apply2D_Hwy_Impl<pattern, degrid, true, false>(out_row, gs_row, pat_row, ws_row, wd_row, sfp, size, gridfraction);
+        Apply2D_Hwy_Impl<pattern, degrid, true, false>(out_view, gs_view, pat_view, ws_view, wd_view, h, sfp, size, gridfraction);
       } else if (sfp.sharpen == 0.0f && sfp.dehalo != 0.0f) {
-        Apply2D_Hwy_Impl<pattern, degrid, false, true>(out_row, gs_row, pat_row, ws_row, wd_row, sfp, size, gridfraction);
+        Apply2D_Hwy_Impl<pattern, degrid, false, true>(out_view, gs_view, pat_view, ws_view, wd_view, h, sfp, size, gridfraction);
       } else {
-        Apply2D_Hwy_Impl<pattern, degrid, true, true>(out_row, gs_row, pat_row, ws_row, wd_row, sfp, size, gridfraction);
+        Apply2D_Hwy_Impl<pattern, degrid, true, true>(out_view, gs_view, pat_view, ws_view, wd_view, h, sfp, size, gridfraction);
       }
     }
   }
