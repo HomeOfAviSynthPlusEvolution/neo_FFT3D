@@ -59,10 +59,22 @@ namespace {
 ds::Error invalid_argument(std::string message) {
   return ds::Error{ds::ErrorCode::InvalidArgument, std::move(message)};
 }
+
+template <class T>
+T get_param_val(const ds::Result<T>& res, T fallback) {
+  if (res.has_value()) return res.value();
+  return fallback;
+}
+
+float get_param_val(const ds::Result<double>& res, float fallback) {
+  if (res.has_value()) return static_cast<float>(res.value());
+  return fallback;
+}
 } // namespace
 
 FFT3DCore::State::State() {
   fftfp = std::make_shared<FFTFunctionPointers>();
+  fetch_frame_func = std::make_unique<FetchFrameFunctor>();
 }
 
 FFT3DCore::State::~State() {
@@ -75,8 +87,33 @@ FFT3DCore::State::~State() {
   }
 }
 
-FFT3DCore::State::State(State&&) noexcept = default;
-FFT3DCore::State& FFT3DCore::State::operator=(State&&) noexcept = default;
+FFT3DCore::State::State(State&& old) noexcept {
+  *this = std::move(old);
+}
+
+FFT3DCore::State& FFT3DCore::State::operator=(State&& old) noexcept {
+  if (this != &old) {
+    for (int i = 0; i < 4; i++) {
+      delete engine[i];
+      engine[i] = old.engine[i];
+      old.engine[i] = nullptr;
+    }
+    delete ep;
+    ep = old.ep;
+    old.ep = nullptr;
+
+    std::memcpy(process, old.process, sizeof(process));
+    std::memcpy(plane_index, old.plane_index, sizeof(plane_index));
+    engine_count = old.engine_count;
+    copy_count = old.copy_count;
+    fftfp = std::move(old.fftfp);
+    fetch_frame_func = std::move(old.fetch_frame_func);
+    fft_threads = old.fft_threads;
+    mt = old.mt;
+    crop = old.crop;
+  }
+  return *this;
+}
 
 ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
   ds::VideoInitContext& context
@@ -105,11 +142,10 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
     in_vi.Format.SSW = input.format.subsampling_w;
     in_vi.Format.SSH = input.format.subsampling_h;
 
-    float sigma1 = 2.0f;
-    context.params->get_double("sigma", sigma1);
+    float default_sigma = get_param_val(context.params->get_double("sigma", 2.0), 2.0f);
 
     state.ep = new EngineParams {
-      sigma1, 1.0f,
+      default_sigma, 1.0f,
       32, 32,
       3,
       -1, -1,
@@ -126,7 +162,7 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
       false,
       0.1f,
       0.0f,
-      sigma1, sigma1, sigma1,
+      default_sigma, default_sigma, default_sigma,
       1.0f,
       0.0f,
       2.0f, 50.0f,
@@ -137,137 +173,40 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
       false // IsAVS12
     };
 
-    double temp_beta = state.ep->beta;
-    context.params->get_double("beta", temp_beta);
-    state.ep->beta = static_cast<float>(temp_beta);
+    state.ep->beta = get_param_val(context.params->get_double("beta", state.ep->beta), state.ep->beta);
+    state.ep->bw = get_param_val(context.params->get_int("bw", state.ep->bw), state.ep->bw);
+    state.ep->bh = get_param_val(context.params->get_int("bh", state.ep->bh), state.ep->bh);
+    state.ep->bt = get_param_val(context.params->get_int("bt", state.ep->bt), state.ep->bt);
+    state.ep->ow = get_param_val(context.params->get_int("ow", state.ep->ow), state.ep->ow);
+    state.ep->oh = get_param_val(context.params->get_int("oh", state.ep->oh), state.ep->oh);
+    state.ep->kratio = get_param_val(context.params->get_double("kratio", state.ep->kratio), state.ep->kratio);
+    state.ep->sharpen = get_param_val(context.params->get_double("sharpen", state.ep->sharpen), state.ep->sharpen);
+    state.ep->scutoff = get_param_val(context.params->get_double("scutoff", state.ep->scutoff), state.ep->scutoff);
+    state.ep->svr = get_param_val(context.params->get_double("svr", state.ep->svr), state.ep->svr);
+    state.ep->smin = get_param_val(context.params->get_double("smin", state.ep->smin), state.ep->smin);
+    state.ep->smax = get_param_val(context.params->get_double("smax", state.ep->smax), state.ep->smax);
+    state.ep->measure = get_param_val(context.params->get_bool("measure", state.ep->measure), state.ep->measure);
+    state.ep->interlaced = get_param_val(context.params->get_bool("interlaced", state.ep->interlaced), state.ep->interlaced);
+    state.ep->wintype = get_param_val(context.params->get_int("wintype", state.ep->wintype), state.ep->wintype);
+    state.ep->pframe = get_param_val(context.params->get_int("pframe", state.ep->pframe), state.ep->pframe);
+    state.ep->px = get_param_val(context.params->get_int("px", state.ep->px), state.ep->px);
+    state.ep->py = get_param_val(context.params->get_int("py", state.ep->py), state.ep->py);
+    state.ep->pshow = get_param_val(context.params->get_bool("pshow", state.ep->pshow), state.ep->pshow);
+    state.ep->pcutoff = get_param_val(context.params->get_double("pcutoff", state.ep->pcutoff), state.ep->pcutoff);
+    state.ep->pfactor = get_param_val(context.params->get_double("pfactor", state.ep->pfactor), state.ep->pfactor);
+    state.ep->sigma2 = get_param_val(context.params->get_double("sigma2", state.ep->sigma2), state.ep->sigma2);
+    state.ep->sigma3 = get_param_val(context.params->get_double("sigma3", state.ep->sigma3), state.ep->sigma3);
+    state.ep->sigma4 = get_param_val(context.params->get_double("sigma4", state.ep->sigma4), state.ep->sigma4);
+    state.ep->degrid = get_param_val(context.params->get_double("degrid", state.ep->degrid), state.ep->degrid);
+    state.ep->dehalo = get_param_val(context.params->get_double("dehalo", state.ep->dehalo), state.ep->dehalo);
+    state.ep->hr = get_param_val(context.params->get_double("hr", state.ep->hr), state.ep->hr);
+    state.ep->ht = get_param_val(context.params->get_double("ht", state.ep->ht), state.ep->ht);
 
-    int temp_bw = state.ep->bw;
-    context.params->get_int("bw", temp_bw);
-    state.ep->bw = temp_bw;
-
-    int temp_bh = state.ep->bh;
-    context.params->get_int("bh", temp_bh);
-    state.ep->bh = temp_bh;
-
-    int temp_bt = state.ep->bt;
-    context.params->get_int("bt", temp_bt);
-    state.ep->bt = temp_bt;
-
-    int temp_ow = state.ep->ow;
-    context.params->get_int("ow", temp_ow);
-    state.ep->ow = temp_ow;
-
-    int temp_oh = state.ep->oh;
-    context.params->get_int("oh", temp_oh);
-    state.ep->oh = temp_oh;
-
-    double temp_kratio = state.ep->kratio;
-    context.params->get_double("kratio", temp_kratio);
-    state.ep->kratio = static_cast<float>(temp_kratio);
-
-    double temp_sharpen = state.ep->sharpen;
-    context.params->get_double("sharpen", temp_sharpen);
-    state.ep->sharpen = static_cast<float>(temp_sharpen);
-
-    double temp_scutoff = state.ep->scutoff;
-    context.params->get_double("scutoff", temp_scutoff);
-    state.ep->scutoff = static_cast<float>(temp_scutoff);
-
-    double temp_svr = state.ep->svr;
-    context.params->get_double("svr", temp_svr);
-    state.ep->svr = static_cast<float>(temp_svr);
-
-    double temp_smin = state.ep->smin;
-    context.params->get_double("smin", temp_smin);
-    state.ep->smin = static_cast<float>(temp_smin);
-
-    double temp_smax = state.ep->smax;
-    context.params->get_double("smax", temp_smax);
-    state.ep->smax = static_cast<float>(temp_smax);
-
-    bool temp_measure = state.ep->measure;
-    context.params->get_bool("measure", temp_measure);
-    state.ep->measure = temp_measure;
-
-    bool temp_interlaced = state.ep->interlaced;
-    context.params->get_bool("interlaced", temp_interlaced);
-    state.ep->interlaced = temp_interlaced;
-
-    int temp_wintype = state.ep->wintype;
-    context.params->get_int("wintype", temp_wintype);
-    state.ep->wintype = temp_wintype;
-
-    int temp_pframe = state.ep->pframe;
-    context.params->get_int("pframe", temp_pframe);
-    state.ep->pframe = temp_pframe;
-
-    int temp_px = state.ep->px;
-    context.params->get_int("px", temp_px);
-    state.ep->px = temp_px;
-
-    int temp_py = state.ep->py;
-    context.params->get_int("py", temp_py);
-    state.ep->py = temp_py;
-
-    bool temp_pshow = state.ep->pshow;
-    context.params->get_bool("pshow", temp_pshow);
-    state.ep->pshow = temp_pshow;
-
-    double temp_pcutoff = state.ep->pcutoff;
-    context.params->get_double("pcutoff", temp_pcutoff);
-    state.ep->pcutoff = static_cast<float>(temp_pcutoff);
-
-    double temp_pfactor = state.ep->pfactor;
-    context.params->get_double("pfactor", temp_pfactor);
-    state.ep->pfactor = static_cast<float>(temp_pfactor);
-
-    double temp_sigma2 = state.ep->sigma2;
-    context.params->get_double("sigma2", temp_sigma2);
-    state.ep->sigma2 = static_cast<float>(temp_sigma2);
-
-    double temp_sigma3 = state.ep->sigma3;
-    context.params->get_double("sigma3", temp_sigma3);
-    state.ep->sigma3 = static_cast<float>(temp_sigma3);
-
-    double temp_sigma4 = state.ep->sigma4;
-    context.params->get_double("sigma4", temp_sigma4);
-    state.ep->sigma4 = static_cast<float>(temp_sigma4);
-
-    double temp_degrid = state.ep->degrid;
-    context.params->get_double("degrid", temp_degrid);
-    state.ep->degrid = static_cast<float>(temp_degrid);
-
-    double temp_dehalo = state.ep->dehalo;
-    context.params->get_double("dehalo", temp_dehalo);
-    state.ep->dehalo = static_cast<float>(temp_dehalo);
-
-    double temp_hr = state.ep->hr;
-    context.params->get_double("hr", temp_hr);
-    state.ep->hr = static_cast<float>(temp_hr);
-
-    double temp_ht = state.ep->ht;
-    context.params->get_double("ht", temp_ht);
-    state.ep->ht = static_cast<float>(temp_ht);
-
-    int temp_l = state.ep->l;
-    context.params->get_int("l", temp_l);
-    state.ep->l = (std::max)(temp_l, 0);
-
-    int temp_t = state.ep->t;
-    context.params->get_int("t", temp_t);
-    state.ep->t = (std::max)(temp_t, 0);
-
-    int temp_r = state.ep->r;
-    context.params->get_int("r", temp_r);
-    state.ep->r = (std::max)(temp_r, 0);
-
-    int temp_b = state.ep->b;
-    context.params->get_int("b", temp_b);
-    state.ep->b = (std::max)(temp_b, 0);
-
-    int temp_opt = state.ep->opt;
-    context.params->get_int("opt", temp_opt);
-    state.ep->opt = temp_opt;
+    state.ep->l = (std::max)(get_param_val(context.params->get_int("l", state.ep->l), state.ep->l), 0);
+    state.ep->t = (std::max)(get_param_val(context.params->get_int("t", state.ep->t), state.ep->t), 0);
+    state.ep->r = (std::max)(get_param_val(context.params->get_int("r", state.ep->r), state.ep->r), 0);
+    state.ep->b = (std::max)(get_param_val(context.params->get_int("b", state.ep->b), state.ep->b), 0);
+    state.ep->opt = get_param_val(context.params->get_int("opt", state.ep->opt), state.ep->opt);
 
     state.crop = state.ep->l > 0 || state.ep->r > 0 || state.ep->t > 0 || state.ep->b > 0;
 
@@ -281,20 +220,21 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
     state.process[0] = state.process[1] = state.process[2] = state.process[3] = 2;
     std::vector<std::int64_t> user_planes;
     auto res_planes = context.params->get_int_array("planes", user_planes);
-    if (res_planes.has_value()) {
+    if (res_planes.has_value() && !res_planes.value().empty()) {
+      state.process[0] = state.process[1] = state.process[2] = state.process[3] = 2;
       for (auto&& p : res_planes.value()) {
         if (p < state.ep->vi.Format.Planes) {
           state.process[p] = 3;
         }
       }
     } else {
-      context.params->get_int("y", state.process[0]);
-      context.params->get_int("u", state.process[1]);
-      context.params->get_int("v", state.process[2]);
+      state.process[0] = get_param_val(context.params->get_int("y", 3), 3);
+      state.process[1] = get_param_val(context.params->get_int("u", 3), 3);
+      state.process[2] = get_param_val(context.params->get_int("v", 3), 3);
     }
 
-    context.params->get_bool("mt", state.mt);
-    context.params->get_int("ncpu", state.fft_threads);
+    state.mt = get_param_val(context.params->get_bool("mt", state.mt), state.mt);
+    state.fft_threads = get_param_val(context.params->get_int("ncpu", state.fft_threads), state.fft_threads);
     if (state.fft_threads < 1) {
       state.fft_threads = 1;
     }
@@ -318,7 +258,8 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
       }
       return DSFrame(res.value().frame);
     };
-    FetchFrameFunctor fetch_frame_func { fetch_frame_bridge, &context };
+    state.fetch_frame_func->Fn = fetch_frame_bridge;
+    state.fetch_frame_func->Opaque = nullptr;
 
     for (int i = 0; i < state.ep->vi.Format.Planes; i++) {
       state.plane_index[i] = planes[i];
@@ -326,7 +267,7 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
         state.ep->IsChroma = state.ep->vi.Format.IsFamilyYUV && i != 0;
         state.ep->framewidth = state.ep->IsChroma ? state.ep->vi.Width >> state.ep->vi.Format.SSW : state.ep->vi.Width;
         state.ep->frameheight = state.ep->IsChroma ? state.ep->vi.Height >> state.ep->vi.Format.SSH : state.ep->vi.Height;
-        state.engine[i] = new FFT3DEngine(*state.ep, i, &fetch_frame_func, *state.fftfp);
+        state.engine[i] = new FFT3DEngine(*state.ep, i, state.fetch_frame_func.get(), *state.fftfp);
         state.engine_count++;
       } else if (state.process[i] == 2) {
         state.copy_count++;
@@ -425,7 +366,26 @@ static void copy_frame(DSFrame& dst, DSFrame& src, DSFrame& processed, int plane
       pcs_ptr += pcs_stride;
     }
   } else {
-    std::memcpy(dst_ptr, pcs_ptr, dst_stride * height);
+    if (l > 0 || r > 0 || t > 0 || b > 0) {
+      for (int i = 0; i < height; i++) {
+        if (i < t || i >= height - b) {
+          std::memcpy(dst_ptr, src_ptr, dst_stride);
+        } else {
+          if (l > 0) {
+            std::memcpy(dst_ptr, src_ptr, left_b);
+          }
+          std::memcpy(dst_ptr + left_b, pcs_ptr + left_b, width - left_b - right_b);
+          if (r > 0) {
+            std::memcpy(dst_ptr + width - right_b, src_ptr + width - right_b, right_b);
+          }
+        }
+        src_ptr += src_stride;
+        dst_ptr += dst_stride;
+        pcs_ptr += pcs_stride;
+      }
+    } else {
+      std::memcpy(dst_ptr, pcs_ptr, dst_stride * height);
+    }
   }
 }
 
@@ -441,9 +401,10 @@ ds::Result<ds::VideoProcessResult> FFT3DCore::process(ds::VideoProcessContext& c
     DSFrame src = DSFrame(src_res.value().frame);
     DSFrame dst = DSFrame(context.dst);
 
+    state.fetch_frame_func->Opaque = &context;
+
     for (int i = 0; i < state.ep->vi.Format.Planes; i++) {
       if (state.process[i] == 3 && state.engine[i]) {
-        state.engine[i]->fetch_frame->Opaque = &context;
         if (state.ep->bt > 1) {
           int from = (std::max)(n - state.ep->bt / 2, 0);
           int to = (std::min)(n + (state.ep->bt - 1) / 2, state.ep->vi.Frames - 1);

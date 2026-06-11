@@ -7,6 +7,7 @@
 #include <dualsynth/video_filter.hpp>
 
 #include "version.hpp"
+#include "dualsynth_compat.hpp"
 
 #include <memory>
 
@@ -37,6 +38,7 @@ struct FFT3DCore {
     int copy_count {0};
     EngineParams* ep {nullptr};
     std::shared_ptr<FFTFunctionPointers> fftfp;
+    std::unique_ptr<FetchFrameFunctor> fetch_frame_func;
     int fft_threads {2};
     bool mt {false};
     bool crop {false};
