@@ -86,9 +86,6 @@ FFT3DCore::State::~State() {
     delete engine[i];
   }
   delete ep;
-  if (fftfp) {
-    fftfp->free();
-  }
 }
 
 FFT3DCore::State::State(State&& old) noexcept {
@@ -236,34 +233,46 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
 
     state.process[0] = state.process[1] = state.process[2] = state.process[3] = 2;
 
-    // Detect host based on non-null user environment pointer
-    bool is_avisynth = (context.host_global_locks.user != nullptr);
-
-    if (!is_avisynth) {
-      // VapourSynth Host: exclusively parse "planes" and do not fall back to y/u/v
+    auto has_param = [](const ds::ParamValues& params, const char* name) {
+      return std::any_of(params.entries.begin(), params.entries.end(), [name](const ds::ParamEntry& entry) {
+        return entry.name == name;
+      });
+    };
+    auto read_vs_planes = [&]() {
       std::vector<std::int64_t> user_planes;
-      auto res_planes = context.params->get_int_array("planes", user_planes);
-      if (res_planes.has_value()) {
-        auto val_planes = res_planes.value();
-        if (val_planes.empty()) {
-          state.process[0] = state.process[1] = state.process[2] = 3;
-        } else {
-          for (auto&& p : val_planes) {
-            if (p >= 0 && p < state.ep->vi.Format.Planes) {
-              state.process[p] = 3;
-            } else {
-              throw "planes: plane index out of bounds";
-            }
+      auto val_planes = get_param_val(context.params->get_int_array("planes", user_planes));
+      if (val_planes.empty()) {
+        state.process[0] = state.process[1] = state.process[2] = 3;
+      } else {
+        for (auto&& p : val_planes) {
+          if (p >= 0 && p < state.ep->vi.Format.Planes) {
+            state.process[p] = 3;
+          } else {
+            throw "planes: plane index out of bounds";
           }
         }
-      } else {
-        throw std::runtime_error("planes: parameter parsing failed");
       }
-    } else {
-      // AviSynth+ Host: exclusively parse y, u, v
+    };
+    auto read_avs_yuv = [&]() {
       state.process[0] = get_param_val(context.params->get_int("y", 3));
       state.process[1] = get_param_val(context.params->get_int("u", 3));
       state.process[2] = get_param_val(context.params->get_int("v", 3));
+    };
+
+    switch (context.host) {
+    case ds::HostKind::VapourSynth:
+      read_vs_planes();
+      break;
+    case ds::HostKind::AviSynth:
+      read_avs_yuv();
+      break;
+    case ds::HostKind::Unknown:
+      if (has_param(*context.params, "planes")) {
+        read_vs_planes();
+      } else {
+        read_avs_yuv();
+      }
+      break;
     }
 
     state.mt = get_param_val(context.params->get_bool("mt", state.mt));
