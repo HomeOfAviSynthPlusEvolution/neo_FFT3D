@@ -8,6 +8,7 @@
 #include "fft3d_common.h"
 #include "functions.h"
 #include "core/cpu/core_hwy.h"
+#include <dualsynth/mdspan.hpp>
 
 HWY_BEFORE_NAMESPACE();
 namespace neo_fft3d::cpu {
@@ -95,24 +96,22 @@ void Sharpen_Hwy_Wrap(fftwf_complex* out, SharedFunctionParams sfp) {
   const int size = sfp.outpitch;
   for (int block = 0; block < sfp.howmanyblocks; block++) {
     fftwf_complex* out_block = out + block * sfp.outpitch * sfp.bh;
-    float* out_ptr = reinterpret_cast<float*>(out_block);
-    float* gs_ptr = reinterpret_cast<float*>(sfp.gridsample);
     const float gridfraction = degrid ? sfp.degrid * out_block[0][0] / sfp.gridsample[0][0] : 0.0f;
 
-    for (int h = 0; h < sfp.bh; h++) {
-      float* out_row = out_ptr + h * sfp.outpitch * 2;
-      float* gs_row = gs_ptr + h * sfp.outpitch * 2;
-      float* ws_row = sfp.wsharpen + h * sfp.outpitch;
-      float* wd_row = sfp.wdehalo + h * sfp.outpitch;
+    auto out_view = ds::make_plane_view(reinterpret_cast<float*>(out_block), sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
+    auto gs_view = ds::make_plane_view(reinterpret_cast<float*>(sfp.gridsample), sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
+    auto ws_view = ds::make_plane_view(sfp.wsharpen, sfp.outpitch, sfp.bh, sfp.outpitch * sizeof(float));
+    auto wd_view = ds::make_plane_view(sfp.wdehalo, sfp.outpitch, sfp.bh, sfp.outpitch * sizeof(float));
 
+    for (int h = 0; h < sfp.bh; h++) {
       if (sfp.sharpen == 0.0f && sfp.dehalo == 0.0f) {
         return;
       } else if (sfp.sharpen != 0.0f && sfp.dehalo == 0.0f) {
-        Sharpen_Hwy_Impl<degrid, true, false>(out_row, gs_row, ws_row, wd_row, sfp, size, gridfraction);
+        Sharpen_Hwy_Impl<degrid, true, false>(&out_view[h, 0], &gs_view[h, 0], &ws_view[h, 0], &wd_view[h, 0], sfp, size, gridfraction);
       } else if (sfp.sharpen == 0.0f && sfp.dehalo != 0.0f) {
-        Sharpen_Hwy_Impl<degrid, false, true>(out_row, gs_row, ws_row, wd_row, sfp, size, gridfraction);
+        Sharpen_Hwy_Impl<degrid, false, true>(&out_view[h, 0], &gs_view[h, 0], &ws_view[h, 0], &wd_view[h, 0], sfp, size, gridfraction);
       } else {
-        Sharpen_Hwy_Impl<degrid, true, true>(out_row, gs_row, ws_row, wd_row, sfp, size, gridfraction);
+        Sharpen_Hwy_Impl<degrid, true, true>(&out_view[h, 0], &gs_view[h, 0], &ws_view[h, 0], &wd_view[h, 0], sfp, size, gridfraction);
       }
     }
   }

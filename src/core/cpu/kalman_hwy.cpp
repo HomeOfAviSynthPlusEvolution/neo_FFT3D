@@ -8,6 +8,7 @@
 #include "fft3d_common.h"
 #include "functions.h"
 #include "core/cpu/core_hwy.h"
+#include <dualsynth/mdspan.hpp>
 
 HWY_BEFORE_NAMESPACE();
 namespace neo_fft3d::cpu {
@@ -91,19 +92,19 @@ template <bool pattern>
 void Kalman_Hwy_Wrap(fftwf_complex* outcur, fftwf_complex* outLast, SharedFunctionParams sfp) {
   const int size = sfp.outpitch;
   for (int block = 0; block < sfp.howmanyblocks; block++) {
-    float* outcur_ptr = reinterpret_cast<float*>(outcur + block * sfp.outpitch * sfp.bh);
-    float* outLast_ptr = reinterpret_cast<float*>(outLast + block * sfp.outpitch * sfp.bh);
-    float* cov_ptr = reinterpret_cast<float*>(sfp.covar + block * sfp.outpitch * sfp.bh);
-    float* covP_ptr = reinterpret_cast<float*>(sfp.covarProcess + block * sfp.outpitch * sfp.bh);
+    float* outcur_block = reinterpret_cast<float*>(outcur + block * sfp.outpitch * sfp.bh);
+    float* outLast_block = reinterpret_cast<float*>(outLast + block * sfp.outpitch * sfp.bh);
+    float* cov_block = reinterpret_cast<float*>(sfp.covar + block * sfp.outpitch * sfp.bh);
+    float* covP_block = reinterpret_cast<float*>(sfp.covarProcess + block * sfp.outpitch * sfp.bh);
+
+    auto outcur_view = ds::make_plane_view(outcur_block, sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
+    auto outLast_view = ds::make_plane_view(outLast_block, sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
+    auto cov_view = ds::make_plane_view(cov_block, sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
+    auto covP_view = ds::make_plane_view(covP_block, sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
+    auto pat_view = ds::make_plane_view(sfp.pattern2d, sfp.outpitch, sfp.bh, sfp.outpitch * sizeof(float));
 
     for (int h = 0; h < sfp.bh; h++) {
-      float* outcur_row = outcur_ptr + h * sfp.outpitch * 2;
-      float* outLast_row = outLast_ptr + h * sfp.outpitch * 2;
-      float* pat_row = sfp.pattern2d + h * sfp.outpitch;
-      float* cov_row = cov_ptr + h * sfp.outpitch * 2;
-      float* covP_row = covP_ptr + h * sfp.outpitch * 2;
-
-      Kalman_Hwy_Impl<pattern>(outcur_row, outLast_row, pat_row, cov_row, covP_row, sfp, size);
+      Kalman_Hwy_Impl<pattern>(&outcur_view[h, 0], &outLast_view[h, 0], &pat_view[h, 0], &cov_view[h, 0], &covP_view[h, 0], sfp, size);
     }
   }
 }
