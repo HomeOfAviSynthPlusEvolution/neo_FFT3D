@@ -4,6 +4,7 @@
 
 #include "fft3d_common.h"
 #include "code_impl/code_impl.h"
+#include "core/cpu/core_hwy.h"
 #include <avs/cpuid.h>
 
 struct FilterFunctionPointers {
@@ -223,25 +224,8 @@ struct FilterFunctionPointers {
     Sharpen = Sharpen_C_Dispatch;
     Kalman = Kalman_C_Dispatch;
 
-    // We actually only used SSE code.
-    // Let's try SSE and if it breaks on pure SSE we'll change it to SSE2.
-    if ((CPUFlags & CPUF_SSE) && (opt <= 0 || opt > 1)) {
-      Apply2D = Apply2D_SSE2_Dispatch;
-      Apply3D = Apply3D_SSE2_Dispatch;
-      Sharpen = Sharpen_SSE2_Dispatch;
-      Kalman = Kalman_SSE2_Dispatch;
-    }
-    if ((CPUFlags & CPUF_AVX) && (opt <= 0 || opt > 2)) {
-      Apply2D = Apply2D_AVX_Dispatch;
-      Apply3D = Apply3D_AVX_Dispatch;
-      Sharpen = Sharpen_AVX_Dispatch;
-      Kalman = Kalman_AVX_Dispatch;
-    }
-    if ((CPUFlags & CPUF_AVX512F) && (opt < 0 || opt > 3)) {
-      Apply2D = Apply2D_AVX512_Dispatch;
-      Apply3D = Apply3D_AVX512_Dispatch;
-      Sharpen = Sharpen_AVX512_Dispatch;
-      Kalman = Kalman_AVX512_Dispatch;
+    if (opt != 1) {
+      Apply2D = neo_fft3d::cpu::Apply2D_Hwy;
     }
   }
 };

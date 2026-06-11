@@ -123,6 +123,7 @@ add_vapoursynth_compat_headers(vapoursynth_headers)
 # 4. 编译目标定义
 file(GLOB CODE "src/*.cpp")
 file(GLOB CODE_FFT "src/fft/*.cpp")
+file(GLOB CODE_CORE "src/core/cpu/*.cpp")
 file(GLOB CODE_IMPL "src/code_impl/*.cpp")
 file(GLOB AVX_CODE_IMPL "src/code_impl/*AVX.cpp")
 file(GLOB AVX512_CODE_IMPL "src/code_impl/*AVX512.cpp")
@@ -133,6 +134,7 @@ add_library(neo-fft3d SHARED
   src/plugin/fft3d_filter.hpp
   ${CODE}
   ${CODE_FFT}
+  ${CODE_CORE}
   ${CODE_IMPL}
 )
 
@@ -145,6 +147,7 @@ target_link_libraries(neo-fft3d PRIVATE
 )
 
 target_include_directories(neo-fft3d PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}
   src
   ${pocketfft_SOURCE_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}/generated
