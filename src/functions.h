@@ -226,6 +226,8 @@ struct FilterFunctionPointers {
 
     if (opt != 1) {
       Apply2D = neo_fft3d::cpu::Apply2D_Hwy;
+      Sharpen = neo_fft3d::cpu::Sharpen_Hwy;
+      Kalman = neo_fft3d::cpu::Kalman_Hwy;
     }
   }
 };
