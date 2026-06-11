@@ -200,16 +200,16 @@ if (NOT WIN32)
 endif()
 
 # 7. CTest 单元测试与基准校验集成
-enable_testing()
-find_package(Python3 COMPONENTS Interpreter REQUIRED)
-
-add_test(
-  NAME neo-fft3d_baseline_unit_tests
-  COMMAND "${Python3_EXECUTABLE}" -m unittest tests.baseline.test_baseline_runner -v
-)
-set_tests_properties(neo-fft3d_baseline_unit_tests PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}")
-
 if (NEO_FFT3D_BUILD_TEST_TOOLS)
+  enable_testing()
+  find_package(Python3 COMPONENTS Interpreter REQUIRED)
+
+  add_test(
+    NAME neo-fft3d_baseline_unit_tests
+    COMMAND "${Python3_EXECUTABLE}" -m unittest tests.baseline.test_baseline_runner -v
+  )
+  set_tests_properties(neo-fft3d_baseline_unit_tests PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}")
+
   add_test(
     NAME neo-fft3d_baseline_smoke_verification
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/baseline/baseline_runner.py" verify

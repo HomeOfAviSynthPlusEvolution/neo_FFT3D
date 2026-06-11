@@ -235,7 +235,7 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
     }
 
     state.process[0] = state.process[1] = state.process[2] = state.process[3] = 2;
-    
+
     // Detect host based on non-null user environment pointer
     bool is_avisynth = (context.host_global_locks.user != nullptr);
 
