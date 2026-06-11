@@ -43,6 +43,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(dualsynth2)
 
+# 3. 引入 PocketFFT (纯头文件 C++ 变换库)
+FetchContent_Declare(
+  pocketfft
+  GIT_REPOSITORY https://github.com/mreineck/pocketfft.git
+  GIT_TAG 5f27d5a8f51c5c25030cb22abf434decc9faf0ff
+)
+FetchContent_MakeAvailable(pocketfft)
+
 # 3. 动态拉取 AviSynth+ 与 VapourSynth 官方头文件并进行兼容适配 (对齐 DelogoHD)
 function(fetch_avisynth_headers out_var)
   FetchContent_Declare(
@@ -114,6 +122,7 @@ add_vapoursynth_compat_headers(vapoursynth_headers)
 
 # 4. 编译目标定义
 file(GLOB CODE "src/*.cpp")
+file(GLOB CODE_FFT "src/fft/*.cpp")
 file(GLOB CODE_IMPL "src/code_impl/*.cpp")
 file(GLOB AVX_CODE_IMPL "src/code_impl/*AVX.cpp")
 file(GLOB AVX512_CODE_IMPL "src/code_impl/*AVX512.cpp")
@@ -123,6 +132,7 @@ add_library(neo-fft3d SHARED
   src/plugin/fft3d_filter.cpp
   src/plugin/fft3d_filter.hpp
   ${CODE}
+  ${CODE_FFT}
   ${CODE_IMPL}
 )
 
@@ -136,6 +146,7 @@ target_link_libraries(neo-fft3d PRIVATE
 
 target_include_directories(neo-fft3d PRIVATE
   src
+  ${pocketfft_SOURCE_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}/generated
 )
 
