@@ -77,7 +77,6 @@ float get_param_val(const ds::Result<double>& res, float /* fallback */) {
 } // namespace
 
 FFT3DCore::State::State() {
-  fftfp = std::make_shared<FFTFunctionPointers>();
   fetch_frame_func = std::make_unique<FetchFrameFunctor>();
 }
 
@@ -107,7 +106,7 @@ FFT3DCore::State& FFT3DCore::State::operator=(State&& old) noexcept {
     std::memcpy(plane_index, old.plane_index, sizeof(plane_index));
     engine_count = old.engine_count;
     copy_count = old.copy_count;
-    fftfp = std::move(old.fftfp);
+    fft_backend = std::move(old.fft_backend);
     fetch_frame_func = std::move(old.fetch_frame_func);
     fft_threads = old.fft_threads;
     mt = old.mt;
@@ -281,11 +280,14 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
       state.fft_threads = 1;
     }
 
-    state.fftfp->load();
+    state.fft_backend = fft::CreateFFTWBackend();
+    if (!state.fft_backend->Load()) {
+      state.fft_backend = fft::CreatePocketFFTBackend();
+      state.fft_backend->Load();
+    }
 
-    if (state.fft_threads > 1 && state.fftfp->has_threading()) {
-      state.fftfp->fftwf_init_threads();
-      state.fftfp->fftwf_plan_with_nthreads(state.fft_threads);
+    if (state.fft_threads > 1 && state.fft_backend->HasThreading()) {
+      state.fft_backend->SetThreadCount(state.fft_threads);
     }
 
     int planes_y[4] = { PLANAR_Y, PLANAR_U, PLANAR_V, PLANAR_A };
@@ -309,7 +311,7 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
         state.ep->IsChroma = state.ep->vi.Format.IsFamilyYUV && i != 0;
         state.ep->framewidth = state.ep->IsChroma ? state.ep->vi.Width >> state.ep->vi.Format.SSW : state.ep->vi.Width;
         state.ep->frameheight = state.ep->IsChroma ? state.ep->vi.Height >> state.ep->vi.Format.SSH : state.ep->vi.Height;
-        state.engine[i] = new FFT3DEngine(*state.ep, i, state.fetch_frame_func.get(), *state.fftfp);
+        state.engine[i] = new FFT3DEngine(*state.ep, i, state.fetch_frame_func.get(), state.fft_backend);
         state.engine_count++;
       } else if (state.process[i] == 2) {
         state.copy_count++;

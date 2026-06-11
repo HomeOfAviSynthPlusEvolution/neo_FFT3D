@@ -8,6 +8,7 @@
 
 #include "version.hpp"
 #include "dualsynth_compat.hpp"
+#include "fft/fft_backend.hpp"
 
 #include <memory>
 
@@ -37,7 +38,7 @@ struct FFT3DCore {
     int engine_count {0};
     int copy_count {0};
     EngineParams* ep {nullptr};
-    std::shared_ptr<FFTFunctionPointers> fftfp;
+    std::shared_ptr<neo_fft3d::fft::FFTBackend> fft_backend;
     std::unique_ptr<FetchFrameFunctor> fetch_frame_func;
     int fft_threads {2};
     bool mt {false};
