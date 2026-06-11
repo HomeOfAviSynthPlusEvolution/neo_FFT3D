@@ -75,7 +75,7 @@ public:
     }
   }
 
-  std::unique_ptr<FFTPlan> CreatePlan(int bh, int bw, Direction dir, int max_batch) override {
+  std::unique_ptr<FFTPlan> CreatePlan(int bh, int bw, int outpitch, Direction dir, int max_batch) override {
     if (!Loaded()) {
       throw std::runtime_error("fftw: backend not loaded");
     }
@@ -85,19 +85,19 @@ public:
 
     if (dir == Direction::r2c) {
       int inembed[2] = { bh, bw };
-      int onembed[2] = { bh, bw / 2 + 1 };
+      int onembed[2] = { bh, outpitch };
       plan = api_->fftwf_plan_many_dft_r2c(
         2, n, max_batch,
         nullptr, inembed, 1, bh * bw,
-        nullptr, onembed, 1, bh * (bw / 2 + 1),
+        nullptr, onembed, 1, bh * outpitch,
         FFTW_ESTIMATE
       );
     } else {
-      int inembed[2] = { bh, bw / 2 + 1 };
+      int inembed[2] = { bh, outpitch };
       int onembed[2] = { bh, bw };
       plan = api_->fftwf_plan_many_dft_c2r(
         2, n, max_batch,
-        nullptr, inembed, 1, bh * (bw / 2 + 1),
+        nullptr, inembed, 1, bh * outpitch,
         nullptr, onembed, 1, bh * bw,
         FFTW_ESTIMATE
       );

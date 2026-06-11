@@ -12,13 +12,13 @@ namespace {
 
 class PocketFFTPlan final : public FFTPlan {
 public:
-  PocketFFTPlan(int bh, int bw, Direction dir)
-    : bh_(bh), bw_(bw), dir_(dir) {
+  PocketFFTPlan(int bh, int bw, int outpitch, Direction dir)
+    : bh_(bh), bw_(bw), outpitch_(outpitch), dir_(dir) {
     shape_ = { static_cast<std::size_t>(bh), static_cast<std::size_t>(bw) };
     axes_ = { 0, 1 };
     
     stride_in_r_ = { static_cast<std::ptrdiff_t>(bw * sizeof(float)), static_cast<std::ptrdiff_t>(sizeof(float)) };
-    stride_out_c_ = { static_cast<std::ptrdiff_t>((bw / 2 + 1) * sizeof(std::complex<float>)), static_cast<std::ptrdiff_t>(sizeof(std::complex<float>)) };
+    stride_out_c_ = { static_cast<std::ptrdiff_t>(outpitch * sizeof(std::complex<float>)), static_cast<std::ptrdiff_t>(sizeof(std::complex<float>)) };
     
     stride_in_c_ = stride_out_c_;
     stride_out_r_ = stride_in_r_;
@@ -26,7 +26,7 @@ public:
 
   void Execute(float* real_in, std::complex<float>* complex_out, int count) override {
     std::size_t r_size = bh_ * bw_;
-    std::size_t c_size = bh_ * (bw_ / 2 + 1);
+    std::size_t c_size = bh_ * outpitch_;
     for (int i = 0; i < count; ++i) {
       float* p_in = real_in + i * r_size;
       std::complex<float>* p_out = complex_out + i * c_size;
@@ -36,7 +36,7 @@ public:
 
   void Execute(std::complex<float>* complex_in, float* real_out, int count) override {
     std::size_t r_size = bh_ * bw_;
-    std::size_t c_size = bh_ * (bw_ / 2 + 1);
+    std::size_t c_size = bh_ * outpitch_;
     for (int i = 0; i < count; ++i) {
       std::complex<float>* p_in = complex_in + i * c_size;
       float* p_out = real_out + i * r_size;
@@ -47,6 +47,7 @@ public:
 private:
   int bh_;
   int bw_;
+  int outpitch_;
   Direction dir_;
   pocketfft::shape_t shape_;
   pocketfft::shape_t axes_;
@@ -66,8 +67,8 @@ public:
   bool HasThreading() const noexcept override { return false; }
   void SetThreadCount(int) override {}
 
-  std::unique_ptr<FFTPlan> CreatePlan(int bh, int bw, Direction dir, int max_batch) override {
-    return std::make_unique<PocketFFTPlan>(bh, bw, dir);
+  std::unique_ptr<FFTPlan> CreatePlan(int bh, int bw, int outpitch, Direction dir, int max_batch) override {
+    return std::make_unique<PocketFFTPlan>(bh, bw, outpitch, dir);
   }
 };
 

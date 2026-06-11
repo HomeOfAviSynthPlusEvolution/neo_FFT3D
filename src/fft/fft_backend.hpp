@@ -28,7 +28,7 @@ public:
   virtual bool Loaded() const noexcept = 0;
   virtual bool HasThreading() const noexcept = 0;
   virtual void SetThreadCount(int nthreads) = 0;
-  virtual std::unique_ptr<FFTPlan> CreatePlan(int bh, int bw, Direction dir, int max_batch) = 0;
+  virtual std::unique_ptr<FFTPlan> CreatePlan(int bh, int bw, int outpitch, Direction dir, int max_batch) = 0;
 };
 
 std::unique_ptr<FFTBackend> CreateFFTWBackend();
