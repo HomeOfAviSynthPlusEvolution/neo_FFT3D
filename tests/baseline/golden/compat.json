@@ -899,6 +899,2802 @@
       "sha256": "da01e79a5127175c9b8ec096b91be4e339a67f6e301444d56cdf98088e662f8e",
       "source": "mp4_yuv420p8_1280x720_10f",
       "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt2_opt1_c",
+      "frame": 0,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 2,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "0969104f7b98bdbe6376d318d96acb4b69a56029f06a99766e699ed62664e7e4",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt2_opt1_c",
+      "frame": 4,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 2,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "063031f2de5d2bdb96dba4953210983248270de2f102fe6318ac8b35008cd2df",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt2_opt1_c",
+      "frame": 8,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 2,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "acaf171fadf0963731ba25e133e503fb30193aaa9e78c298ea817bbee52f787a",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt2_opt1_c",
+      "frame": 0,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 2,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "0969104f7b98bdbe6376d318d96acb4b69a56029f06a99766e699ed62664e7e4",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt2_opt1_c",
+      "frame": 4,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 2,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "063031f2de5d2bdb96dba4953210983248270de2f102fe6318ac8b35008cd2df",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt2_opt1_c",
+      "frame": 8,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 2,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "acaf171fadf0963731ba25e133e503fb30193aaa9e78c298ea817bbee52f787a",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt2_opt2_highway",
+      "frame": 0,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 2,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "0969104f7b98bdbe6376d318d96acb4b69a56029f06a99766e699ed62664e7e4",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt2_opt2_highway",
+      "frame": 4,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 2,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "063031f2de5d2bdb96dba4953210983248270de2f102fe6318ac8b35008cd2df",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt2_opt2_highway",
+      "frame": 8,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 2,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "acaf171fadf0963731ba25e133e503fb30193aaa9e78c298ea817bbee52f787a",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt2_opt2_highway",
+      "frame": 0,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 2,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "0969104f7b98bdbe6376d318d96acb4b69a56029f06a99766e699ed62664e7e4",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt2_opt2_highway",
+      "frame": 4,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 2,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "063031f2de5d2bdb96dba4953210983248270de2f102fe6318ac8b35008cd2df",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt2_opt2_highway",
+      "frame": 8,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 2,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "acaf171fadf0963731ba25e133e503fb30193aaa9e78c298ea817bbee52f787a",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt4_opt1_c",
+      "frame": 0,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 4,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "0969104f7b98bdbe6376d318d96acb4b69a56029f06a99766e699ed62664e7e4",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt4_opt1_c",
+      "frame": 4,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 4,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "e4604e1a56b18a7d479129c119172d769ac24f89cfb7633d046d8c8821ba9499",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt4_opt1_c",
+      "frame": 8,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 4,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "6b4e82057f8d92f887993e56124b025d17d9a7d93ca2824ffea986df1bf8d2a7",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt4_opt1_c",
+      "frame": 0,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 4,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "0969104f7b98bdbe6376d318d96acb4b69a56029f06a99766e699ed62664e7e4",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt4_opt1_c",
+      "frame": 4,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 4,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "e4604e1a56b18a7d479129c119172d769ac24f89cfb7633d046d8c8821ba9499",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt4_opt1_c",
+      "frame": 8,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 4,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "6b4e82057f8d92f887993e56124b025d17d9a7d93ca2824ffea986df1bf8d2a7",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt4_opt2_highway",
+      "frame": 0,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 4,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "0969104f7b98bdbe6376d318d96acb4b69a56029f06a99766e699ed62664e7e4",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt4_opt2_highway",
+      "frame": 4,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 4,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "e4604e1a56b18a7d479129c119172d769ac24f89cfb7633d046d8c8821ba9499",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt4_opt2_highway",
+      "frame": 8,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 4,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "6b4e82057f8d92f887993e56124b025d17d9a7d93ca2824ffea986df1bf8d2a7",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt4_opt2_highway",
+      "frame": 0,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 4,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "0969104f7b98bdbe6376d318d96acb4b69a56029f06a99766e699ed62664e7e4",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt4_opt2_highway",
+      "frame": 4,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 4,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "e4604e1a56b18a7d479129c119172d769ac24f89cfb7633d046d8c8821ba9499",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt4_opt2_highway",
+      "frame": 8,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 4,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "6b4e82057f8d92f887993e56124b025d17d9a7d93ca2824ffea986df1bf8d2a7",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt5_opt1_c",
+      "frame": 0,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 5,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "0969104f7b98bdbe6376d318d96acb4b69a56029f06a99766e699ed62664e7e4",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt5_opt1_c",
+      "frame": 4,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 5,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "f3a7d373f72c23c1506ac789a6181776900af8739ca1cab65d073620e7b60753",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt5_opt1_c",
+      "frame": 8,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 5,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "2ba512e2c4e7df79713a34f022736f1ed494322834b938f8f2f6ce3de4108bea",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt5_opt1_c",
+      "frame": 0,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 5,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "0969104f7b98bdbe6376d318d96acb4b69a56029f06a99766e699ed62664e7e4",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt5_opt1_c",
+      "frame": 4,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 5,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "f3a7d373f72c23c1506ac789a6181776900af8739ca1cab65d073620e7b60753",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt5_opt1_c",
+      "frame": 8,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 5,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "2ba512e2c4e7df79713a34f022736f1ed494322834b938f8f2f6ce3de4108bea",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt5_opt2_highway",
+      "frame": 0,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 5,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "0969104f7b98bdbe6376d318d96acb4b69a56029f06a99766e699ed62664e7e4",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt5_opt2_highway",
+      "frame": 4,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 5,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "f3a7d373f72c23c1506ac789a6181776900af8739ca1cab65d073620e7b60753",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt5_opt2_highway",
+      "frame": 8,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 5,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "2ba512e2c4e7df79713a34f022736f1ed494322834b938f8f2f6ce3de4108bea",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt5_opt2_highway",
+      "frame": 0,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 5,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "0969104f7b98bdbe6376d318d96acb4b69a56029f06a99766e699ed62664e7e4",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt5_opt2_highway",
+      "frame": 4,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 5,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "f3a7d373f72c23c1506ac789a6181776900af8739ca1cab65d073620e7b60753",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt5_opt2_highway",
+      "frame": 8,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 5,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "2ba512e2c4e7df79713a34f022736f1ed494322834b938f8f2f6ce3de4108bea",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_nodegrid_opt1_c",
+      "frame": 0,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "degrid": 0.0,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "0c52038eb2ce6a0e351b79ce0fa6bdb2572eb96e055e4888ae3f1d3770fb2e61",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_nodegrid_opt1_c",
+      "frame": 4,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "degrid": 0.0,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "79f13c4fb2aa49ecbbbb0859314ea49bd40ed78528fce73b771e8e9fd1f94e9c",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_nodegrid_opt1_c",
+      "frame": 8,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "degrid": 0.0,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "c91545421c99f73ab531f3bdfcc855f74961289b473f0af56f6f20bbb7e9dee6",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_nodegrid_opt1_c",
+      "frame": 0,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "degrid": 0.0,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "0c52038eb2ce6a0e351b79ce0fa6bdb2572eb96e055e4888ae3f1d3770fb2e61",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_nodegrid_opt1_c",
+      "frame": 4,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "degrid": 0.0,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "79f13c4fb2aa49ecbbbb0859314ea49bd40ed78528fce73b771e8e9fd1f94e9c",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_nodegrid_opt1_c",
+      "frame": 8,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "degrid": 0.0,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "sigma": 3.0
+      },
+      "sha256": "c91545421c99f73ab531f3bdfcc855f74961289b473f0af56f6f20bbb7e9dee6",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_nodegrid_opt2_highway",
+      "frame": 0,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "degrid": 0.0,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "0c52038eb2ce6a0e351b79ce0fa6bdb2572eb96e055e4888ae3f1d3770fb2e61",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_nodegrid_opt2_highway",
+      "frame": 4,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "degrid": 0.0,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "79f13c4fb2aa49ecbbbb0859314ea49bd40ed78528fce73b771e8e9fd1f94e9c",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_nodegrid_opt2_highway",
+      "frame": 8,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "degrid": 0.0,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "c91545421c99f73ab531f3bdfcc855f74961289b473f0af56f6f20bbb7e9dee6",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_nodegrid_opt2_highway",
+      "frame": 0,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "degrid": 0.0,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "0c52038eb2ce6a0e351b79ce0fa6bdb2572eb96e055e4888ae3f1d3770fb2e61",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_nodegrid_opt2_highway",
+      "frame": 4,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "degrid": 0.0,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "79f13c4fb2aa49ecbbbb0859314ea49bd40ed78528fce73b771e8e9fd1f94e9c",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_nodegrid_opt2_highway",
+      "frame": 8,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "degrid": 0.0,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "sigma": 3.0
+      },
+      "sha256": "c91545421c99f73ab531f3bdfcc855f74961289b473f0af56f6f20bbb7e9dee6",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_pattern_opt1_c",
+      "frame": 0,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "pfactor": 1.0,
+        "pframe": 0,
+        "sigma": 3.0
+      },
+      "sha256": "8baf318e8cb6157e6f1ee69a5aad1b8fdb4c74f4cc0bed6bc2dcd75dca9e3e4f",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_pattern_opt1_c",
+      "frame": 4,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "pfactor": 1.0,
+        "pframe": 0,
+        "sigma": 3.0
+      },
+      "sha256": "7a2d93cdf63803ceec7c64388e0194e0bb44ec85b2759eca861a37fbca39b2c6",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_pattern_opt1_c",
+      "frame": 8,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "pfactor": 1.0,
+        "pframe": 0,
+        "sigma": 3.0
+      },
+      "sha256": "d7e2cb351e00ed590e88ec8d4de001eaf2fee3d98d5f99c651717666c15ada40",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_pattern_opt1_c",
+      "frame": 0,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "pfactor": 1.0,
+        "pframe": 0,
+        "sigma": 3.0
+      },
+      "sha256": "8baf318e8cb6157e6f1ee69a5aad1b8fdb4c74f4cc0bed6bc2dcd75dca9e3e4f",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_pattern_opt1_c",
+      "frame": 4,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "pfactor": 1.0,
+        "pframe": 0,
+        "sigma": 3.0
+      },
+      "sha256": "7a2d93cdf63803ceec7c64388e0194e0bb44ec85b2759eca861a37fbca39b2c6",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_pattern_opt1_c",
+      "frame": 8,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1,
+        "pfactor": 1.0,
+        "pframe": 0,
+        "sigma": 3.0
+      },
+      "sha256": "d7e2cb351e00ed590e88ec8d4de001eaf2fee3d98d5f99c651717666c15ada40",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_pattern_opt2_highway",
+      "frame": 0,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "pfactor": 1.0,
+        "pframe": 0,
+        "sigma": 3.0
+      },
+      "sha256": "8baf318e8cb6157e6f1ee69a5aad1b8fdb4c74f4cc0bed6bc2dcd75dca9e3e4f",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_pattern_opt2_highway",
+      "frame": 4,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "pfactor": 1.0,
+        "pframe": 0,
+        "sigma": 3.0
+      },
+      "sha256": "7a2d93cdf63803ceec7c64388e0194e0bb44ec85b2759eca861a37fbca39b2c6",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_pattern_opt2_highway",
+      "frame": 8,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "pfactor": 1.0,
+        "pframe": 0,
+        "sigma": 3.0
+      },
+      "sha256": "d7e2cb351e00ed590e88ec8d4de001eaf2fee3d98d5f99c651717666c15ada40",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_pattern_opt2_highway",
+      "frame": 0,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "pfactor": 1.0,
+        "pframe": 0,
+        "sigma": 3.0
+      },
+      "sha256": "8baf318e8cb6157e6f1ee69a5aad1b8fdb4c74f4cc0bed6bc2dcd75dca9e3e4f",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_pattern_opt2_highway",
+      "frame": 4,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "pfactor": 1.0,
+        "pframe": 0,
+        "sigma": 3.0
+      },
+      "sha256": "7a2d93cdf63803ceec7c64388e0194e0bb44ec85b2759eca861a37fbca39b2c6",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_bt3_pattern_opt2_highway",
+      "frame": 8,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "fft_backend": "pocketfft",
+        "measure": false,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2,
+        "pfactor": 1.0,
+        "pframe": 0,
+        "sigma": 3.0
+      },
+      "sha256": "d7e2cb351e00ed590e88ec8d4de001eaf2fee3d98d5f99c651717666c15ada40",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
     }
   ],
   "schema": 2

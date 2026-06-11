@@ -217,6 +217,20 @@ if (NEO_FFT3D_BUILD_TEST_TOOLS)
   )
   set_tests_properties(neo-fft3d_baseline_unit_tests PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}")
 
+  add_executable(neo-fft3d_c_apply_null_slots_test
+    tests/unit/c_apply_null_slots_test.cpp
+    src/code_impl/Apply.cpp
+  )
+  target_include_directories(neo-fft3d_c_apply_null_slots_test PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+  )
+
+  add_test(
+    NAME neo-fft3d_c_apply_null_slots_test
+    COMMAND "$<TARGET_FILE:neo-fft3d_c_apply_null_slots_test>"
+  )
+
   add_test(
     NAME neo-fft3d_baseline_smoke_verification
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/baseline/baseline_runner.py" verify

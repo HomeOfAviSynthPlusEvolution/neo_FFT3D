@@ -70,11 +70,11 @@ inline void loop_wrapper_C(fftwf_complex** in, fftwf_complex* &out, SharedFuncti
         f(lfp);
       }
       // Data
-      in[0] += sfp.outpitch;
-      in[1] += sfp.outpitch;
-      in[2] += sfp.outpitch;
-      in[3] += sfp.outpitch;
-      in[4] += sfp.outpitch;
+      if (in[0]) in[0] += sfp.outpitch;
+      if (in[1]) in[1] += sfp.outpitch;
+      if (in[2]) in[2] += sfp.outpitch;
+      if (in[3]) in[3] += sfp.outpitch;
+      if (in[4]) in[4] += sfp.outpitch;
       out += sfp.outpitch;
       // Pattern
       lfp.pattern2d += sfp.outpitch;

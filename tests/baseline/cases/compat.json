@@ -114,6 +114,242 @@
         "ncpu": 1,
         "mt": false
       }
+    },
+    {
+      "id": "compat_mp4_yuv420p8_bt2_opt1_c",
+      "tier": "compat",
+      "source": {
+        "id": "mp4_yuv420p8_1280x720_10f",
+        "type": "ffms2",
+        "path": "../sources/14946398.mp4"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "fft_backend": "pocketfft",
+        "bt": 2,
+        "sigma": 3.0,
+        "measure": false,
+        "ncpu": 1,
+        "mt": false,
+        "opt": 1
+      }
+    },
+    {
+      "id": "compat_mp4_yuv420p8_bt2_opt2_highway",
+      "tier": "compat",
+      "source": {
+        "id": "mp4_yuv420p8_1280x720_10f",
+        "type": "ffms2",
+        "path": "../sources/14946398.mp4"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "fft_backend": "pocketfft",
+        "bt": 2,
+        "sigma": 3.0,
+        "measure": false,
+        "ncpu": 1,
+        "mt": false,
+        "opt": 2
+      }
+    },
+    {
+      "id": "compat_mp4_yuv420p8_bt4_opt1_c",
+      "tier": "compat",
+      "source": {
+        "id": "mp4_yuv420p8_1280x720_10f",
+        "type": "ffms2",
+        "path": "../sources/14946398.mp4"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "fft_backend": "pocketfft",
+        "bt": 4,
+        "sigma": 3.0,
+        "measure": false,
+        "ncpu": 1,
+        "mt": false,
+        "opt": 1
+      }
+    },
+    {
+      "id": "compat_mp4_yuv420p8_bt4_opt2_highway",
+      "tier": "compat",
+      "source": {
+        "id": "mp4_yuv420p8_1280x720_10f",
+        "type": "ffms2",
+        "path": "../sources/14946398.mp4"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "fft_backend": "pocketfft",
+        "bt": 4,
+        "sigma": 3.0,
+        "measure": false,
+        "ncpu": 1,
+        "mt": false,
+        "opt": 2
+      }
+    },
+    {
+      "id": "compat_mp4_yuv420p8_bt5_opt1_c",
+      "tier": "compat",
+      "source": {
+        "id": "mp4_yuv420p8_1280x720_10f",
+        "type": "ffms2",
+        "path": "../sources/14946398.mp4"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "fft_backend": "pocketfft",
+        "bt": 5,
+        "sigma": 3.0,
+        "measure": false,
+        "ncpu": 1,
+        "mt": false,
+        "opt": 1
+      }
+    },
+    {
+      "id": "compat_mp4_yuv420p8_bt5_opt2_highway",
+      "tier": "compat",
+      "source": {
+        "id": "mp4_yuv420p8_1280x720_10f",
+        "type": "ffms2",
+        "path": "../sources/14946398.mp4"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "fft_backend": "pocketfft",
+        "bt": 5,
+        "sigma": 3.0,
+        "measure": false,
+        "ncpu": 1,
+        "mt": false,
+        "opt": 2
+      }
+    },
+    {
+      "id": "compat_mp4_yuv420p8_bt3_nodegrid_opt1_c",
+      "tier": "compat",
+      "source": {
+        "id": "mp4_yuv420p8_1280x720_10f",
+        "type": "ffms2",
+        "path": "../sources/14946398.mp4"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "fft_backend": "pocketfft",
+        "bt": 3,
+        "degrid": 0.0,
+        "sigma": 3.0,
+        "measure": false,
+        "ncpu": 1,
+        "mt": false,
+        "opt": 1
+      }
+    },
+    {
+      "id": "compat_mp4_yuv420p8_bt3_nodegrid_opt2_highway",
+      "tier": "compat",
+      "source": {
+        "id": "mp4_yuv420p8_1280x720_10f",
+        "type": "ffms2",
+        "path": "../sources/14946398.mp4"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "fft_backend": "pocketfft",
+        "bt": 3,
+        "degrid": 0.0,
+        "sigma": 3.0,
+        "measure": false,
+        "ncpu": 1,
+        "mt": false,
+        "opt": 2
+      }
+    },
+    {
+      "id": "compat_mp4_yuv420p8_bt3_pattern_opt1_c",
+      "tier": "compat",
+      "source": {
+        "id": "mp4_yuv420p8_1280x720_10f",
+        "type": "ffms2",
+        "path": "../sources/14946398.mp4"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "fft_backend": "pocketfft",
+        "bt": 3,
+        "sigma": 3.0,
+        "pfactor": 1.0,
+        "pframe": 0,
+        "measure": false,
+        "ncpu": 1,
+        "mt": false,
+        "opt": 1
+      }
+    },
+    {
+      "id": "compat_mp4_yuv420p8_bt3_pattern_opt2_highway",
+      "tier": "compat",
+      "source": {
+        "id": "mp4_yuv420p8_1280x720_10f",
+        "type": "ffms2",
+        "path": "../sources/14946398.mp4"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "fft_backend": "pocketfft",
+        "bt": 3,
+        "sigma": 3.0,
+        "pfactor": 1.0,
+        "pframe": 0,
+        "measure": false,
+        "ncpu": 1,
+        "mt": false,
+        "opt": 2
+      }
     }
   ]
 }
