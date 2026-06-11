@@ -201,6 +201,39 @@ if (NOT WIN32)
   target_link_libraries(neo-fft3d PRIVATE dl)
 endif()
 
+# 7. CTest 单元测试与基准校验集成
+enable_testing()
+
+add_test(
+  NAME neo-fft3d_baseline_unit_tests
+  COMMAND python -m unittest tests.baseline.test_baseline_runner -v
+)
+set_tests_properties(neo-fft3d_baseline_unit_tests PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}")
+
+if (NEO_FFT3D_BUILD_TEST_TOOLS)
+  add_test(
+    NAME neo-fft3d_baseline_smoke_verification
+    COMMAND python "${CMAKE_CURRENT_SOURCE_DIR}/tests/baseline/baseline_runner.py" verify
+      --plugin "$<TARGET_FILE:neo-fft3d>"
+      --avs-dump "$<TARGET_FILE:neo-fft3d_avs_frame_dump>"
+      --golden "${CMAKE_CURRENT_SOURCE_DIR}/tests/baseline/golden/smoke.json"
+      --tier smoke
+      --hosts vs avs
+  )
+  set_tests_properties(neo-fft3d_baseline_smoke_verification PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}")
+
+  add_test(
+    NAME neo-fft3d_baseline_compat_verification
+    COMMAND python "${CMAKE_CURRENT_SOURCE_DIR}/tests/baseline/baseline_runner.py" verify
+      --plugin "$<TARGET_FILE:neo-fft3d>"
+      --avs-dump "$<TARGET_FILE:neo-fft3d_avs_frame_dump>"
+      --golden "${CMAKE_CURRENT_SOURCE_DIR}/tests/baseline/golden/compat.json"
+      --tier compat
+      --hosts vs avs
+  )
+  set_tests_properties(neo-fft3d_baseline_compat_verification PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}")
+endif()
+
 add_custom_command(
   TARGET neo-fft3d POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:neo-fft3d> "../Release_${VERSION}/${_DIR}/$<TARGET_FILE_NAME:neo-fft3d>"

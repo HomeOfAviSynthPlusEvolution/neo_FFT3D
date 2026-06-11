@@ -192,7 +192,20 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
     state.ep->measure = get_param_val(context.params->get_bool("measure", state.ep->measure));
     state.ep->interlaced = get_param_val(context.params->get_bool("interlaced", state.ep->interlaced));
     state.ep->wintype = get_param_val(context.params->get_int("wintype", state.ep->wintype));
-    state.ep->pframe = get_param_val(context.params->get_int("pframe", state.ep->pframe));
+
+    int temp_pframe = get_param_val(context.params->get_int("pframe", state.ep->pframe));
+    if (in_vi.Frames > 0) {
+      if (temp_pframe < 0) {
+        temp_pframe = 0;
+      }
+      if (temp_pframe >= in_vi.Frames) {
+        temp_pframe = in_vi.Frames - 1;
+      }
+    } else {
+      temp_pframe = 0;
+    }
+    state.ep->pframe = temp_pframe;
+
     state.ep->px = get_param_val(context.params->get_int("px", state.ep->px));
     state.ep->py = get_param_val(context.params->get_int("py", state.ep->py));
     state.ep->pshow = get_param_val(context.params->get_bool("pshow", state.ep->pshow));
@@ -313,7 +326,7 @@ ds::Result<ds::VideoRequestResult> FFT3DCore::request(ds::VideoRequestContext& c
     }
 
     if (state.ep->pfactor != 0.0f) {
-      context.request_frame_clamped(0, state.ep->pframe);
+      context.request_frame(0, state.ep->pframe);
     }
 
     return ds::Result<ds::VideoRequestResult>::success(ds::VideoRequestResult{});
