@@ -235,18 +235,32 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
     }
 
     state.process[0] = state.process[1] = state.process[2] = state.process[3] = 2;
-    std::vector<std::int64_t> user_planes;
-    auto res_planes = context.params->get_int_array("planes", user_planes);
-    if (res_planes.has_value() && !res_planes.value().empty()) {
-      state.process[0] = state.process[1] = state.process[2] = state.process[3] = 2;
-      for (auto&& p : res_planes.value()) {
-        if (p >= 0 && p < state.ep->vi.Format.Planes) {
-          state.process[p] = 3;
+    
+    // Detect host based on non-null user environment pointer
+    bool is_avisynth = (context.host_global_locks.user != nullptr);
+
+    if (!is_avisynth) {
+      // VapourSynth Host: exclusively parse "planes" and do not fall back to y/u/v
+      std::vector<std::int64_t> user_planes;
+      auto res_planes = context.params->get_int_array("planes", user_planes);
+      if (res_planes.has_value()) {
+        auto val_planes = res_planes.value();
+        if (val_planes.empty()) {
+          state.process[0] = state.process[1] = state.process[2] = 3;
         } else {
-          throw "planes: plane index out of bounds";
+          for (auto&& p : val_planes) {
+            if (p >= 0 && p < state.ep->vi.Format.Planes) {
+              state.process[p] = 3;
+            } else {
+              throw "planes: plane index out of bounds";
+            }
+          }
         }
+      } else {
+        throw std::runtime_error("planes: parameter parsing failed");
       }
     } else {
+      // AviSynth+ Host: exclusively parse y, u, v
       state.process[0] = get_param_val(context.params->get_int("y", 3));
       state.process[1] = get_param_val(context.params->get_int("u", 3));
       state.process[2] = get_param_val(context.params->get_int("v", 3));
@@ -516,7 +530,7 @@ ds::FilterDescriptor FFT3DBridge::descriptor() {
       ds::ParamSpec{.name = "clip", .type = ds::ParamType::Clip, .required = true},
       ds::ParamSpec{.name = "sigma", .type = ds::ParamType::Float},
       ds::ParamSpec{.name = "beta", .type = ds::ParamType::Float},
-      ds::ParamSpec{.name = "planes", .type = ds::ParamType::Integer, .is_array = true},
+      ds::ParamSpec{.name = "planes", .type = ds::ParamType::Integer, .is_array = true, .avs_enabled = false},
       ds::ParamSpec{.name = "bw", .type = ds::ParamType::Integer},
       ds::ParamSpec{.name = "bh", .type = ds::ParamType::Integer},
       ds::ParamSpec{.name = "bt", .type = ds::ParamType::Integer},
@@ -544,9 +558,9 @@ ds::FilterDescriptor FFT3DBridge::descriptor() {
       ds::ParamSpec{.name = "dehalo", .type = ds::ParamType::Float},
       ds::ParamSpec{.name = "hr", .type = ds::ParamType::Float},
       ds::ParamSpec{.name = "ht", .type = ds::ParamType::Float},
-      ds::ParamSpec{.name = "y", .type = ds::ParamType::Integer},
-      ds::ParamSpec{.name = "u", .type = ds::ParamType::Integer},
-      ds::ParamSpec{.name = "v", .type = ds::ParamType::Integer},
+      ds::ParamSpec{.name = "y", .type = ds::ParamType::Integer, .vs_enabled = false},
+      ds::ParamSpec{.name = "u", .type = ds::ParamType::Integer, .vs_enabled = false},
+      ds::ParamSpec{.name = "v", .type = ds::ParamType::Integer, .vs_enabled = false},
       ds::ParamSpec{.name = "l", .type = ds::ParamType::Integer},
       ds::ParamSpec{.name = "t", .type = ds::ParamType::Integer},
       ds::ParamSpec{.name = "r", .type = ds::ParamType::Integer},

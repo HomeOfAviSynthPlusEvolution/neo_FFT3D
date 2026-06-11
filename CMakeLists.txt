@@ -100,7 +100,6 @@ if(AVISYNTH_FOUND)
   target_include_directories(avisynth_headers INTERFACE ${AVISYNTH_INCLUDE_DIRS})
 else()
   fetch_avisynth_headers(AVS_INCLUDE_DIRS)
-  message(STATUS "Fetched AVS_INCLUDE_DIRS: ${AVS_INCLUDE_DIRS}")
   target_include_directories(avisynth_headers INTERFACE ${AVS_INCLUDE_DIRS})
 endif()
 
@@ -109,7 +108,6 @@ if(VAPOURSYNTH_FOUND)
   target_include_directories(vapoursynth_headers INTERFACE ${VAPOURSYNTH_INCLUDE_DIRS})
 else()
   fetch_vapoursynth_headers(VS_INCLUDE_DIRS)
-  message(STATUS "Fetched VS_INCLUDE_DIRS: ${VS_INCLUDE_DIRS}")
   target_include_directories(vapoursynth_headers INTERFACE ${VS_INCLUDE_DIRS})
 endif()
 add_vapoursynth_compat_headers(vapoursynth_headers)
@@ -203,17 +201,18 @@ endif()
 
 # 7. CTest 单元测试与基准校验集成
 enable_testing()
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 add_test(
   NAME neo-fft3d_baseline_unit_tests
-  COMMAND python -m unittest tests.baseline.test_baseline_runner -v
+  COMMAND "${Python3_EXECUTABLE}" -m unittest tests.baseline.test_baseline_runner -v
 )
 set_tests_properties(neo-fft3d_baseline_unit_tests PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}")
 
 if (NEO_FFT3D_BUILD_TEST_TOOLS)
   add_test(
     NAME neo-fft3d_baseline_smoke_verification
-    COMMAND python "${CMAKE_CURRENT_SOURCE_DIR}/tests/baseline/baseline_runner.py" verify
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/baseline/baseline_runner.py" verify
       --plugin "$<TARGET_FILE:neo-fft3d>"
       --avs-dump "$<TARGET_FILE:neo-fft3d_avs_frame_dump>"
       --golden "${CMAKE_CURRENT_SOURCE_DIR}/tests/baseline/golden/smoke.json"
@@ -224,7 +223,7 @@ if (NEO_FFT3D_BUILD_TEST_TOOLS)
 
   add_test(
     NAME neo-fft3d_baseline_compat_verification
-    COMMAND python "${CMAKE_CURRENT_SOURCE_DIR}/tests/baseline/baseline_runner.py" verify
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/tests/baseline/baseline_runner.py" verify
       --plugin "$<TARGET_FILE:neo-fft3d>"
       --avs-dump "$<TARGET_FILE:neo-fft3d_avs_frame_dump>"
       --golden "${CMAKE_CURRENT_SOURCE_DIR}/tests/baseline/golden/compat.json"
