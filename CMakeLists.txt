@@ -77,6 +77,20 @@ if (NOT WIN32)
   target_link_libraries(neo-fft3d dl)
 endif()
 
+option(NEO_FFT3D_BUILD_TEST_TOOLS "Build Neo_FFT3D baseline test tools" ON)
+
+if (NEO_FFT3D_BUILD_TEST_TOOLS)
+  add_executable(neo-fft3d_avs_frame_dump
+    tests/tools/avs_frame_dump.cpp
+  )
+  set_property(TARGET neo-fft3d_avs_frame_dump PROPERTY CXX_STANDARD 17)
+  target_include_directories(neo-fft3d_avs_frame_dump PRIVATE include/avisynth)
+
+  if (NOT WIN32)
+    target_link_libraries(neo-fft3d_avs_frame_dump dl)
+  endif()
+endif()
+
 add_custom_command(
   TARGET neo-fft3d POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:neo-fft3d> "../Release_${VERSION}/${_DIR}/$<TARGET_FILE_NAME:neo-fft3d>"

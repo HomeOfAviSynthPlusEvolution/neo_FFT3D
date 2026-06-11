@@ -1,0 +1,147 @@
+{
+  "cases": [
+    {
+      "id": "smoke_y8_default",
+      "tier": "smoke",
+      "source": {
+        "id": "blank_y8_64x48_9f",
+        "type": "blank",
+        "width": 64,
+        "height": 48,
+        "length": 9,
+        "format": "GRAY8",
+        "avs_format": "Y8",
+        "color": [
+          64
+        ],
+        "avs_color": 64,
+        "avs_color_yuv": "$404040"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "ncpu": 1,
+        "mt": false
+      }
+    },
+    {
+      "id": "smoke_y8_bt0_kalman",
+      "tier": "smoke",
+      "source": {
+        "id": "blank_y8_64x48_9f",
+        "type": "blank",
+        "width": 64,
+        "height": 48,
+        "length": 9,
+        "format": "GRAY8",
+        "avs_format": "Y8",
+        "color": [
+          64
+        ],
+        "avs_color": 64,
+        "avs_color_yuv": "$404040"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "bt": 0,
+        "sigma": 3.0,
+        "ncpu": 1,
+        "mt": false
+      }
+    },
+    {
+      "id": "smoke_y8_bt1_2d",
+      "tier": "smoke",
+      "source": {
+        "id": "blank_y8_64x48_9f",
+        "type": "blank",
+        "width": 64,
+        "height": 48,
+        "length": 9,
+        "format": "GRAY8",
+        "avs_format": "Y8",
+        "color": [
+          64
+        ],
+        "avs_color": 64,
+        "avs_color_yuv": "$404040"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "bt": 1,
+        "sigma": 2.5,
+        "ncpu": 1,
+        "mt": false
+      }
+    },
+    {
+      "id": "smoke_y8_sharpen",
+      "tier": "smoke",
+      "source": {
+        "id": "blank_y8_64x48_9f",
+        "type": "blank",
+        "width": 64,
+        "height": 48,
+        "length": 9,
+        "format": "GRAY8",
+        "avs_format": "Y8",
+        "color": [
+          64
+        ],
+        "avs_color": 64,
+        "avs_color_yuv": "$404040"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "bt": 1,
+        "sharpen": 1.5,
+        "ncpu": 1,
+        "mt": false
+      }
+    },
+    {
+      "id": "smoke_yuv420p8_default",
+      "tier": "smoke",
+      "source": {
+        "id": "blank_yuv420p8_64x48_9f",
+        "type": "blank",
+        "width": 64,
+        "height": 48,
+        "length": 9,
+        "format": "YUV420P8",
+        "avs_format": "YV12",
+        "color": [
+          64,
+          96,
+          160
+        ],
+        "avs_color": 0,
+        "avs_color_yuv": "$4060A0"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "ncpu": 1,
+        "mt": false
+      }
+    }
+  ]
+}

@@ -70,3 +70,10 @@ ipch/
 *.vsp
 *.vspx
 *.sap
+
+build
+build-msvc
+
+__pycache__/
+*.pyc
+*.ffindex

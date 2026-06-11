@@ -1,0 +1,857 @@
+{
+  "results": [
+    {
+      "case": "compat_y8_opt1_c",
+      "frame": 0,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 1,
+          "id": 268959744,
+          "name": "Gray8",
+          "num_planes": 1,
+          "sample_type": 0,
+          "subsampling_h": 0,
+          "subsampling_w": 0
+        },
+        "frames": 9,
+        "height": 48,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt1_c",
+      "frame": 4,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 1,
+          "id": 268959744,
+          "name": "Gray8",
+          "num_planes": 1,
+          "sample_type": 0,
+          "subsampling_h": 0,
+          "subsampling_w": 0
+        },
+        "frames": 9,
+        "height": 48,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt1_c",
+      "frame": 8,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 1,
+          "id": 268959744,
+          "name": "Gray8",
+          "num_planes": 1,
+          "sample_type": 0,
+          "subsampling_h": 0,
+          "subsampling_w": 0
+        },
+        "frames": 9,
+        "height": 48,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt1_c",
+      "frame": 0,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 9,
+        "height": 48,
+        "pixel_type": -536870912,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt1_c",
+      "frame": 4,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 9,
+        "height": 48,
+        "pixel_type": -536870912,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt1_c",
+      "frame": 8,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 9,
+        "height": 48,
+        "pixel_type": -536870912,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 1
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt2_sse2",
+      "frame": 0,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 1,
+          "id": 268959744,
+          "name": "Gray8",
+          "num_planes": 1,
+          "sample_type": 0,
+          "subsampling_h": 0,
+          "subsampling_w": 0
+        },
+        "frames": 9,
+        "height": 48,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt2_sse2",
+      "frame": 4,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 1,
+          "id": 268959744,
+          "name": "Gray8",
+          "num_planes": 1,
+          "sample_type": 0,
+          "subsampling_h": 0,
+          "subsampling_w": 0
+        },
+        "frames": 9,
+        "height": 48,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt2_sse2",
+      "frame": 8,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 1,
+          "id": 268959744,
+          "name": "Gray8",
+          "num_planes": 1,
+          "sample_type": 0,
+          "subsampling_h": 0,
+          "subsampling_w": 0
+        },
+        "frames": 9,
+        "height": 48,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt2_sse2",
+      "frame": 0,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 9,
+        "height": 48,
+        "pixel_type": -536870912,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt2_sse2",
+      "frame": 4,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 9,
+        "height": 48,
+        "pixel_type": -536870912,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt2_sse2",
+      "frame": 8,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 9,
+        "height": 48,
+        "pixel_type": -536870912,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 2
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt3_avx",
+      "frame": 0,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 1,
+          "id": 268959744,
+          "name": "Gray8",
+          "num_planes": 1,
+          "sample_type": 0,
+          "subsampling_h": 0,
+          "subsampling_w": 0
+        },
+        "frames": 9,
+        "height": 48,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 3
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt3_avx",
+      "frame": 4,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 1,
+          "id": 268959744,
+          "name": "Gray8",
+          "num_planes": 1,
+          "sample_type": 0,
+          "subsampling_h": 0,
+          "subsampling_w": 0
+        },
+        "frames": 9,
+        "height": 48,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 3
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt3_avx",
+      "frame": 8,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 1,
+          "id": 268959744,
+          "name": "Gray8",
+          "num_planes": 1,
+          "sample_type": 0,
+          "subsampling_h": 0,
+          "subsampling_w": 0
+        },
+        "frames": 9,
+        "height": 48,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 3
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt3_avx",
+      "frame": 0,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 9,
+        "height": 48,
+        "pixel_type": -536870912,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 3
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt3_avx",
+      "frame": 4,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 9,
+        "height": 48,
+        "pixel_type": -536870912,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 3
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_y8_opt3_avx",
+      "frame": 8,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 9,
+        "height": 48,
+        "pixel_type": -536870912,
+        "planes": [
+          {
+            "height": 48,
+            "name": "Y",
+            "row_bytes": 64
+          }
+        ],
+        "width": 64
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "opt": 3
+      },
+      "sha256": "f6770e67ca0d47827f3e64fcd18485fe4468d3c3ebc220597035fc1382c4c61f",
+      "source": "blank_y8_64x48_9f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_default",
+      "frame": 0,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "sigma": 3.0
+      },
+      "sha256": "1ef0cb3e3b9b00e258d0e69a9d9429d07d440f8450b5389e1582e7ff4649a0b8",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_default",
+      "frame": 4,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "sigma": 3.0
+      },
+      "sha256": "c2e3589e2955a7cefa35122feb37a5da81e2b770815b44c0f190d8f937e97561",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_default",
+      "frame": 8,
+      "host": "vs",
+      "metadata": {
+        "format": {
+          "bits_per_sample": 8,
+          "bytes_per_sample": 1,
+          "color_family": 3,
+          "id": 805830913,
+          "name": "YUV420P8",
+          "num_planes": 3,
+          "sample_type": 0,
+          "subsampling_h": 1,
+          "subsampling_w": 1
+        },
+        "frames": 10,
+        "height": 720,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "sigma": 3.0
+      },
+      "sha256": "a3395a292b4c6f49eb9254338f5d7b629e911a55591671d352d807fb370cd955",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_default",
+      "frame": 0,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "sigma": 3.0
+      },
+      "sha256": "1ef0cb3e3b9b00e258d0e69a9d9429d07d440f8450b5389e1582e7ff4649a0b8",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_default",
+      "frame": 4,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "sigma": 3.0
+      },
+      "sha256": "c2e3589e2955a7cefa35122feb37a5da81e2b770815b44c0f190d8f937e97561",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    },
+    {
+      "case": "compat_mp4_yuv420p8_default",
+      "frame": 8,
+      "host": "avs",
+      "metadata": {
+        "bits_per_sample": 8,
+        "bytes_per_sample": 1,
+        "frames": 10,
+        "height": 720,
+        "pixel_type": -1610612728,
+        "planes": [
+          {
+            "height": 720,
+            "name": "Y",
+            "row_bytes": 1280
+          },
+          {
+            "height": 360,
+            "name": "U",
+            "row_bytes": 640
+          },
+          {
+            "height": 360,
+            "name": "V",
+            "row_bytes": 640
+          }
+        ],
+        "width": 1280
+      },
+      "params": {
+        "bt": 3,
+        "mt": false,
+        "ncpu": 1,
+        "sigma": 3.0
+      },
+      "sha256": "a3395a292b4c6f49eb9254338f5d7b629e911a55591671d352d807fb370cd955",
+      "source": "mp4_yuv420p8_1280x720_10f",
+      "tier": "compat"
+    }
+  ],
+  "schema": 2
+}

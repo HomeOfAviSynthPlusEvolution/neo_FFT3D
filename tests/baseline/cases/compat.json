@@ -1,0 +1,111 @@
+{
+  "cases": [
+    {
+      "id": "compat_y8_opt1_c",
+      "tier": "compat",
+      "source": {
+        "id": "blank_y8_64x48_9f",
+        "type": "blank",
+        "width": 64,
+        "height": 48,
+        "length": 9,
+        "format": "GRAY8",
+        "avs_format": "Y8",
+        "color": [
+          64
+        ],
+        "avs_color": 64,
+        "avs_color_yuv": "$404040"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "opt": 1,
+        "bt": 3,
+        "ncpu": 1,
+        "mt": false
+      }
+    },
+    {
+      "id": "compat_y8_opt2_sse2",
+      "tier": "compat",
+      "source": {
+        "id": "blank_y8_64x48_9f",
+        "type": "blank",
+        "width": 64,
+        "height": 48,
+        "length": 9,
+        "format": "GRAY8",
+        "avs_format": "Y8",
+        "color": [
+          64
+        ],
+        "avs_color": 64,
+        "avs_color_yuv": "$404040"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "opt": 2,
+        "bt": 3,
+        "ncpu": 1,
+        "mt": false
+      }
+    },
+    {
+      "id": "compat_y8_opt3_avx",
+      "tier": "compat",
+      "source": {
+        "id": "blank_y8_64x48_9f",
+        "type": "blank",
+        "width": 64,
+        "height": 48,
+        "length": 9,
+        "format": "GRAY8",
+        "avs_format": "Y8",
+        "color": [
+          64
+        ],
+        "avs_color": 64,
+        "avs_color_yuv": "$404040"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "opt": 3,
+        "bt": 3,
+        "ncpu": 1,
+        "mt": false
+      }
+    },
+    {
+      "id": "compat_mp4_yuv420p8_default",
+      "tier": "compat",
+      "source": {
+        "id": "mp4_yuv420p8_1280x720_10f",
+        "type": "ffms2",
+        "path": "../sources/14946398.mp4"
+      },
+      "frames": [
+        0,
+        4,
+        8
+      ],
+      "params": {
+        "bt": 3,
+        "sigma": 3.0,
+        "ncpu": 1,
+        "mt": false
+      }
+    }
+  ]
+}
