@@ -1,82 +1,188 @@
-cmake_minimum_required (VERSION 3.1...3.15)
-project (neo_fft3d CXX)
+cmake_minimum_required(VERSION 3.24)
+
+if(POLICY CMP0091)
+  cmake_policy(SET CMP0091 NEW)
+endif()
+
+project(neo_fft3d CXX)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if(MSVC AND NOT CMAKE_MSVC_RUNTIME_LIBRARY)
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+endif()
+
+set(AVISYNTHPLUS_TAG "751ce2021cab1c8405d04825ac2f7e8ac93e8fa0" CACHE STRING "AviSynthPlus tag used when pkg-config cannot find AviSynth headers")
+set(VAPOURSYNTH_TAG "R72" CACHE STRING "VapourSynth tag used when pkg-config cannot find VapourSynth headers")
+
+include(FetchContent)
+
+# 1. 引入 Google Highway (后续 SIMD 算子使用)
+FetchContent_Declare(
+  highway
+  GIT_REPOSITORY https://github.com/google/highway.git
+  GIT_TAG 1.4.0
+)
+set(HWY_ENABLE_CONTRIB OFF CACHE BOOL "" FORCE)
+set(HWY_ENABLE_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(HWY_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+set(HWY_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(highway)
+
+# 2. 引入 dualsynth2
+set(DS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(DS_BUILD_ACCEPTANCE_PLUGIN OFF CACHE BOOL "" FORCE)
+if(MSVC)
+  set(DS_MSVC_RUNTIME_LIBRARY "${CMAKE_MSVC_RUNTIME_LIBRARY}" CACHE STRING "" FORCE)
+endif()
+FetchContent_Declare(
+  dualsynth2
+  GIT_REPOSITORY https://github.com/HomeOfAviSynthPlusEvolution/dualsynth2.git
+  GIT_TAG 0.1
+)
+FetchContent_MakeAvailable(dualsynth2)
+
+# 3. 动态拉取 AviSynth+ 与 VapourSynth 官方头文件并进行兼容适配 (对齐 DelogoHD)
+function(fetch_avisynth_headers out_var)
+  FetchContent_Declare(
+    avisynthplus_headers
+    GIT_REPOSITORY https://github.com/AviSynth/AviSynthPlus.git
+    GIT_TAG "${AVISYNTHPLUS_TAG}"
+    SOURCE_SUBDIR no-cmake
+  )
+  FetchContent_MakeAvailable(avisynthplus_headers)
+  FetchContent_GetProperties(avisynthplus_headers)
+  set(${out_var} "${avisynthplus_headers_SOURCE_DIR}/avs_core/include" PARENT_SCOPE)
+endfunction()
+
+function(fetch_vapoursynth_headers out_var)
+  FetchContent_Declare(
+    vapoursynth_headers
+    GIT_REPOSITORY https://github.com/vapoursynth/vapoursynth.git
+    GIT_TAG "${VAPOURSYNTH_TAG}"
+    GIT_SHALLOW TRUE
+    SOURCE_SUBDIR no-cmake
+  )
+  FetchContent_MakeAvailable(vapoursynth_headers)
+  FetchContent_GetProperties(vapoursynth_headers)
+  set(${out_var} "${vapoursynth_headers_SOURCE_DIR}/include" PARENT_SCOPE)
+endfunction()
+
+function(add_vapoursynth_compat_headers target)
+  set(compat_dir "${CMAKE_CURRENT_BINARY_DIR}/generated/vapoursynth-compat")
+  file(MAKE_DIRECTORY "${compat_dir}/vapoursynth")
+  foreach(header IN ITEMS
+    VSConstants4.h
+    VSHelper.h
+    VSHelper4.h
+    VSScript.h
+    VSScript4.h
+    VapourSynth.h
+    VapourSynth4.h
+  )
+    file(WRITE
+      "${compat_dir}/vapoursynth/${header}"
+      "#pragma once\n#include <${header}>\n"
+    )
+  endforeach()
+  target_include_directories(${target} INTERFACE "${compat_dir}")
+endfunction()
+
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+  pkg_check_modules(AVISYNTH QUIET avisynth)
+  pkg_check_modules(VAPOURSYNTH QUIET vapoursynth)
+endif()
+
+add_library(avisynth_headers INTERFACE)
+if(AVISYNTH_FOUND)
+  target_include_directories(avisynth_headers INTERFACE ${AVISYNTH_INCLUDE_DIRS})
+else()
+  fetch_avisynth_headers(AVS_INCLUDE_DIRS)
+  message(STATUS "Fetched AVS_INCLUDE_DIRS: ${AVS_INCLUDE_DIRS}")
+  target_include_directories(avisynth_headers INTERFACE ${AVS_INCLUDE_DIRS})
+endif()
+
+add_library(vapoursynth_headers INTERFACE)
+if(VAPOURSYNTH_FOUND)
+  target_include_directories(vapoursynth_headers INTERFACE ${VAPOURSYNTH_INCLUDE_DIRS})
+else()
+  fetch_vapoursynth_headers(VS_INCLUDE_DIRS)
+  message(STATUS "Fetched VS_INCLUDE_DIRS: ${VS_INCLUDE_DIRS}")
+  target_include_directories(vapoursynth_headers INTERFACE ${VS_INCLUDE_DIRS})
+endif()
+add_vapoursynth_compat_headers(vapoursynth_headers)
+
+# 4. 编译目标定义
 file(GLOB CODE "src/*.cpp")
 file(GLOB CODE_IMPL "src/code_impl/*.cpp")
 file(GLOB AVX_CODE_IMPL "src/code_impl/*AVX.cpp")
 file(GLOB AVX512_CODE_IMPL "src/code_impl/*AVX512.cpp")
-add_library(neo-fft3d SHARED main.cpp src/version.rc ${CODE} ${CODE_IMPL})
-set_property(TARGET neo-fft3d PROPERTY CXX_STANDARD 17)
-option(ENABLE_PAR "Enable C++17 Parallel Execution" ON)
 
-find_package(Git REQUIRED)
-execute_process(COMMAND ${GIT_EXECUTABLE} describe --first-parent --tags --always OUTPUT_VARIABLE GIT_REPO_VERSION)
-string(APPEND GIT_REPO_VERSION "r0")
-string(REGEX REPLACE "(r[0-9]+).*" "\\1" VERSION ${GIT_REPO_VERSION})
-
-configure_file (
-  "${PROJECT_SOURCE_DIR}/src/version.hpp.in"
-  "${PROJECT_SOURCE_DIR}/src/version.hpp"
-)
-configure_file (
-  "${PROJECT_SOURCE_DIR}/src/version.rc.in"
-  "${PROJECT_SOURCE_DIR}/src/version.rc"
+add_library(neo-fft3d SHARED
+  src/plugin/plugin_entry.cpp
+  src/plugin/fft3d_filter.cpp
+  src/plugin/fft3d_filter.hpp
+  ${CODE}
+  ${CODE_IMPL}
 )
 
-find_package(PkgConfig REQUIRED)
+# 链接依赖，自动带入 dualsynth2、hwy、以及拉取的 AVS/VS 官方头文件
+target_link_libraries(neo-fft3d PRIVATE
+  DualSynth::dualsynth
+  hwy
+  avisynth_headers
+  vapoursynth_headers
+)
 
-pkg_check_modules(AVISYNTH avisynth)
-if(AVISYNTH_FOUND)
-  include_directories(${AVISYNTH_INCLUDE_DIRS})
-else()
-  include_directories(include/avisynth)
-endif()
+target_include_directories(neo-fft3d PRIVATE
+  src
+  ${CMAKE_CURRENT_BINARY_DIR}/generated
+)
 
-pkg_check_modules(VAPOURSYNTH vapoursynth)
-if(VAPOURSYNTH_FOUND)
-  include_directories(${VAPOURSYNTH_INCLUDE_DIRS})
-else()
-  include_directories(include/vapoursynth)
-endif()
-
-include_directories(.)
-include_directories(include/dualsynth)
-
+# 临时保留旧指令集编译规则 (在后续阶段使用 Highway 重构时将删除)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   set_source_files_properties(${AVX_CODE_IMPL} PROPERTIES COMPILE_FLAGS "/arch:AVX")
   set_source_files_properties(${AVX512_CODE_IMPL} PROPERTIES COMPILE_FLAGS "/arch:AVX512")
-
-  if (CMAKE_GENERATOR_TOOLSET MATCHES "v[0-9]*_xp")
-    target_compile_definitions(neo-fft3d PRIVATE WINVER=0x502 _WIN32_WINNT=0x502)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:threadSafeInit-")
-  endif()
-
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-  set_source_files_properties(${AVX_CODE_IMPL} PROPERTIES COMPILE_FLAGS "/arch:AVX")
-  set_source_files_properties(${AVX512_CODE_IMPL} PROPERTIES COMPILE_FLAGS "/QxCOMMON-AVX512")
-
 else()
   set_source_files_properties(${AVX_CODE_IMPL} PROPERTIES COMPILE_FLAGS "-mavx")
   set_source_files_properties(${AVX512_CODE_IMPL} PROPERTIES COMPILE_FLAGS "-mavx512f")
-
 endif()
 
-include(CheckIncludeFileCXX)
-CHECK_INCLUDE_FILE_CXX(execution HAS_EXECUTION)
-if(HAS_EXECUTION)
-  add_definitions(-DHAS_EXECUTION)
-endif()
-if(ENABLE_PAR AND HAS_EXECUTION)
-  add_definitions(-DENABLE_PAR)
+target_compile_definitions(neo-fft3d PRIVATE _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_DEPRECATE)
 
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_link_libraries(neo-fft3d tbb)
-  endif()
-endif()
+# 5. Git 版本控制注入
+find_package(Git REQUIRED)
+execute_process(
+  COMMAND ${GIT_EXECUTABLE} describe --first-parent --tags --always
+  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+  OUTPUT_VARIABLE GIT_REPO_VERSION
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+string(REGEX REPLACE "^(r[0-9]+).*$" "\\1" VERSION "${GIT_REPO_VERSION}")
+execute_process(
+  COMMAND ${GIT_EXECUTABLE} rev-list --count HEAD
+  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+  OUTPUT_VARIABLE GIT_COMMIT_COUNT
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
 
-if (NOT WIN32)
-  target_link_libraries(neo-fft3d dl)
-endif()
+set(GENERATED_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+configure_file(
+  "${PROJECT_SOURCE_DIR}/src/version.hpp.in"
+  "${GENERATED_DIR}/version.hpp"
+)
+configure_file(
+  "${PROJECT_SOURCE_DIR}/src/version.rc.in"
+  "${GENERATED_DIR}/version.rc"
+)
 
+# 将生成的 rc 文件作为源文件加入编译
+target_sources(neo-fft3d PRIVATE "${GENERATED_DIR}/version.rc")
+target_include_directories(neo-fft3d PRIVATE "${GENERATED_DIR}")
+
+# 6. 测试工具构建定义
 option(NEO_FFT3D_BUILD_TEST_TOOLS "Build Neo_FFT3D baseline test tools" ON)
 
 if (NEO_FFT3D_BUILD_TEST_TOOLS)
@@ -84,11 +190,15 @@ if (NEO_FFT3D_BUILD_TEST_TOOLS)
     tests/tools/avs_frame_dump.cpp
   )
   set_property(TARGET neo-fft3d_avs_frame_dump PROPERTY CXX_STANDARD 17)
-  target_include_directories(neo-fft3d_avs_frame_dump PRIVATE include/avisynth)
+  target_link_libraries(neo-fft3d_avs_frame_dump PRIVATE avisynth_headers)
 
   if (NOT WIN32)
     target_link_libraries(neo-fft3d_avs_frame_dump dl)
   endif()
+endif()
+
+if (NOT WIN32)
+  target_link_libraries(neo-fft3d dl)
 endif()
 
 add_custom_command(

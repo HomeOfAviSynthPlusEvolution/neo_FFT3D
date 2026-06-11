@@ -20,6 +20,7 @@
 #include <unordered_map>
 
 class FFT3DEngine {
+public:
   EngineParams* ep;
   IOParams* iop;
   int plane; // color plane

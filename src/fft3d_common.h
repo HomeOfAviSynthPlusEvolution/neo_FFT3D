@@ -25,7 +25,7 @@
 #endif
 
 #include "fftwlite.h"
-#include <ds_common.hpp>
+#include "dualsynth_compat.hpp"
 
 typedef unsigned char byte;
 
