@@ -1,7 +1,6 @@
 #include "fft/fft_backend.hpp"
 #include "fftwlite.h"
 
-#include <cstring>
 #include <stdexcept>
 
 namespace neo_fft3d::fft {
@@ -9,8 +8,8 @@ namespace {
 
 class FftwPlan final : public FFTPlan {
 public:
-  FftwPlan(FFTFunctionPointers& api, fftwf_plan plan, int bh, int bw) noexcept
-    : api_(api), plan_(plan), bh_(bh), bw_(bw) {}
+  FftwPlan(FFTFunctionPointers& api, fftwf_plan plan, Direction dir, int batch) noexcept
+    : api_(api), plan_(plan), dir_(dir), batch_(batch) {}
 
   ~FftwPlan() override {
     if (plan_) {
@@ -19,18 +18,29 @@ public:
   }
 
   void Execute(float* real_in, std::complex<float>* complex_out, int count) override {
+    Validate(Direction::r2c, count);
     api_.fftwf_execute_dft_r2c(plan_, real_in, reinterpret_cast<fftwf_complex*>(complex_out));
   }
 
   void Execute(std::complex<float>* complex_in, float* real_out, int count) override {
+    Validate(Direction::c2r, count);
     api_.fftwf_execute_dft_c2r(plan_, reinterpret_cast<fftwf_complex*>(complex_in), real_out);
   }
 
 private:
+  void Validate(Direction dir, int count) const {
+    if (dir != dir_) {
+      throw std::runtime_error("fftw: plan direction mismatch");
+    }
+    if (count != batch_) {
+      throw std::runtime_error("fftw: plan batch count mismatch");
+    }
+  }
+
   FFTFunctionPointers& api_;
   fftwf_plan plan_ {nullptr};
-  int bh_;
-  int bw_;
+  Direction dir_;
+  int batch_;
 };
 
 class FftwBackend final : public FFTBackend {
@@ -75,12 +85,24 @@ public:
     }
   }
 
-  std::unique_ptr<FFTPlan> CreatePlan(int bh, int bw, int outpitch, Direction dir, int max_batch) override {
+  std::unique_ptr<FFTPlan> CreatePlan(
+    int bh,
+    int bw,
+    int outpitch,
+    Direction dir,
+    int max_batch,
+    PlanOptions options,
+    PlanBuffers buffers
+  ) override {
     if (!Loaded()) {
       throw std::runtime_error("fftw: backend not loaded");
     }
+    if (buffers.real == nullptr || buffers.spectrum == nullptr) {
+      throw std::runtime_error("fftw: plan creation buffers are required");
+    }
 
     int n[2] = { bh, bw };
+    const unsigned flags = options.measure ? FFTW_MEASURE : FFTW_ESTIMATE;
     fftwf_plan plan = nullptr;
 
     if (dir == Direction::r2c) {
@@ -88,18 +110,18 @@ public:
       int onembed[2] = { bh, outpitch };
       plan = api_->fftwf_plan_many_dft_r2c(
         2, n, max_batch,
-        nullptr, inembed, 1, bh * bw,
-        nullptr, onembed, 1, bh * outpitch,
-        FFTW_ESTIMATE
+        buffers.real, inembed, 1, bh * bw,
+        reinterpret_cast<fftwf_complex*>(buffers.spectrum), onembed, 1, bh * outpitch,
+        flags
       );
     } else {
       int inembed[2] = { bh, outpitch };
       int onembed[2] = { bh, bw };
       plan = api_->fftwf_plan_many_dft_c2r(
         2, n, max_batch,
-        nullptr, inembed, 1, bh * outpitch,
-        nullptr, onembed, 1, bh * bw,
-        FFTW_ESTIMATE
+        reinterpret_cast<fftwf_complex*>(buffers.spectrum), inembed, 1, bh * outpitch,
+        buffers.real, onembed, 1, bh * bw,
+        flags
       );
     }
 
@@ -107,7 +129,7 @@ public:
       throw std::runtime_error("fftw: failed to create plan");
     }
 
-    return std::make_unique<FftwPlan>(*api_, plan, bh, bw);
+    return std::make_unique<FftwPlan>(*api_, plan, dir, max_batch);
   }
 
 private:

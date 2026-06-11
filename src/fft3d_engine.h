@@ -36,10 +36,6 @@ public:
   int outsize;
   int howmanyblocks;
 
-  int ndim[2];
-  int inembed[2];
-  int onembed[2];
-
   float *wsharpen;
   float *wdehalo;
 
@@ -153,25 +149,12 @@ public:
     if (ep->bt > 1)
       fftcache = new cache<fftwf_complex>(ep->bt + 3, outsize);
 
-    int planFlags;
-    // use FFTW_ESTIMATE or FFTW_MEASURE (more optimal plan, but with time calculation at load stage)
-    if (ep->measure)
-      planFlags = FFTW_MEASURE;
-    else
-      planFlags = FFTW_ESTIMATE;
-
-    int rank = 2; // 2d
-    ndim[0] = ep->bh; // size of block along height
-    ndim[1] = ep->bw; // size of block along width
-    int istride = 1;
-    int ostride = 1;
-    int idist = ep->bw*ep->bh;
-    int odist = outpitch*ep->bh;//  v1.7 (was outwidth)
-    inembed[0] = ep->bh;
-    inembed[1] = ep->bw;
-    onembed[0] = ep->bh;
-    onembed[1] = outpitch;//  v1.7 (was outwidth)
     howmanyblocks = iop->nox*iop->noy;
+    const neo_fft3d::fft::PlanOptions plan_options {ep->measure};
+    const neo_fft3d::fft::PlanBuffers plan_buffers {
+      in,
+      reinterpret_cast<neo_fft3d::fft::Complex*>(outrez)
+    };
 
     //	*inembed = NULL;
     //	*onembed = NULL;
@@ -179,8 +162,24 @@ public:
     {
       GlobalLockGuard fftw_lock(ep->avs_env, "fftw", ep->has_at_least_v12);
 
-      plan = fft_backend->CreatePlan(ep->bh, ep->bw, outpitch, neo_fft3d::fft::Direction::r2c, howmanyblocks);
-      planinv = fft_backend->CreatePlan(ep->bh, ep->bw, outpitch, neo_fft3d::fft::Direction::c2r, howmanyblocks);
+      plan = fft_backend->CreatePlan(
+        ep->bh,
+        ep->bw,
+        outpitch,
+        neo_fft3d::fft::Direction::r2c,
+        howmanyblocks,
+        plan_options,
+        plan_buffers
+      );
+      planinv = fft_backend->CreatePlan(
+        ep->bh,
+        ep->bw,
+        outpitch,
+        neo_fft3d::fft::Direction::c2r,
+        howmanyblocks,
+        plan_options,
+        plan_buffers
+      );
     }
 
     iop->wanxl = new float[ep->ow];
@@ -380,7 +379,15 @@ public:
     {
       GlobalLockGuard fftw_lock(ep->avs_env, "fftw", ep->has_at_least_v12);
 
-      plan1 = fft_backend->CreatePlan(ep->bh, ep->bw, outpitch, neo_fft3d::fft::Direction::r2c, 1); // 1 block
+      plan1 = fft_backend->CreatePlan(
+        ep->bh,
+        ep->bw,
+        outpitch,
+        neo_fft3d::fft::Direction::r2c,
+        1,
+        plan_options,
+        plan_buffers
+      ); // 1 block
     }
 
     byte* coverbuf = new byte[coverheight*coverpitch*ep->vi.Format.BytesPerSample];

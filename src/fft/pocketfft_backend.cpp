@@ -1,8 +1,6 @@
 #include "fft/fft_backend.hpp"
 
-#include <algorithm>
 #include <stdexcept>
-#include <vector>
 
 #define POCKETFFT_NO_MULTITHREADING
 #include "pocketfft_hdronly.h"
@@ -12,21 +10,22 @@ namespace {
 
 class PocketFFTPlan final : public FFTPlan {
 public:
-  PocketFFTPlan(int bh, int bw, int outpitch, Direction dir)
-    : bh_(bh), bw_(bw), outpitch_(outpitch), dir_(dir) {
+  PocketFFTPlan(int bh, int bw, int outpitch, Direction dir, int batch)
+    : bh_(bh), bw_(bw), outpitch_(outpitch), dir_(dir), batch_(batch) {
     shape_ = { static_cast<std::size_t>(bh), static_cast<std::size_t>(bw) };
     axes_ = { 0, 1 };
-    
+
     stride_in_r_ = { static_cast<std::ptrdiff_t>(bw * sizeof(float)), static_cast<std::ptrdiff_t>(sizeof(float)) };
     stride_out_c_ = { static_cast<std::ptrdiff_t>(outpitch * sizeof(std::complex<float>)), static_cast<std::ptrdiff_t>(sizeof(std::complex<float>)) };
-    
+
     stride_in_c_ = stride_out_c_;
     stride_out_r_ = stride_in_r_;
   }
 
   void Execute(float* real_in, std::complex<float>* complex_out, int count) override {
-    std::size_t r_size = bh_ * bw_;
-    std::size_t c_size = bh_ * outpitch_;
+    Validate(Direction::r2c, count);
+    const std::size_t r_size = static_cast<std::size_t>(bh_) * static_cast<std::size_t>(bw_);
+    const std::size_t c_size = static_cast<std::size_t>(bh_) * static_cast<std::size_t>(outpitch_);
     for (int i = 0; i < count; ++i) {
       float* p_in = real_in + i * r_size;
       std::complex<float>* p_out = complex_out + i * c_size;
@@ -35,8 +34,9 @@ public:
   }
 
   void Execute(std::complex<float>* complex_in, float* real_out, int count) override {
-    std::size_t r_size = bh_ * bw_;
-    std::size_t c_size = bh_ * outpitch_;
+    Validate(Direction::c2r, count);
+    const std::size_t r_size = static_cast<std::size_t>(bh_) * static_cast<std::size_t>(bw_);
+    const std::size_t c_size = static_cast<std::size_t>(bh_) * static_cast<std::size_t>(outpitch_);
     for (int i = 0; i < count; ++i) {
       std::complex<float>* p_in = complex_in + i * c_size;
       float* p_out = real_out + i * r_size;
@@ -45,10 +45,20 @@ public:
   }
 
 private:
+  void Validate(Direction dir, int count) const {
+    if (dir != dir_) {
+      throw std::runtime_error("pocketfft: plan direction mismatch");
+    }
+    if (count != batch_) {
+      throw std::runtime_error("pocketfft: plan batch count mismatch");
+    }
+  }
+
   int bh_;
   int bw_;
   int outpitch_;
   Direction dir_;
+  int batch_;
   pocketfft::shape_t shape_;
   pocketfft::shape_t axes_;
   pocketfft::stride_t stride_in_r_;
@@ -67,8 +77,16 @@ public:
   bool HasThreading() const noexcept override { return false; }
   void SetThreadCount(int) override {}
 
-  std::unique_ptr<FFTPlan> CreatePlan(int bh, int bw, int outpitch, Direction dir, int max_batch) override {
-    return std::make_unique<PocketFFTPlan>(bh, bw, outpitch, dir);
+  std::unique_ptr<FFTPlan> CreatePlan(
+    int bh,
+    int bw,
+    int outpitch,
+    Direction dir,
+    int max_batch,
+    PlanOptions,
+    PlanBuffers
+  ) override {
+    return std::make_unique<PocketFFTPlan>(bh, bw, outpitch, dir, max_batch);
   }
 };
 

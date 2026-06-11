@@ -119,6 +119,12 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
   ds::VideoInitContext& context
 ) {
   try {
+    auto has_param = [](const ds::ParamValues& params, const char* name) {
+      return std::any_of(params.entries.begin(), params.entries.end(), [name](const ds::ParamEntry& entry) {
+        return entry.name == name;
+      });
+    };
+
     const auto inputs = ds::collect_video_input_infos<FFT3DCore>(context.inputs);
     if (!inputs.has_value()) {
       return ds::Result<ds::VideoInitStateResult<State>>::failure(inputs.error());
@@ -221,6 +227,13 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
     state.ep->b = (std::max)(get_param_val(context.params->get_int("b", state.ep->b)), 0);
     state.ep->opt = get_param_val(context.params->get_int("opt", state.ep->opt));
 
+    std::string fft_backend_name = "fftw";
+    bool explicit_backend = false;
+    if (has_param(*context.params, "fft_backend")) {
+      fft_backend_name = get_param_val(context.params->get_string("fft_backend", "fftw"));
+      explicit_backend = true;
+    }
+
     state.crop = state.ep->l > 0 || state.ep->r > 0 || state.ep->t > 0 || state.ep->b > 0;
 
     if (state.ep->l + state.ep->r >= state.ep->vi.Width) {
@@ -232,11 +245,6 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
 
     state.process[0] = state.process[1] = state.process[2] = state.process[3] = 2;
 
-    auto has_param = [](const ds::ParamValues& params, const char* name) {
-      return std::any_of(params.entries.begin(), params.entries.end(), [name](const ds::ParamEntry& entry) {
-        return entry.name == name;
-      });
-    };
     auto read_vs_planes = [&]() {
       std::vector<std::int64_t> user_planes;
       auto val_planes = get_param_val(context.params->get_int_array("planes", user_planes));
@@ -280,10 +288,21 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
       state.fft_threads = 1;
     }
 
-    state.fft_backend = fft::CreateFFTWBackend();
-    if (!state.fft_backend->Load()) {
+    if (fft_backend_name == "fftw") {
+      state.fft_backend = fft::CreateFFTWBackend();
+      if (!state.fft_backend->Load()) {
+        if (explicit_backend) {
+          throw std::runtime_error("fft_backend: failed to load fftw library");
+        } else {
+          state.fft_backend = fft::CreatePocketFFTBackend();
+          state.fft_backend->Load();
+        }
+      }
+    } else if (fft_backend_name == "pocketfft") {
       state.fft_backend = fft::CreatePocketFFTBackend();
       state.fft_backend->Load();
+    } else {
+      throw std::runtime_error("fft_backend must be 'fftw' or 'pocketfft'");
     }
 
     if (state.fft_threads > 1 && state.fft_backend->HasThreading()) {
@@ -541,6 +560,7 @@ ds::FilterDescriptor FFT3DBridge::descriptor() {
       ds::ParamSpec{.name = "clip", .type = ds::ParamType::Clip, .required = true},
       ds::ParamSpec{.name = "sigma", .type = ds::ParamType::Float},
       ds::ParamSpec{.name = "beta", .type = ds::ParamType::Float},
+      ds::ParamSpec{.name = "fft_backend", .type = ds::ParamType::String},
       ds::ParamSpec{.name = "planes", .type = ds::ParamType::Integer, .is_array = true, .avs_enabled = false},
       ds::ParamSpec{.name = "bw", .type = ds::ParamType::Integer},
       ds::ParamSpec{.name = "bh", .type = ds::ParamType::Integer},

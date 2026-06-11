@@ -28,6 +28,7 @@
         "width": 64
       },
       "params": {
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1
       },
@@ -63,6 +64,7 @@
         "width": 64
       },
       "params": {
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1
       },
@@ -98,6 +100,7 @@
         "width": 64
       },
       "params": {
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1
       },
@@ -125,6 +128,7 @@
         "width": 64
       },
       "params": {
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1
       },
@@ -152,6 +156,7 @@
         "width": 64
       },
       "params": {
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1
       },
@@ -179,6 +184,7 @@
         "width": 64
       },
       "params": {
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1
       },
@@ -215,6 +221,7 @@
       },
       "params": {
         "bt": 0,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sigma": 3.0
@@ -252,6 +259,7 @@
       },
       "params": {
         "bt": 0,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sigma": 3.0
@@ -289,6 +297,7 @@
       },
       "params": {
         "bt": 0,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sigma": 3.0
@@ -318,6 +327,7 @@
       },
       "params": {
         "bt": 0,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sigma": 3.0
@@ -347,6 +357,7 @@
       },
       "params": {
         "bt": 0,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sigma": 3.0
@@ -376,6 +387,7 @@
       },
       "params": {
         "bt": 0,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sigma": 3.0
@@ -413,6 +425,7 @@
       },
       "params": {
         "bt": 1,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sigma": 2.5
@@ -450,6 +463,7 @@
       },
       "params": {
         "bt": 1,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sigma": 2.5
@@ -487,6 +501,7 @@
       },
       "params": {
         "bt": 1,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sigma": 2.5
@@ -516,6 +531,7 @@
       },
       "params": {
         "bt": 1,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sigma": 2.5
@@ -545,6 +561,7 @@
       },
       "params": {
         "bt": 1,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sigma": 2.5
@@ -574,6 +591,7 @@
       },
       "params": {
         "bt": 1,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sigma": 2.5
@@ -611,6 +629,7 @@
       },
       "params": {
         "bt": 1,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sharpen": 1.5
@@ -648,6 +667,7 @@
       },
       "params": {
         "bt": 1,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sharpen": 1.5
@@ -685,6 +705,7 @@
       },
       "params": {
         "bt": 1,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sharpen": 1.5
@@ -714,6 +735,7 @@
       },
       "params": {
         "bt": 1,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sharpen": 1.5
@@ -743,6 +765,7 @@
       },
       "params": {
         "bt": 1,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sharpen": 1.5
@@ -772,6 +795,7 @@
       },
       "params": {
         "bt": 1,
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1,
         "sharpen": 1.5
@@ -818,6 +842,7 @@
         "width": 64
       },
       "params": {
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1
       },
@@ -863,6 +888,7 @@
         "width": 64
       },
       "params": {
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1
       },
@@ -908,6 +934,7 @@
         "width": 64
       },
       "params": {
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1
       },
@@ -945,6 +972,7 @@
         "width": 64
       },
       "params": {
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1
       },
@@ -982,6 +1010,7 @@
         "width": 64
       },
       "params": {
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1
       },
@@ -1019,6 +1048,7 @@
         "width": 64
       },
       "params": {
+        "fft_backend": "pocketfft",
         "mt": false,
         "ncpu": 1
       },

@@ -23,6 +23,7 @@
         8
       ],
       "params": {
+        "fft_backend": "pocketfft",
         "opt": 1,
         "bt": 3,
         "ncpu": 1,
@@ -52,6 +53,7 @@
         8
       ],
       "params": {
+        "fft_backend": "pocketfft",
         "opt": 2,
         "bt": 3,
         "ncpu": 1,
@@ -81,6 +83,7 @@
         8
       ],
       "params": {
+        "fft_backend": "pocketfft",
         "opt": 3,
         "bt": 3,
         "ncpu": 1,
@@ -101,6 +104,7 @@
         8
       ],
       "params": {
+        "fft_backend": "pocketfft",
         "bt": 3,
         "sigma": 3.0,
         "ncpu": 1,

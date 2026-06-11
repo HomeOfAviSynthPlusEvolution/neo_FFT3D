@@ -55,13 +55,17 @@ struct FFTFunctionPointers {
   #else
     #ifdef __MACH__
       #define LIBFFTW3F_LIBNAME "libfftw3f_threads.dylib"
-      #define LIBFFTW3F_LIBNAME_NOT_FOUND LIBFFTW3F_LIBNAME " not found. Please install libfftw3."
+      #define LIBFFTW3F_LIBNAME_VERSIONED "libfftw3f_threads.3.dylib"
+      #define LIBFFTW3F_LIBNAME_NOT_FOUND LIBFFTW3F_LIBNAME " or " LIBFFTW3F_LIBNAME_VERSIONED " not found. Please install libfftw3."
     #else
       #define LIBFFTW3F_LIBNAME "libfftw3f_threads.so"
-      #define LIBFFTW3F_LIBNAME_NOT_FOUND LIBFFTW3F_LIBNAME " not found. Please install libfftw3-single3 (deb) or fftw-devel (rpm) package."
+      #define LIBFFTW3F_LIBNAME_VERSIONED "libfftw3f_threads.so.3"
+      #define LIBFFTW3F_LIBNAME_NOT_FOUND LIBFFTW3F_LIBNAME " or " LIBFFTW3F_LIBNAME_VERSIONED " not found. Please install libfftw3-single3 (deb) or fftw-devel (rpm) package."
     #endif
     void fftw3_open() {
       library = dlopen(LIBFFTW3F_LIBNAME, RTLD_NOW);
+      if (library == nullptr)
+        library = dlopen(LIBFFTW3F_LIBNAME_VERSIONED, RTLD_NOW);
       if (library == nullptr)
         throw(LIBFFTW3F_LIBNAME_NOT_FOUND);
     }
