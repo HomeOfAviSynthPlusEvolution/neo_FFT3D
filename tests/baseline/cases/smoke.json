@@ -24,6 +24,7 @@
       ],
       "params": {
         "fft_backend": "pocketfft",
+        "measure": false,
         "ncpu": 1,
         "mt": false
       }
@@ -54,6 +55,7 @@
         "fft_backend": "pocketfft",
         "bt": 0,
         "sigma": 3.0,
+        "measure": false,
         "ncpu": 1,
         "mt": false
       }
@@ -84,6 +86,7 @@
         "fft_backend": "pocketfft",
         "bt": 1,
         "sigma": 2.5,
+        "measure": false,
         "ncpu": 1,
         "mt": false
       }
@@ -114,6 +117,7 @@
         "fft_backend": "pocketfft",
         "bt": 1,
         "sharpen": 1.5,
+        "measure": false,
         "ncpu": 1,
         "mt": false
       }
@@ -144,6 +148,7 @@
       ],
       "params": {
         "fft_backend": "pocketfft",
+        "measure": false,
         "ncpu": 1,
         "mt": false
       }

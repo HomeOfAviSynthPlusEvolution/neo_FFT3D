@@ -26,12 +26,13 @@
         "fft_backend": "pocketfft",
         "opt": 1,
         "bt": 3,
+        "measure": false,
         "ncpu": 1,
         "mt": false
       }
     },
     {
-      "id": "compat_y8_opt2_sse2",
+      "id": "compat_y8_opt2_highway",
       "tier": "compat",
       "source": {
         "id": "blank_y8_64x48_9f",
@@ -56,12 +57,13 @@
         "fft_backend": "pocketfft",
         "opt": 2,
         "bt": 3,
+        "measure": false,
         "ncpu": 1,
         "mt": false
       }
     },
     {
-      "id": "compat_y8_opt3_avx",
+      "id": "compat_y8_opt3_highway",
       "tier": "compat",
       "source": {
         "id": "blank_y8_64x48_9f",
@@ -86,6 +88,7 @@
         "fft_backend": "pocketfft",
         "opt": 3,
         "bt": 3,
+        "measure": false,
         "ncpu": 1,
         "mt": false
       }
@@ -107,6 +110,7 @@
         "fft_backend": "pocketfft",
         "bt": 3,
         "sigma": 3.0,
+        "measure": false,
         "ncpu": 1,
         "mt": false
       }

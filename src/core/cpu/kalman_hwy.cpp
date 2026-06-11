@@ -89,17 +89,19 @@ void Kalman_Hwy_Impl(float* outcur_ptr, float* outLast_ptr, float* pattern2d_ptr
 
 template <bool pattern>
 void Kalman_Hwy_Wrap(fftwf_complex* outcur, fftwf_complex* outLast, SharedFunctionParams sfp) {
-  int size = sfp.outwidth;
+  const int size = sfp.outpitch;
   for (int block = 0; block < sfp.howmanyblocks; block++) {
     float* outcur_ptr = reinterpret_cast<float*>(outcur + block * sfp.outpitch * sfp.bh);
     float* outLast_ptr = reinterpret_cast<float*>(outLast + block * sfp.outpitch * sfp.bh);
+    float* cov_ptr = reinterpret_cast<float*>(sfp.covar + block * sfp.outpitch * sfp.bh);
+    float* covP_ptr = reinterpret_cast<float*>(sfp.covarProcess + block * sfp.outpitch * sfp.bh);
 
     for (int h = 0; h < sfp.bh; h++) {
       float* outcur_row = outcur_ptr + h * sfp.outpitch * 2;
       float* outLast_row = outLast_ptr + h * sfp.outpitch * 2;
       float* pat_row = sfp.pattern2d + h * sfp.outpitch;
-      float* cov_row = reinterpret_cast<float*>(sfp.covar) + h * sfp.outpitch * 2;
-      float* covP_row = reinterpret_cast<float*>(sfp.covarProcess) + h * sfp.outpitch * 2;
+      float* cov_row = cov_ptr + h * sfp.outpitch * 2;
+      float* covP_row = covP_ptr + h * sfp.outpitch * 2;
 
       Kalman_Hwy_Impl<pattern>(outcur_row, outLast_row, pat_row, cov_row, covP_row, sfp, size);
     }

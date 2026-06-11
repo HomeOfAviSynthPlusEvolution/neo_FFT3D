@@ -30,6 +30,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 1
@@ -68,6 +69,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 1
@@ -106,6 +108,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 1
@@ -136,6 +139,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 1
@@ -166,6 +170,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 1
@@ -196,6 +201,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 1
@@ -205,7 +211,7 @@
       "tier": "compat"
     },
     {
-      "case": "compat_y8_opt2_sse2",
+      "case": "compat_y8_opt2_highway",
       "frame": 0,
       "host": "vs",
       "metadata": {
@@ -234,6 +240,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 2
@@ -243,7 +250,7 @@
       "tier": "compat"
     },
     {
-      "case": "compat_y8_opt2_sse2",
+      "case": "compat_y8_opt2_highway",
       "frame": 4,
       "host": "vs",
       "metadata": {
@@ -272,6 +279,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 2
@@ -281,7 +289,7 @@
       "tier": "compat"
     },
     {
-      "case": "compat_y8_opt2_sse2",
+      "case": "compat_y8_opt2_highway",
       "frame": 8,
       "host": "vs",
       "metadata": {
@@ -310,6 +318,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 2
@@ -319,7 +328,7 @@
       "tier": "compat"
     },
     {
-      "case": "compat_y8_opt2_sse2",
+      "case": "compat_y8_opt2_highway",
       "frame": 0,
       "host": "avs",
       "metadata": {
@@ -340,6 +349,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 2
@@ -349,7 +359,7 @@
       "tier": "compat"
     },
     {
-      "case": "compat_y8_opt2_sse2",
+      "case": "compat_y8_opt2_highway",
       "frame": 4,
       "host": "avs",
       "metadata": {
@@ -370,6 +380,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 2
@@ -379,7 +390,7 @@
       "tier": "compat"
     },
     {
-      "case": "compat_y8_opt2_sse2",
+      "case": "compat_y8_opt2_highway",
       "frame": 8,
       "host": "avs",
       "metadata": {
@@ -400,6 +411,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 2
@@ -409,7 +421,7 @@
       "tier": "compat"
     },
     {
-      "case": "compat_y8_opt3_avx",
+      "case": "compat_y8_opt3_highway",
       "frame": 0,
       "host": "vs",
       "metadata": {
@@ -438,6 +450,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 3
@@ -447,7 +460,7 @@
       "tier": "compat"
     },
     {
-      "case": "compat_y8_opt3_avx",
+      "case": "compat_y8_opt3_highway",
       "frame": 4,
       "host": "vs",
       "metadata": {
@@ -476,6 +489,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 3
@@ -485,7 +499,7 @@
       "tier": "compat"
     },
     {
-      "case": "compat_y8_opt3_avx",
+      "case": "compat_y8_opt3_highway",
       "frame": 8,
       "host": "vs",
       "metadata": {
@@ -514,6 +528,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 3
@@ -523,7 +538,7 @@
       "tier": "compat"
     },
     {
-      "case": "compat_y8_opt3_avx",
+      "case": "compat_y8_opt3_highway",
       "frame": 0,
       "host": "avs",
       "metadata": {
@@ -544,6 +559,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 3
@@ -553,7 +569,7 @@
       "tier": "compat"
     },
     {
-      "case": "compat_y8_opt3_avx",
+      "case": "compat_y8_opt3_highway",
       "frame": 4,
       "host": "avs",
       "metadata": {
@@ -574,6 +590,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 3
@@ -583,7 +600,7 @@
       "tier": "compat"
     },
     {
-      "case": "compat_y8_opt3_avx",
+      "case": "compat_y8_opt3_highway",
       "frame": 8,
       "host": "avs",
       "metadata": {
@@ -604,6 +621,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "opt": 3
@@ -652,11 +670,12 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "sigma": 3.0
       },
-      "sha256": "106201462d735415a03220f20f859f2ae2b336f69ac33e044ddc8abeb2938cad",
+      "sha256": "0969104f7b98bdbe6376d318d96acb4b69a56029f06a99766e699ed62664e7e4",
       "source": "mp4_yuv420p8_1280x720_10f",
       "tier": "compat"
     },
@@ -700,6 +719,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "sigma": 3.0
@@ -748,6 +768,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "sigma": 3.0
@@ -788,11 +809,12 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "sigma": 3.0
       },
-      "sha256": "106201462d735415a03220f20f859f2ae2b336f69ac33e044ddc8abeb2938cad",
+      "sha256": "0969104f7b98bdbe6376d318d96acb4b69a56029f06a99766e699ed62664e7e4",
       "source": "mp4_yuv420p8_1280x720_10f",
       "tier": "compat"
     },
@@ -828,6 +850,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "sigma": 3.0
@@ -868,6 +891,7 @@
       "params": {
         "bt": 3,
         "fft_backend": "pocketfft",
+        "measure": false,
         "mt": false,
         "ncpu": 1,
         "sigma": 3.0

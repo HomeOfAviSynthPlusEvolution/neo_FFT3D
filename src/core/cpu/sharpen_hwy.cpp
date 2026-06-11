@@ -16,13 +16,13 @@ namespace HWY_NAMESPACE {
 namespace hn = hwy::HWY_NAMESPACE;
 
 template <bool degrid, bool sharpen, bool dehalo>
-void Sharpen_Hwy_Impl(float* out_complex_ptr, float* gridsample_ptr, float* wsharpen_ptr, float* wdehalo_ptr, SharedFunctionParams sfp, int size) {
+void Sharpen_Hwy_Impl(float* out_complex_ptr, float* gridsample_ptr, float* wsharpen_ptr, float* wdehalo_ptr, SharedFunctionParams sfp, int size, float gridfraction) {
   const hn::ScalableTag<float> d;
   const size_t N = hn::Lanes(d);
 
   const auto zero = hn::Zero(d);
   const auto one = hn::Set(d, 1.0f);
-  const auto grid_frac = hn::Set(d, sfp.degrid * out_complex_ptr[0] / (gridsample_ptr[0] + 1e-15f));
+  const auto grid_frac = hn::Set(d, gridfraction);
 
   const auto s_factor_coef = hn::Set(d, sfp.sharpen);
   const auto s_coef_max = hn::Set(d, sfp.sigmaSquaredSharpenMaxNormed);
@@ -92,24 +92,27 @@ void Sharpen_Hwy_Impl(float* out_complex_ptr, float* gridsample_ptr, float* wsha
 
 template <bool degrid>
 void Sharpen_Hwy_Wrap(fftwf_complex* out, SharedFunctionParams sfp) {
-  int size = sfp.outwidth;
+  const int size = sfp.outpitch;
   for (int block = 0; block < sfp.howmanyblocks; block++) {
-    float* out_ptr = reinterpret_cast<float*>(out + block * sfp.outpitch * sfp.bh);
+    fftwf_complex* out_block = out + block * sfp.outpitch * sfp.bh;
+    float* out_ptr = reinterpret_cast<float*>(out_block);
+    float* gs_ptr = reinterpret_cast<float*>(sfp.gridsample);
+    const float gridfraction = degrid ? sfp.degrid * out_block[0][0] / sfp.gridsample[0][0] : 0.0f;
 
     for (int h = 0; h < sfp.bh; h++) {
       float* out_row = out_ptr + h * sfp.outpitch * 2;
-      float* gs_row = reinterpret_cast<float*>(sfp.gridsample) + h * sfp.outpitch * 2;
+      float* gs_row = gs_ptr + h * sfp.outpitch * 2;
       float* ws_row = sfp.wsharpen + h * sfp.outpitch;
       float* wd_row = sfp.wdehalo + h * sfp.outpitch;
 
       if (sfp.sharpen == 0.0f && sfp.dehalo == 0.0f) {
         return;
       } else if (sfp.sharpen != 0.0f && sfp.dehalo == 0.0f) {
-        Sharpen_Hwy_Impl<degrid, true, false>(out_row, gs_row, ws_row, wd_row, sfp, size);
+        Sharpen_Hwy_Impl<degrid, true, false>(out_row, gs_row, ws_row, wd_row, sfp, size, gridfraction);
       } else if (sfp.sharpen == 0.0f && sfp.dehalo != 0.0f) {
-        Sharpen_Hwy_Impl<degrid, false, true>(out_row, gs_row, ws_row, wd_row, sfp, size);
+        Sharpen_Hwy_Impl<degrid, false, true>(out_row, gs_row, ws_row, wd_row, sfp, size, gridfraction);
       } else {
-        Sharpen_Hwy_Impl<degrid, true, true>(out_row, gs_row, ws_row, wd_row, sfp, size);
+        Sharpen_Hwy_Impl<degrid, true, true>(out_row, gs_row, ws_row, wd_row, sfp, size, gridfraction);
       }
     }
   }

@@ -124,9 +124,11 @@ add_vapoursynth_compat_headers(vapoursynth_headers)
 file(GLOB CODE "src/*.cpp")
 file(GLOB CODE_FFT "src/fft/*.cpp")
 file(GLOB CODE_CORE "src/core/cpu/*.cpp")
-file(GLOB CODE_IMPL "src/code_impl/*.cpp")
-file(GLOB AVX_CODE_IMPL "src/code_impl/*AVX.cpp")
-file(GLOB AVX512_CODE_IMPL "src/code_impl/*AVX512.cpp")
+set(CODE_IMPL
+  src/code_impl/Apply.cpp
+  src/code_impl/Kalman.cpp
+  src/code_impl/Sharpen.cpp
+)
 
 add_library(neo-fft3d SHARED
   src/plugin/plugin_entry.cpp
@@ -152,15 +154,6 @@ target_include_directories(neo-fft3d PRIVATE
   ${pocketfft_SOURCE_DIR}
   ${CMAKE_CURRENT_BINARY_DIR}/generated
 )
-
-# 临时保留旧指令集编译规则 (在后续阶段使用 Highway 重构时将删除)
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  set_source_files_properties(${AVX_CODE_IMPL} PROPERTIES COMPILE_FLAGS "/arch:AVX")
-  set_source_files_properties(${AVX512_CODE_IMPL} PROPERTIES COMPILE_FLAGS "/arch:AVX512")
-else()
-  set_source_files_properties(${AVX_CODE_IMPL} PROPERTIES COMPILE_FLAGS "-mavx")
-  set_source_files_properties(${AVX512_CODE_IMPL} PROPERTIES COMPILE_FLAGS "-mavx512f")
-endif()
 
 target_compile_definitions(neo-fft3d PRIVATE _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_DEPRECATE)
 
