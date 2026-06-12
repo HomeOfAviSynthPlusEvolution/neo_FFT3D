@@ -16,6 +16,7 @@ set(NEO_FFT3D_ENGINE_SOURCES
   src/engine/frame_cover.cpp
   src/engine/frame_buffer.hpp
   src/engine/frame_views.hpp
+  src/engine/fft3d_engine.cpp
   src/engine/fft3d_engine.hpp
   src/engine/overlap_transform.cpp
   src/engine/pattern_analysis.cpp
