@@ -2,6 +2,41 @@
 #include <numeric>
 #pragma warning (disable: 26451)
 
+namespace {
+
+template <class View>
+int view_width_bytes(View view) {
+  return static_cast<int>(view.extent(1));
+}
+
+template <class View>
+int view_height(View view) {
+  return static_cast<int>(view.extent(0));
+}
+
+template <class View>
+int view_stride_bytes(View view) {
+  return static_cast<int>(view.mapping().stride(0));
+}
+
+int view_width_samples(neo_fft3d::BytePlaneView view, int bytes_per_sample) {
+  return view_width_bytes(view) / bytes_per_sample;
+}
+
+int view_stride_samples(neo_fft3d::BytePlaneView view, int bytes_per_sample) {
+  return view_stride_bytes(view) / bytes_per_sample;
+}
+
+int view_width_samples(neo_fft3d::MutableBytePlaneView view, int bytes_per_sample) {
+  return view_width_bytes(view) / bytes_per_sample;
+}
+
+int view_stride_samples(neo_fft3d::MutableBytePlaneView view, int bytes_per_sample) {
+  return view_stride_bytes(view) / bytes_per_sample;
+}
+
+} // namespace
+
 template<typename pixel_t>
 static void FrameToCover_impl(const pixel_t *srcp, int src_width, int src_height, int src_pitch, pixel_t *coverbuf, int coverwidth, int coverheight, int coverpitch, int mirw, int mirh, bool interlaced)
 {
@@ -559,7 +594,7 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
   }
 }
 
-void FrameToCover(EngineParams * ep, int plane, const byte *src_ptr, byte *coverbuf, int coverwidth, int coverheight, int coverpitch, int mirw, int mirh)
+void FrameToCover(EngineParams * ep, int plane, neo_fft3d::BytePlaneView src, neo_fft3d::MutableBytePlaneView cover, int mirw, int mirh)
 {
   auto l = ep->IsChroma ? (ep->l >> ep->vi.Format.SSW) : ep->l;
   auto r = ep->IsChroma ? (ep->r >> ep->vi.Format.SSW) : ep->r;
@@ -567,19 +602,24 @@ void FrameToCover(EngineParams * ep, int plane, const byte *src_ptr, byte *cover
   auto b = ep->IsChroma ? (ep->b >> ep->vi.Format.SSH) : ep->b;
   auto width = ep->framewidth - l - r;
   auto height = ep->frameheight - t - b;
-  auto new_src_ptr = src_ptr + (t * ep->framepitch + l) * ep->vi.Format.BytesPerSample;
+  const int bytes_per_sample = ep->vi.Format.BytesPerSample;
+  const int src_pitch = view_stride_samples(src, bytes_per_sample);
+  const int coverwidth = view_width_samples(cover, bytes_per_sample);
+  const int coverheight = view_height(cover);
+  const int coverpitch = view_stride_samples(cover, bytes_per_sample);
+  auto new_src_ptr = src.data_handle() + (t * src_pitch + l) * bytes_per_sample;
   switch (ep->vi.Format.BitsPerSample)
   {
-  case 8: FrameToCover_impl<uint8_t>(new_src_ptr, width, height, ep->framepitch, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
+  case 8: FrameToCover_impl<uint8_t>(new_src_ptr, width, height, src_pitch, cover.data_handle(), coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
   case 10:
   case 12:
   case 14:
-  case 16: FrameToCover_impl<uint16_t>((uint16_t *)new_src_ptr, width, height, ep->framepitch, (uint16_t *)coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
-  case 32: FrameToCover_impl<float>((float *)new_src_ptr, width, height, ep->framepitch, (float *)coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
+  case 16: FrameToCover_impl<uint16_t>((uint16_t *)new_src_ptr, width, height, src_pitch, (uint16_t *)cover.data_handle(), coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
+  case 32: FrameToCover_impl<float>((float *)new_src_ptr, width, height, src_pitch, (float *)cover.data_handle(), coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
   }
 }
 
-void CoverToFrame(EngineParams * ep, int plane, const byte *coverbuf, int coverwidth, int coverheight, int coverpitch, byte *dst_ptr, int mirw, int mirh)
+void CoverToFrame(EngineParams * ep, int plane, neo_fft3d::BytePlaneView cover, neo_fft3d::MutableBytePlaneView dst, int mirw, int mirh)
 {
   auto l = ep->IsChroma ? (ep->l >> ep->vi.Format.SSW) : ep->l;
   auto r = ep->IsChroma ? (ep->r >> ep->vi.Format.SSW) : ep->r;
@@ -587,20 +627,31 @@ void CoverToFrame(EngineParams * ep, int plane, const byte *coverbuf, int coverw
   auto b = ep->IsChroma ? (ep->b >> ep->vi.Format.SSH) : ep->b;
   auto width = ep->framewidth - l - r;
   auto height = ep->frameheight - t - b;
-  auto new_dst_ptr = dst_ptr + (t * ep->framepitch_dst + l) * ep->vi.Format.BytesPerSample;
+  const int bytes_per_sample = ep->vi.Format.BytesPerSample;
+  const int coverwidth = view_width_samples(cover, bytes_per_sample);
+  const int coverheight = view_height(cover);
+  const int coverpitch = view_stride_samples(cover, bytes_per_sample);
+  const int dst_pitch = view_stride_samples(dst, bytes_per_sample);
+  auto new_dst_ptr = dst.data_handle() + (t * dst_pitch + l) * bytes_per_sample;
   switch (ep->vi.Format.BitsPerSample)
   {
-  case 8: CoverToFrame_impl<uint8_t>(coverbuf, coverwidth, coverheight, coverpitch, new_dst_ptr, width, height, ep->framepitch_dst, mirw, mirh, ep->interlaced); break;
+  case 8: CoverToFrame_impl<uint8_t>(cover.data_handle(), coverwidth, coverheight, coverpitch, new_dst_ptr, width, height, dst_pitch, mirw, mirh, ep->interlaced); break;
   case 10:
   case 12:
   case 14:
-  case 16: CoverToFrame_impl<uint16_t>((uint16_t *)coverbuf, coverwidth, coverheight, coverpitch, (uint16_t *)new_dst_ptr, width, height, ep->framepitch_dst, mirw, mirh, ep->interlaced); break;
-  case 32: CoverToFrame_impl<float>((float *)coverbuf, coverwidth, coverheight, coverpitch, (float *)new_dst_ptr, width, height, ep->framepitch_dst, mirw, mirh, ep->interlaced); break;
+  case 16: CoverToFrame_impl<uint16_t>((uint16_t *)cover.data_handle(), coverwidth, coverheight, coverpitch, (uint16_t *)new_dst_ptr, width, height, dst_pitch, mirw, mirh, ep->interlaced); break;
+  case 32: CoverToFrame_impl<float>((float *)cover.data_handle(), coverwidth, coverheight, coverpitch, (float *)new_dst_ptr, width, height, dst_pitch, mirw, mirh, ep->interlaced); break;
   }
 }
 
-void CoverToOverlap(EngineParams * ep, IOParams * iop, float *dst_ptr, const byte *src_ptr, int src_width, int src_pitch, bool chroma)
+void CoverToOverlap(EngineParams * ep, IOParams * iop, neo_fft3d::FloatSpan dst, neo_fft3d::BytePlaneView src, bool chroma)
 {
+  const int bytes_per_sample = ep->vi.Format.BytesPerSample;
+  const int src_width = view_width_samples(src, bytes_per_sample);
+  const int src_pitch = view_stride_samples(src, bytes_per_sample);
+  const byte* src_ptr = src.data_handle();
+  float* dst_ptr = dst.data();
+
   // for float: chroma center is also 0.0
   if (chroma) {
     switch (ep->vi.Format.BitsPerSample) {
@@ -624,8 +675,14 @@ void CoverToOverlap(EngineParams * ep, IOParams * iop, float *dst_ptr, const byt
   }
 }
 
-void OverlapToCover(EngineParams * ep, IOParams * iop, float *src_ptr, float norm, byte *dst_ptr, int dst_width, int dst_pitch, bool chroma)
+void OverlapToCover(EngineParams * ep, IOParams * iop, neo_fft3d::FloatSpan src, float norm, neo_fft3d::MutableBytePlaneView dst, bool chroma)
 {
+  const int bytes_per_sample = ep->vi.Format.BytesPerSample;
+  const int dst_width = view_width_samples(dst, bytes_per_sample);
+  const int dst_pitch = view_stride_samples(dst, bytes_per_sample);
+  float* src_ptr = src.data();
+  byte* dst_ptr = dst.data_handle();
+
   if (chroma) {
     switch (ep->vi.Format.BitsPerSample) {
     case 8: OverlapToCover_impl<uint8_t, 8, true>(ep, iop, src_ptr, norm, dst_ptr, dst_width, dst_pitch); break;

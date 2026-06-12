@@ -8,6 +8,7 @@
 #include <array>
 #include <complex>
 #include <cstddef>
+#include <span>
 
 namespace neo_fft3d {
 
@@ -18,6 +19,8 @@ using BytePlaneView = PlaneView<const byte>;
 using MutableBytePlaneView = PlaneView<byte>;
 using FloatPlaneView = PlaneView<float>;
 using ConstFloatPlaneView = PlaneView<const float>;
+using FloatSpan = std::span<float>;
+using ConstFloatSpan = std::span<const float>;
 
 inline BytePlaneView make_byte_plane_view(
   const byte* data,
