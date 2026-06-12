@@ -247,7 +247,7 @@ public:
     mt_in.emplace_back(insize);
     auto in = mt_in[0].data();
     mt_out.emplace_back(outsize); //v1.8
-    auto outrez = as_fftw(mt_out[0].data());
+    auto outrez = mt_out[0].data();
     gridsample.resize(outsize); //v1.8
 
     if (ep->bt > 1)
@@ -257,7 +257,7 @@ public:
     const neo_fft3d::fft::PlanOptions plan_options {ep->measure};
     const neo_fft3d::fft::PlanBuffers plan_buffers {
       in,
-      reinterpret_cast<neo_fft3d::fft::Complex*>(outrez)
+      outrez
     };
 
     //	*inembed = NULL;
@@ -525,7 +525,7 @@ public:
 
     byte* coverbuf {nullptr};
     float *in {nullptr};
-    fftwf_complex *outrez {nullptr};
+    std::complex<float>* outrez {nullptr};
     std::size_t required_cache_size {0};
     {
       std::lock_guard<std::mutex> lock(thread_check_mutex);
@@ -550,7 +550,7 @@ public:
       }
       coverbuf = mt_coverbuf[thread_id].data();
       in = mt_in[thread_id].data();
-      outrez = as_fftw(mt_out[thread_id].data());
+      outrez = mt_out[thread_id].data();
     }
     ThreadSlotGuard thread_slot_guard(*this, thread_id);
 
@@ -570,10 +570,10 @@ public:
         // put source bytes to float array of overlapped blocks
         FrameToCover(ep.get(), plane, source_plane_view(psrc_plane), mutable_cover_plane_view(coverbuf), mirw, mirh);
         CoverToOverlap(ep.get(), iop.get(), overlap_span(in), cover_plane_view(coverbuf), ep->IsChroma);
-        plan->Execute(in, reinterpret_cast<std::complex<float>*>(outrez), howmanyblocks);
+        plan->Execute(in, outrez, howmanyblocks);
         if (ep->px == 0 && ep->py == 0) // try find pattern block with minimal noise sigma
-          FindPatternBlock(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin.data(), ep->degrid, as_fftw(gridsample.data()));
-        SetPattern(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin.data(), pattern2d.data(), psigma, ep->degrid, as_fftw(gridsample.data()));
+          FindPatternBlock(as_fftw(outrez), outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin.data(), ep->degrid, as_fftw(gridsample.data()));
+        SetPattern(as_fftw(outrez), outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin.data(), pattern2d.data(), psigma, ep->degrid, as_fftw(gridsample.data()));
         isPatternSet = true;
       }
       else if (ep->pfactor != 0 && ep->pshow == true)
@@ -589,15 +589,15 @@ public:
         FrameToCover(ep.get(), plane, source_plane_view(src_plane), mutable_cover_plane_view(coverbuf), mirw, mirh);
         CoverToOverlap(ep.get(), iop.get(), overlap_span(in), cover_plane_view(coverbuf), ep->IsChroma);
         // make FFT 2D
-        plan->Execute(in, reinterpret_cast<std::complex<float>*>(outrez), howmanyblocks);
+        plan->Execute(in, outrez, howmanyblocks);
         if (ep->px == 0 && ep->py == 0) // try find pattern block with minimal noise sigma
-          FindPatternBlock(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf, pwin.data(), ep->degrid, as_fftw(gridsample.data()));
+          FindPatternBlock(as_fftw(outrez), outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf, pwin.data(), ep->degrid, as_fftw(gridsample.data()));
         else
         {
           pxf = ep->px; // fixed bug in v1.6
           pyf = ep->py;
         }
-        SetPattern(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf, pwin.data(), pattern2d.data(), psigma, ep->degrid, as_fftw(gridsample.data()));
+        SetPattern(as_fftw(outrez), outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf, pwin.data(), pattern2d.data(), psigma, ep->degrid, as_fftw(gridsample.data()));
 
         // change analysis and synthesis window to constant to show
         std::fill_n(iop->wanxl.data(), ep->ow, 1.0f);
@@ -614,11 +614,11 @@ public:
         FrameToCover(ep.get(), plane, source_plane_view(src_plane), mutable_cover_plane_view(coverbuf), mirw, mirh);
         CoverToOverlap(ep.get(), iop.get(), overlap_span(in), cover_plane_view(coverbuf), !ep->vi.Format.IsFamilyRGB);
         // make FFT 2D
-        plan->Execute(in, reinterpret_cast<std::complex<float>*>(outrez), howmanyblocks);
+        plan->Execute(in, outrez, howmanyblocks);
 
-        PutPatternOnly(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf);
+        PutPatternOnly(as_fftw(outrez), outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf);
         // do inverse 2D FFT, get filtered 'in' array
-        planinv->Execute(reinterpret_cast<std::complex<float>*>(outrez), in, howmanyblocks);
+        planinv->Execute(outrez, in, howmanyblocks);
 
         // make destination frame plane from current overlaped blocks
         OverlapToCover(ep.get(), iop.get(), overlap_span(in), norm, mutable_cover_plane_view(coverbuf), !ep->vi.Format.IsFamilyRGB);
@@ -669,7 +669,7 @@ public:
     };
 
     std::shared_ptr<AlignedVector<std::complex<float>>> apply_in_lease[5];
-    fftwf_complex* apply_in_ptr[5] {nullptr};
+    std::complex<float>* apply_in_ptr[5] {nullptr};
 
     if (btcur > 0) // Wiener
     {
@@ -678,10 +678,10 @@ public:
         // cur frame
         FrameToCover(ep.get(), plane, source_plane_view(src_plane), mutable_cover_plane_view(coverbuf), mirw, mirh);
         CoverToOverlap(ep.get(), iop.get(), overlap_span(in), cover_plane_view(coverbuf), ep->IsChroma);
-        plan->Execute(in, reinterpret_cast<std::complex<float>*>(outrez), howmanyblocks);
-        ffp.Apply2D(outrez, sfp);
+        plan->Execute(in, outrez, howmanyblocks);
+        ffp.Apply2D(as_fftw(outrez), sfp);
         if (ep->pfactor != 0)
-          ffp.Sharpen(outrez, sfp);
+          ffp.Sharpen(as_fftw(outrez), sfp);
       }
       else // 3D
       {
@@ -716,12 +716,12 @@ public:
               std::lock_guard<std::mutex> lock1(cache_mutex);
               if (auto cached_lease = fftcache->get_read(n+i)) {
                 apply_in_lease[2+i] = cached_lease;
-                apply_in_ptr[2+i] = as_fftw(cached_lease);
+                apply_in_ptr[2+i] = cached_lease->data();
               }
               else {
                 // Get a write slot but do NOT publish the key yet!
                 apply_in_lease[2+i] = fftcache->get_write(n+i);
-                apply_in_ptr[2+i] = as_fftw(apply_in_lease[2+i]);
+                apply_in_ptr[2+i] = apply_in_lease[2+i]->data();
                 needs_compute = true;
               }
             }
@@ -733,7 +733,7 @@ public:
               CoverToOverlap(ep.get(), iop.get(), overlap_span(in), cover_plane_view(coverbuf), ep->IsChroma);
 
               // Execute FFT OUTSIDE the cache lock
-              plan->Execute(in, as_complex(apply_in_ptr[2+i]), howmanyblocks);
+              plan->Execute(in, apply_in_ptr[2+i], howmanyblocks);
 
               // Publish the key now that the data is ready
               {
@@ -744,12 +744,16 @@ public:
           }
         }
 
-        ffp.Apply3D(apply_in_ptr, outrez, sfp);
-        ffp.Sharpen(outrez, sfp);
+        fftwf_complex* apply_in_fftw[5] {nullptr};
+        for (int slot = 0; slot < 5; ++slot) {
+          apply_in_fftw[slot] = as_fftw(apply_in_ptr[slot]);
+        }
+        ffp.Apply3D(apply_in_fftw, as_fftw(outrez), sfp);
+        ffp.Sharpen(as_fftw(outrez), sfp);
       }
 
       // do inverse FFT, get filtered 'in' array
-      planinv->Execute(reinterpret_cast<std::complex<float>*>(outrez), in, howmanyblocks);
+      planinv->Execute(outrez, in, howmanyblocks);
       // make destination frame plane from current overlaped blocks
       OverlapToCover(ep.get(), iop.get(), overlap_span(in), norm, mutable_cover_plane_view(coverbuf), ep->IsChroma);
       CoverToFrame(ep.get(), plane, cover_plane_view(coverbuf), destination_plane_view(dst_plane), mirw, mirh);
@@ -770,16 +774,16 @@ public:
       // cur frame
       FrameToCover(ep.get(), plane, source_plane_view(src_plane), mutable_cover_plane_view(coverbuf), mirw, mirh);
       CoverToOverlap(ep.get(), iop.get(), overlap_span(in), cover_plane_view(coverbuf), ep->IsChroma);
-      plan->Execute(in, reinterpret_cast<std::complex<float>*>(outrez), howmanyblocks);
-      ffp.Kalman(outrez, as_fftw(outLast.data()), sfp);
+      plan->Execute(in, outrez, howmanyblocks);
+      ffp.Kalman(as_fftw(outrez), as_fftw(outLast.data()), sfp);
 
       // copy outLast to outrez
-      memcpy(outrez, outLast.data(), outsize * sizeof(fftwf_complex));  //v.0.9.2
-      ffp.Sharpen(outrez, sfp);
+      memcpy(outrez, outLast.data(), outsize * sizeof(std::complex<float>));  //v.0.9.2
+      ffp.Sharpen(as_fftw(outrez), sfp);
       // do inverse FFT 2D, get filtered 'in' array
       // note: input "out" array is destroyed by execute algo.
       // that is why we must have its copy in "outLast" array
-      planinv->Execute(reinterpret_cast<std::complex<float>*>(outrez), in, howmanyblocks);
+      planinv->Execute(outrez, in, howmanyblocks);
       // make destination frame plane from current overlaped blocks
       OverlapToCover(ep.get(), iop.get(), overlap_span(in), norm, mutable_cover_plane_view(coverbuf), ep->IsChroma);
       CoverToFrame(ep.get(), plane, cover_plane_view(coverbuf), destination_plane_view(dst_plane), mirw, mirh);
@@ -789,10 +793,10 @@ public:
     {
       FrameToCover(ep.get(), plane, source_plane_view(src_plane), mutable_cover_plane_view(coverbuf), mirw, mirh);
       CoverToOverlap(ep.get(), iop.get(), overlap_span(in), cover_plane_view(coverbuf), ep->IsChroma);
-      plan->Execute(in, reinterpret_cast<std::complex<float>*>(outrez), howmanyblocks);
-      ffp.Sharpen(outrez, sfp);
+      plan->Execute(in, outrez, howmanyblocks);
+      ffp.Sharpen(as_fftw(outrez), sfp);
       // do inverse FFT 2D, get filtered 'in' array
-      planinv->Execute(reinterpret_cast<std::complex<float>*>(outrez), in, howmanyblocks);
+      planinv->Execute(outrez, in, howmanyblocks);
       // make destination frame plane from current overlaped blocks
       OverlapToCover(ep.get(), iop.get(), overlap_span(in), norm, mutable_cover_plane_view(coverbuf), ep->IsChroma);
       CoverToFrame(ep.get(), plane, cover_plane_view(coverbuf), destination_plane_view(dst_plane), mirw, mirh);
