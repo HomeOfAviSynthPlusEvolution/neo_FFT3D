@@ -128,13 +128,13 @@ set(NEO_FFT3D_PLUGIN_SOURCES
 )
 
 set(NEO_FFT3D_ENGINE_SOURCES
-  src/buffer.cpp
-  src/buffer.h
   src/cache.hpp
   src/common/aligned_vector.hpp
   src/common/fft3d_views.hpp
   src/cpuid.cpp
   src/engine/engine_params.hpp
+  src/engine/frame_buffer.cpp
+  src/engine/frame_buffer.hpp
   src/engine/fft3d_engine.hpp
   src/fft3d_common.h
   src/fftwlite.h

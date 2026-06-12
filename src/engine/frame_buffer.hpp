@@ -1,6 +1,6 @@
 #pragma once
-#ifndef __BUFFER_H__
-#define __BUFFER_H__
+#ifndef NEO_FFT3D_ENGINE_FRAME_BUFFER_HPP
+#define NEO_FFT3D_ENGINE_FRAME_BUFFER_HPP
 
 #include "fft3d_common.h"
 #include "common/fft3d_views.hpp"

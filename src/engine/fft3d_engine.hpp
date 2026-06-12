@@ -15,8 +15,8 @@
 #include "fft/fftw_lock.hpp"
 #include "functions.h"
 #include "helper.h"
-#include "buffer.h"
 #include "cache.hpp"
+#include "engine/frame_buffer.hpp"
 
 #include <dualsynth/video_filter.hpp>
 
