@@ -217,6 +217,19 @@ if (NEO_FFT3D_BUILD_TEST_TOOLS)
   )
   set_tests_properties(neo-fft3d_baseline_unit_tests PROPERTIES ENVIRONMENT "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}")
 
+  include(FetchContent)
+  FetchContent_Declare(
+    Catch2
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG        v3.4.0
+  )
+  FetchContent_MakeAvailable(Catch2)
+
+  add_executable(neo-fft3d_cache_test tests/unit/cache_test.cpp)
+  target_include_directories(neo-fft3d_cache_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/src")
+  target_link_libraries(neo-fft3d_cache_test PRIVATE Catch2::Catch2WithMain)
+  add_test(NAME neo-fft3d_cache_test COMMAND "$<TARGET_FILE:neo-fft3d_cache_test>")
+
   add_executable(neo-fft3d_c_apply_null_slots_test
     tests/unit/c_apply_null_slots_test.cpp
     src/code_impl/Apply.cpp

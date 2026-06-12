@@ -649,8 +649,8 @@ public:
           std::lock_guard<std::mutex> lock1(cache_mutex);
           for (auto i = from; i <= to; i++)
           {
-            if (fftcache->exists(n+i)) {
-              apply_in[2+i] = fftcache->get_read(n+i);
+            if (auto* cached_data = fftcache->get_read(n+i)) {
+              apply_in[2+i] = cached_data;
             }
             else {
               DSFrame frame;

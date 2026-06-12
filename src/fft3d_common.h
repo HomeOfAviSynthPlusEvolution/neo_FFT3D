@@ -27,6 +27,10 @@
 #include "fftwlite.h"
 #include "dualsynth_compat.hpp"
 
+#ifndef FRAME_ALIGN
+  #define FRAME_ALIGN 64
+#endif
+
 typedef unsigned char byte;
 
 #ifndef _WIN32
