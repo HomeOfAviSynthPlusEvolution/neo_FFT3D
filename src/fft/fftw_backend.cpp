@@ -1,30 +1,31 @@
 #include "fft/fft_backend.hpp"
-#include "fftwlite.h"
+#include "fft/fftw_runtime.hpp"
 
 #include <stdexcept>
+#include <utility>
 
 namespace neo_fft3d::fft {
 namespace {
 
 class FftwPlan final : public FFTPlan {
 public:
-  FftwPlan(FFTFunctionPointers& api, fftwf_plan plan, Direction dir, int batch) noexcept
-    : api_(api), plan_(plan), dir_(dir), batch_(batch) {}
+  FftwPlan(std::shared_ptr<const FftwRuntime> api, fftwf_plan plan, Direction dir, int batch) noexcept
+    : api_(std::move(api)), plan_(plan), dir_(dir), batch_(batch) {}
 
   ~FftwPlan() override {
     if (plan_ != nullptr) {
-      api_.fftwf_destroy_plan(plan_);
+      api_->fftwf_destroy_plan(plan_);
     }
   }
 
   void Execute(float* real_in, std::complex<float>* complex_out, int count) override {
     Validate(Direction::r2c, count);
-    api_.fftwf_execute_dft_r2c(plan_, real_in, reinterpret_cast<fftwf_complex*>(complex_out));
+    api_->fftwf_execute_dft_r2c(plan_, real_in, reinterpret_cast<fftwf_complex*>(complex_out));
   }
 
   void Execute(std::complex<float>* complex_in, float* real_out, int count) override {
     Validate(Direction::c2r, count);
-    api_.fftwf_execute_dft_c2r(plan_, reinterpret_cast<fftwf_complex*>(complex_in), real_out);
+    api_->fftwf_execute_dft_c2r(plan_, reinterpret_cast<fftwf_complex*>(complex_in), real_out);
   }
 
 private:
@@ -37,7 +38,7 @@ private:
     }
   }
 
-  FFTFunctionPointers& api_;
+  std::shared_ptr<const FftwRuntime> api_;
   fftwf_plan plan_ {nullptr};
   Direction dir_;
   int batch_;
@@ -45,10 +46,6 @@ private:
 
 class FftwBackend final : public FFTBackend {
 public:
-  FftwBackend() {
-    api_ = std::make_unique<FFTFunctionPointers>();
-  }
-
   ~FftwBackend() override {
     Unload();
   }
@@ -57,25 +54,24 @@ public:
 
   bool Load() override {
     try {
-      api_->load();
+      api_ = FftwRuntime::Load();
       return Loaded();
     } catch (...) {
+      api_.reset();
       return false;
     }
   }
 
   void Unload() noexcept override {
-    if (Loaded()) {
-      api_->free();
-    }
+    api_.reset();
   }
 
   [[nodiscard]] bool Loaded() const noexcept override {
-    return api_->library != nullptr;
+    return api_ != nullptr && api_->loaded();
   }
 
   [[nodiscard]] bool HasThreading() const noexcept override {
-    return api_->has_threading();
+    return api_ != nullptr && api_->has_threading();
   }
 
   void SetThreadCount(int nthreads) override {
@@ -129,11 +125,11 @@ public:
       throw std::runtime_error("fftw: failed to create plan");
     }
 
-    return std::make_unique<FftwPlan>(*api_, plan, dir, max_batch);
+    return std::make_unique<FftwPlan>(api_, plan, dir, max_batch);
   }
 
 private:
-  std::unique_ptr<FFTFunctionPointers> api_;
+  std::shared_ptr<const FftwRuntime> api_;
 };
 
 } // namespace

@@ -21,15 +21,18 @@ set(NEO_FFT3D_ENGINE_SOURCES
   src/engine/pattern_analysis.cpp
   src/engine/pattern_analysis.hpp
   src/fft3d_common.h
-  src/fftwlite.h
   src/neo_fft3d.hpp
 )
 
 set(NEO_FFT3D_FFT_SOURCES
+  src/fft/dynamic_library.cpp
+  src/fft/dynamic_library.hpp
   src/fft/fft_backend.hpp
   src/fft/fftw_abi.hpp
   src/fft/fftw_backend.cpp
   src/fft/fftw_lock.hpp
+  src/fft/fftw_runtime.cpp
+  src/fft/fftw_runtime.hpp
   src/fft/pocketfft_backend.cpp
 )
 

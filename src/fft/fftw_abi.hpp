@@ -1,10 +1,16 @@
 #pragma once
 
 #include "common/aligned_vector.hpp"
-#include "fftwlite.h"
 
 #include <complex>
 #include <memory>
+
+using fftwf_complex = float[2];
+struct fftwf_plan_s;
+using fftwf_plan = fftwf_plan_s*;
+
+inline constexpr unsigned FFTW_MEASURE = 0U;
+inline constexpr unsigned FFTW_ESTIMATE = 1U << 6;
 
 static_assert(sizeof(std::complex<float>) == sizeof(fftwf_complex) &&
                 alignof(std::complex<float>) == alignof(fftwf_complex),
