@@ -1,6 +1,4 @@
 #pragma once
-#ifndef NEO_FFT3D_ENGINE_FILTER_BACKEND_HPP
-#define NEO_FFT3D_ENGINE_FILTER_BACKEND_HPP
 
 #include "code_impl/code_impl.h"
 #include "engine/engine_params.hpp"
@@ -37,5 +35,3 @@ public:
 std::unique_ptr<FilterBackend> CreateCpuFilterBackend(std::shared_ptr<fft::FFTBackend> fft_backend);
 
 } // namespace neo_fft3d::engine
-
-#endif

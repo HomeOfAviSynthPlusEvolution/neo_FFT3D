@@ -1,6 +1,4 @@
 #pragma once
-#ifndef NEO_FFT3D_ENGINE_FRAME_VIEWS_HPP
-#define NEO_FFT3D_ENGINE_FRAME_VIEWS_HPP
 
 #include "common/fft3d_views.hpp"
 
@@ -126,5 +124,3 @@ private:
 };
 
 } // namespace neo_fft3d::engine
-
-#endif

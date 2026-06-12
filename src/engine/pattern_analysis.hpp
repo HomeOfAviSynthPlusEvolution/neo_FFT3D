@@ -1,6 +1,4 @@
 #pragma once
-#ifndef NEO_FFT3D_ENGINE_PATTERN_ANALYSIS_HPP
-#define NEO_FFT3D_ENGINE_PATTERN_ANALYSIS_HPP
 
 #include "common/fft3d_views.hpp"
 
@@ -13,5 +11,3 @@ void Pattern2Dto3D(ConstFloatPlaneView pattern2d, float mult, FloatPlaneView pat
 void SigmasToPattern(float sigma, float sigma2, float sigma3, float sigma4, int outwidth, float norm, FloatPlaneView pattern2d);
 
 } // namespace neo_fft3d
-
-#endif
