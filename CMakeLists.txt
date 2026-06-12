@@ -9,6 +9,18 @@ project(neo_fft3d CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(NEO_FFT3D_ENABLE_CLANG_TIDY "Enable clang-tidy static analysis during compilation" OFF)
+
+if(NEO_FFT3D_ENABLE_CLANG_TIDY)
+  find_program(CLANG_TIDY_EXE NAMES clang-tidy)
+  if(CLANG_TIDY_EXE)
+    message(STATUS "Found clang-tidy: ${CLANG_TIDY_EXE}")
+    set(NEO_FFT3D_CLANG_TIDY "${CLANG_TIDY_EXE};--extra-arg=-Wno-unknown-argument;--extra-arg=-Wno-unused-command-line-argument")
+  else()
+    message(WARNING "clang-tidy requested but not found in PATH")
+  endif()
+endif()
+
 if(MSVC AND NOT CMAKE_MSVC_RUNTIME_LIBRARY)
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
 endif()

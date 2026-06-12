@@ -82,6 +82,10 @@ if (NOT WIN32)
   target_link_libraries(neo-fft3d PRIVATE dl)
 endif()
 
+if(NEO_FFT3D_CLANG_TIDY)
+  set_target_properties(neo-fft3d PROPERTIES CXX_CLANG_TIDY "${NEO_FFT3D_CLANG_TIDY}")
+endif()
+
 add_custom_command(
   TARGET neo-fft3d POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:neo-fft3d> "../Release_${VERSION}/${_DIR}/$<TARGET_FILE_NAME:neo-fft3d>"
