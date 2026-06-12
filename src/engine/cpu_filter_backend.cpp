@@ -34,8 +34,13 @@ public:
     return fft_backend_->CreatePlan(bh, bw, outpitch, dir, max_batch, options, buffers);
   }
 
-  void ConfigureKernels(const EngineParams& params) override {
-    dispatch_.configure(params.degrid, params.pfactor, params.bt, params.opt);
+  void Configure(const EngineParams& params) override {
+    dispatch_.Configure(cpu::CpuDispatchConfig{
+      .degrid = params.degrid,
+      .pfactor = params.pfactor,
+      .bt = params.bt,
+      .opt = params.opt
+    });
   }
 
   void Apply2D(ComplexBlockView out, SharedFunctionParams sfp) const override {

@@ -4,7 +4,12 @@
 
 namespace neo_fft3d::cpu {
 
-void CpuDispatch::configure(float degrid, float pfactor, int bt, int opt) {
+void CpuDispatch::Configure(CpuDispatchConfig config) {
+  const float degrid = config.degrid;
+  const float pfactor = config.pfactor;
+  const int bt = config.bt;
+  const int opt = config.opt;
+
   Apply2DProc apply2d_c {};
   Apply3DProc apply3d2_c {};
   Apply3DProc apply3d3_c {};
