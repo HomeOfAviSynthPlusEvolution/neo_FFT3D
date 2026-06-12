@@ -12,6 +12,8 @@ set(NEO_FFT3D_ENGINE_SOURCES
   src/engine/engine_params.hpp
   src/engine/engine_workspace.cpp
   src/engine/engine_workspace.hpp
+  src/engine/cpu_filter_backend.cpp
+  src/engine/filter_backend.hpp
   src/engine/frame_cover.cpp
   src/engine/frame_buffer.hpp
   src/engine/fft3d_engine.hpp

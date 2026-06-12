@@ -255,7 +255,11 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
         state.ep->IsChroma = state.ep->vi.Format.IsFamilyYUV && i != 0;
         state.ep->framewidth = state.ep->IsChroma ? state.ep->vi.Width >> state.ep->vi.Format.SSW : state.ep->vi.Width;
         state.ep->frameheight = state.ep->IsChroma ? state.ep->vi.Height >> state.ep->vi.Format.SSH : state.ep->vi.Height;
-        state.engine[i] = std::make_unique<FFT3DEngine>(*state.ep, i, state.fft_backend);
+        state.engine[i] = std::make_unique<FFT3DEngine>(
+          *state.ep,
+          i,
+          neo_fft3d::engine::CreateCpuFilterBackend(state.fft_backend)
+        );
         state.engine_count++;
       }
     }

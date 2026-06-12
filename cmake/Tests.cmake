@@ -46,6 +46,24 @@ if (NEO_FFT3D_BUILD_TEST_TOOLS)
   target_link_libraries(neo-fft3d_frame_buffer_test PRIVATE Catch2::Catch2WithMain DualSynth::dualsynth)
   add_test(NAME neo-fft3d_frame_buffer_test COMMAND "$<TARGET_FILE:neo-fft3d_frame_buffer_test>")
 
+  add_executable(neo-fft3d_filter_backend_test
+    tests/unit/filter_backend_test.cpp
+    src/engine/cpu_filter_backend.cpp
+    src/core/cpu/cpu_dispatch.cpp
+    src/core/cpu/apply_hwy.cpp
+    src/core/cpu/kalman_hwy.cpp
+    src/core/cpu/sharpen_hwy.cpp
+    src/code_impl/Apply.cpp
+    src/code_impl/Kalman.cpp
+    src/code_impl/Sharpen.cpp
+  )
+  target_include_directories(neo-fft3d_filter_backend_test PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+  )
+  target_link_libraries(neo-fft3d_filter_backend_test PRIVATE Catch2::Catch2WithMain DualSynth::dualsynth hwy)
+  add_test(NAME neo-fft3d_filter_backend_test COMMAND "$<TARGET_FILE:neo-fft3d_filter_backend_test>")
+
   add_executable(neo-fft3d_c_apply_null_slots_test
     tests/unit/c_apply_null_slots_test.cpp
     src/code_impl/Apply.cpp
