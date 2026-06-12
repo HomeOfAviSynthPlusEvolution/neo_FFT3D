@@ -121,23 +121,57 @@ endif()
 add_vapoursynth_compat_headers(vapoursynth_headers)
 
 # 5. Compile targets definition
-file(GLOB CODE "src/*.cpp")
-file(GLOB CODE_FFT "src/fft/*.cpp")
-file(GLOB CODE_CORE "src/core/cpu/*.cpp")
-set(CODE_IMPL
-  src/code_impl/Apply.cpp
-  src/code_impl/Kalman.cpp
-  src/code_impl/Sharpen.cpp
-)
-
-add_library(neo-fft3d SHARED
+set(NEO_FFT3D_PLUGIN_SOURCES
   src/plugin/plugin_entry.cpp
   src/plugin/fft3d_filter.cpp
   src/plugin/fft3d_filter.hpp
-  ${CODE}
-  ${CODE_FFT}
-  ${CODE_CORE}
-  ${CODE_IMPL}
+)
+
+set(NEO_FFT3D_ENGINE_SOURCES
+  src/buffer.cpp
+  src/buffer.h
+  src/cache.hpp
+  src/common/aligned_vector.hpp
+  src/cpuid.cpp
+  src/engine/engine_params.hpp
+  src/engine/fft3d_engine.hpp
+  src/fft3d_common.h
+  src/fftwlite.h
+  src/functions.h
+  src/helper.cpp
+  src/helper.h
+  src/neo_fft3d.hpp
+)
+
+set(NEO_FFT3D_FFT_SOURCES
+  src/fft/fft_backend.hpp
+  src/fft/fftw_abi.hpp
+  src/fft/fftw_backend.cpp
+  src/fft/fftw_lock.hpp
+  src/fft/pocketfft_backend.cpp
+)
+
+set(NEO_FFT3D_CPU_SOURCES
+  src/core/cpu/apply_hwy.cpp
+  src/core/cpu/core_hwy.h
+  src/core/cpu/kalman_hwy.cpp
+  src/core/cpu/sharpen_hwy.cpp
+)
+
+set(NEO_FFT3D_CODE_IMPL_SOURCES
+  src/code_impl/Apply.cpp
+  src/code_impl/Kalman.cpp
+  src/code_impl/Sharpen.cpp
+  src/code_impl/code_impl.h
+  src/code_impl/code_impl_C.h
+)
+
+add_library(neo-fft3d SHARED
+  ${NEO_FFT3D_PLUGIN_SOURCES}
+  ${NEO_FFT3D_ENGINE_SOURCES}
+  ${NEO_FFT3D_FFT_SOURCES}
+  ${NEO_FFT3D_CPU_SOURCES}
+  ${NEO_FFT3D_CODE_IMPL_SOURCES}
 )
 
 # Link dependencies, automatically bringing in dualsynth2, hwy, and pulled AVS/VS official headers
