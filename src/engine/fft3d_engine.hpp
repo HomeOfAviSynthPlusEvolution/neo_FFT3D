@@ -16,11 +16,13 @@
 #include "cache.hpp"
 #include "engine/engine_workspace.hpp"
 #include "engine/frame_buffer.hpp"
+#include "engine/frame_views.hpp"
 #include "engine/pattern_analysis.hpp"
 
 #include <dualsynth/video_filter.hpp>
 
 #include <atomic>
+#include <cstring>
 #include <stdexcept>
 #include <thread>
 #include <utility>
@@ -83,63 +85,20 @@ public:
   std::mutex init3d_mutex;
 
 private:
-  ds::VideoFrameView fetch_frame(ds::VideoFrameProvider& provider, int frame_num) const {
-    auto frame = provider.get(0, frame_num);
-    if (!frame.has_value()) {
-      throw std::runtime_error("neo_fft3d: failed to fetch frame " + std::to_string(frame_num) + ": " + frame.error().message);
-    }
-    return frame.value().frame;
-  }
-
-  static void copy_plane_pixels(const ds::PlaneView& src, const ds::MutablePlaneView& dst, int bytes_per_sample) {
-    const auto row_bytes = static_cast<std::size_t>(src.width) * static_cast<std::size_t>(bytes_per_sample);
-    auto src_ptr = static_cast<const byte*>(src.data);
-    auto dst_ptr = static_cast<byte*>(dst.data);
-    for (int y = 0; y < src.height; ++y) {
-      std::memcpy(dst_ptr, src_ptr, row_bytes);
-      src_ptr += src.stride_bytes;
-      dst_ptr += dst.stride_bytes;
-    }
-  }
-
-  neo_fft3d::BytePlaneView source_plane_view(const ds::PlaneView& src) const {
-    return neo_fft3d::make_byte_plane_view(
-      static_cast<const byte*>(src.data),
-      src.width * ep->vi.Format.BytesPerSample,
-      src.height,
-      src.stride_bytes
-    );
-  }
-
-  neo_fft3d::MutableBytePlaneView destination_plane_view(const ds::MutablePlaneView& dst) const {
-    return neo_fft3d::make_mutable_byte_plane_view(
-      static_cast<byte*>(dst.data),
-      dst.width * ep->vi.Format.BytesPerSample,
-      dst.height,
-      dst.stride_bytes
-    );
-  }
-
-  neo_fft3d::BytePlaneView cover_plane_view(const byte* data) const {
-    return neo_fft3d::make_byte_plane_view(
-      data,
-      coverwidth * ep->vi.Format.BytesPerSample,
+  neo_fft3d::engine::CoverPlaneGeometry cover_geometry() const {
+    return neo_fft3d::engine::CoverPlaneGeometry{
+      coverwidth,
       coverheight,
-      static_cast<std::ptrdiff_t>(coverpitch) * ep->vi.Format.BytesPerSample
-    );
+      coverpitch,
+      ep->vi.Format.BytesPerSample
+    };
   }
 
-  neo_fft3d::MutableBytePlaneView mutable_cover_plane_view(byte* data) const {
-    return neo_fft3d::make_mutable_byte_plane_view(
-      data,
-      coverwidth * ep->vi.Format.BytesPerSample,
-      coverheight,
-      static_cast<std::ptrdiff_t>(coverpitch) * ep->vi.Format.BytesPerSample
-    );
-  }
-
-  neo_fft3d::FloatSpan overlap_span(float* data) const {
-    return neo_fft3d::FloatSpan{data, static_cast<std::size_t>(insize)};
+  neo_fft3d::engine::FrameViewAdapter frame_views() const {
+    return neo_fft3d::engine::FrameViewAdapter{
+      cover_geometry(),
+      static_cast<std::size_t>(insize)
+    };
   }
 
   neo_fft3d::FloatPlaneView kernel_float_view(AlignedVector<float>& data) const {
@@ -484,6 +443,7 @@ public:
       ); // 1 block
     }
 
+    const auto views = frame_views();
     std::vector<byte> coverbuf(coverheight*coverpitch*ep->vi.Format.BytesPerSample);
     // avs+
     switch (ep->vi.Format.BytesPerSample) {
@@ -494,7 +454,7 @@ public:
     case 4: std::fill_n(reinterpret_cast<float*>(coverbuf.data()), coverheight*coverpitch, 1.0f);
       break; // 255
     }
-    CoverToOverlap(ep.get(), iop.get(), overlap_span(in), cover_plane_view(coverbuf.data()), false);
+    CoverToOverlap(ep.get(), iop.get(), views.Overlap(in), views.Cover(coverbuf.data()), false);
     // make FFT 2D
     plan1->Execute(in, gridsample.data(), 1);
 
@@ -513,6 +473,7 @@ public:
 
     auto workspace_lease = workspace.acquire();
     const auto& workspace_slot = workspace_lease.get();
+    const auto views = frame_views();
     byte* coverbuf = workspace_slot.cover;
     float* in = workspace_slot.overlap;
     std::complex<float>* outrez = workspace_slot.spectrum;
@@ -530,13 +491,13 @@ public:
       neo_fft3d::fft::GlobalLockGuard fftw_lock;
       if (ep->pfactor != 0 && isPatternSet == false && ep->pshow == false) // get noise pattern
       {
-        auto psrc = fetch_frame(provider, ep->pframe);
+        auto psrc = neo_fft3d::engine::FetchFrame(provider, ep->pframe);
         const auto& psrc_plane = psrc.plane(plane);
         ep->framepitch = static_cast<int>(psrc_plane.stride_bytes) / ep->vi.Format.BytesPerSample;
 
         // put source bytes to float array of overlapped blocks
-        FrameToCover(ep.get(), plane, source_plane_view(psrc_plane), mutable_cover_plane_view(coverbuf), mirw, mirh);
-        CoverToOverlap(ep.get(), iop.get(), overlap_span(in), cover_plane_view(coverbuf), ep->IsChroma);
+        FrameToCover(ep.get(), plane, views.Source(psrc_plane), views.MutableCover(coverbuf), mirw, mirh);
+        CoverToOverlap(ep.get(), iop.get(), views.Overlap(in), views.Cover(coverbuf), ep->IsChroma);
         plan->Execute(in, outrez, howmanyblocks);
         if (ep->px == 0 && ep->py == 0) // try find pattern block with minimal noise sigma
           neo_fft3d::FindPatternBlock(kernel_complex_blocks(outrez, howmanyblocks), outwidth, iop->nox, iop->noy, ep->px, ep->py, kernel_float_view(pwin), ep->degrid, kernel_complex_blocks(gridsample, 1));
@@ -546,15 +507,15 @@ public:
       else if (ep->pfactor != 0 && ep->pshow == true)
       {
         // show noise pattern window
-        auto src = fetch_frame(provider, n);
+        auto src = neo_fft3d::engine::FetchFrame(provider, n);
         const auto& src_plane = src.plane(plane);
         auto& dst_plane = dst.plane(plane);
         ep->framepitch = static_cast<int>(src_plane.stride_bytes) / ep->vi.Format.BytesPerSample;
         ep->framepitch_dst = static_cast<int>(dst_plane.stride_bytes) / ep->vi.Format.BytesPerSample;
 
         // put source bytes to float array of overlapped blocks
-        FrameToCover(ep.get(), plane, source_plane_view(src_plane), mutable_cover_plane_view(coverbuf), mirw, mirh);
-        CoverToOverlap(ep.get(), iop.get(), overlap_span(in), cover_plane_view(coverbuf), ep->IsChroma);
+        FrameToCover(ep.get(), plane, views.Source(src_plane), views.MutableCover(coverbuf), mirw, mirh);
+        CoverToOverlap(ep.get(), iop.get(), views.Overlap(in), views.Cover(coverbuf), ep->IsChroma);
         // make FFT 2D
         plan->Execute(in, outrez, howmanyblocks);
         if (ep->px == 0 && ep->py == 0) // try find pattern block with minimal noise sigma
@@ -578,8 +539,8 @@ public:
 
         // put source bytes to float array of overlapped blocks
         // cur frame
-        FrameToCover(ep.get(), plane, source_plane_view(src_plane), mutable_cover_plane_view(coverbuf), mirw, mirh);
-        CoverToOverlap(ep.get(), iop.get(), overlap_span(in), cover_plane_view(coverbuf), !ep->vi.Format.IsFamilyRGB);
+        FrameToCover(ep.get(), plane, views.Source(src_plane), views.MutableCover(coverbuf), mirw, mirh);
+        CoverToOverlap(ep.get(), iop.get(), views.Overlap(in), views.Cover(coverbuf), !ep->vi.Format.IsFamilyRGB);
         // make FFT 2D
         plan->Execute(in, outrez, howmanyblocks);
 
@@ -588,8 +549,8 @@ public:
         planinv->Execute(outrez, in, howmanyblocks);
 
         // make destination frame plane from current overlaped blocks
-        OverlapToCover(ep.get(), iop.get(), overlap_span(in), norm, mutable_cover_plane_view(coverbuf), !ep->vi.Format.IsFamilyRGB);
-        CoverToFrame(ep.get(), plane, cover_plane_view(coverbuf), destination_plane_view(dst_plane), mirw, mirh);
+        OverlapToCover(ep.get(), iop.get(), views.Overlap(in), norm, views.MutableCover(coverbuf), !ep->vi.Format.IsFamilyRGB);
+        CoverToFrame(ep.get(), plane, views.Cover(coverbuf), views.Destination(dst_plane), mirw, mirh);
         int psigmaint = ((int)(10 * psigma)) / 10;
         int psigmadec = (int)((psigma - psigmaint) * 10);
         wsprintf(messagebuf, " frame=%d, px=%d, py=%d, sigma=%d.%d", n, pxf, pyf, psigmaint, psigmadec);
@@ -599,7 +560,7 @@ public:
     }
 
     // Request frame 'n' from the child (source) clip.
-    auto src = fetch_frame(provider, n);
+    auto src = neo_fft3d::engine::FetchFrame(provider, n);
     const auto& src_plane = src.plane(plane);
     auto& dst_plane = dst.plane(plane);
     ep->framepitch = static_cast<int>(src_plane.stride_bytes) / ep->vi.Format.BytesPerSample;
@@ -643,8 +604,8 @@ public:
       if (btcur == 1) // 2D
       {
         // cur frame
-        FrameToCover(ep.get(), plane, source_plane_view(src_plane), mutable_cover_plane_view(coverbuf), mirw, mirh);
-        CoverToOverlap(ep.get(), iop.get(), overlap_span(in), cover_plane_view(coverbuf), ep->IsChroma);
+        FrameToCover(ep.get(), plane, views.Source(src_plane), views.MutableCover(coverbuf), mirw, mirh);
+        CoverToOverlap(ep.get(), iop.get(), views.Overlap(in), views.Cover(coverbuf), ep->IsChroma);
         plan->Execute(in, outrez, howmanyblocks);
         backend->Apply2D(kernel_complex_blocks(outrez, howmanyblocks), sfp);
         if (ep->pfactor != 0)
@@ -694,10 +655,10 @@ public:
             }
 
             if (needs_compute) {
-              auto frame = fetch_frame(provider, n + i);
+              auto frame = neo_fft3d::engine::FetchFrame(provider, n + i);
               const auto& frame_plane = frame.plane(plane);
-              FrameToCover(ep.get(), plane, source_plane_view(frame_plane), mutable_cover_plane_view(coverbuf), mirw, mirh);
-              CoverToOverlap(ep.get(), iop.get(), overlap_span(in), cover_plane_view(coverbuf), ep->IsChroma);
+              FrameToCover(ep.get(), plane, views.Source(frame_plane), views.MutableCover(coverbuf), mirw, mirh);
+              CoverToOverlap(ep.get(), iop.get(), views.Overlap(in), views.Cover(coverbuf), ep->IsChroma);
 
               // Execute FFT OUTSIDE the cache lock
               plan->Execute(in, apply_in_ptr[2+i], howmanyblocks);
@@ -722,13 +683,13 @@ public:
       // do inverse FFT, get filtered 'in' array
       planinv->Execute(outrez, in, howmanyblocks);
       // make destination frame plane from current overlaped blocks
-      OverlapToCover(ep.get(), iop.get(), overlap_span(in), norm, mutable_cover_plane_view(coverbuf), ep->IsChroma);
-      CoverToFrame(ep.get(), plane, cover_plane_view(coverbuf), destination_plane_view(dst_plane), mirw, mirh);
+      OverlapToCover(ep.get(), iop.get(), views.Overlap(in), norm, views.MutableCover(coverbuf), ep->IsChroma);
+      CoverToFrame(ep.get(), plane, views.Cover(coverbuf), views.Destination(dst_plane), mirw, mirh);
     }
     else if (ep->bt == 0) //Kalman filter
     {
       if (n == 0) {
-        copy_plane_pixels(src_plane, dst_plane, ep->vi.Format.BytesPerSample);
+        views.CopyPlane(src_plane, dst_plane);
         return; // first frame  not processed
       }
       /* PF 170302 comment: accumulated error?
@@ -739,34 +700,34 @@ public:
 
       // put source bytes to float array of overlapped blocks
       // cur frame
-      FrameToCover(ep.get(), plane, source_plane_view(src_plane), mutable_cover_plane_view(coverbuf), mirw, mirh);
-      CoverToOverlap(ep.get(), iop.get(), overlap_span(in), cover_plane_view(coverbuf), ep->IsChroma);
+      FrameToCover(ep.get(), plane, views.Source(src_plane), views.MutableCover(coverbuf), mirw, mirh);
+      CoverToOverlap(ep.get(), iop.get(), views.Overlap(in), views.Cover(coverbuf), ep->IsChroma);
       plan->Execute(in, outrez, howmanyblocks);
       backend->Kalman(kernel_complex_blocks(outrez, howmanyblocks), kernel_complex_blocks(outLast, howmanyblocks), sfp);
 
       // copy outLast to outrez
-      memcpy(outrez, outLast.data(), outsize * sizeof(std::complex<float>));  //v.0.9.2
+      std::memcpy(outrez, outLast.data(), outsize * sizeof(std::complex<float>));  //v.0.9.2
       backend->Sharpen(kernel_complex_blocks(outrez, howmanyblocks), sfp);
       // do inverse FFT 2D, get filtered 'in' array
       // note: input "out" array is destroyed by execute algo.
       // that is why we must have its copy in "outLast" array
       planinv->Execute(outrez, in, howmanyblocks);
       // make destination frame plane from current overlaped blocks
-      OverlapToCover(ep.get(), iop.get(), overlap_span(in), norm, mutable_cover_plane_view(coverbuf), ep->IsChroma);
-      CoverToFrame(ep.get(), plane, cover_plane_view(coverbuf), destination_plane_view(dst_plane), mirw, mirh);
+      OverlapToCover(ep.get(), iop.get(), views.Overlap(in), norm, views.MutableCover(coverbuf), ep->IsChroma);
+      CoverToFrame(ep.get(), plane, views.Cover(coverbuf), views.Destination(dst_plane), mirw, mirh);
 
     }
     else if (ep->bt == -1) /// sharpen only
     {
-      FrameToCover(ep.get(), plane, source_plane_view(src_plane), mutable_cover_plane_view(coverbuf), mirw, mirh);
-      CoverToOverlap(ep.get(), iop.get(), overlap_span(in), cover_plane_view(coverbuf), ep->IsChroma);
+      FrameToCover(ep.get(), plane, views.Source(src_plane), views.MutableCover(coverbuf), mirw, mirh);
+      CoverToOverlap(ep.get(), iop.get(), views.Overlap(in), views.Cover(coverbuf), ep->IsChroma);
       plan->Execute(in, outrez, howmanyblocks);
       backend->Sharpen(kernel_complex_blocks(outrez, howmanyblocks), sfp);
       // do inverse FFT 2D, get filtered 'in' array
       planinv->Execute(outrez, in, howmanyblocks);
       // make destination frame plane from current overlaped blocks
-      OverlapToCover(ep.get(), iop.get(), overlap_span(in), norm, mutable_cover_plane_view(coverbuf), ep->IsChroma);
-      CoverToFrame(ep.get(), plane, cover_plane_view(coverbuf), destination_plane_view(dst_plane), mirw, mirh);
+      OverlapToCover(ep.get(), iop.get(), views.Overlap(in), norm, views.MutableCover(coverbuf), ep->IsChroma);
+      CoverToFrame(ep.get(), plane, views.Cover(coverbuf), views.Destination(dst_plane), mirw, mirh);
 
     }
 

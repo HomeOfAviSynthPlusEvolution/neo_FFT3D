@@ -1,10 +1,9 @@
 #include "plugin/fft3d_filter.hpp"
 
 #include "engine/fft3d_engine.hpp"
+#include "engine/frame_views.hpp"
 
 #include <algorithm>
-#include <cstdint>
-#include <cstring>
 #include <stdexcept>
 #include <utility>
 
@@ -306,25 +305,6 @@ ds::Result<ds::VideoRequestResult> FFT3DCore::request(ds::VideoRequestContext& c
   }
 }
 
-static void copy_plane_pixels(
-  const ds::VideoFrameView& src,
-  ds::MutableVideoFrameView& dst,
-  int plane,
-  int bytes_per_sample
-) {
-  const auto& src_plane = src.plane(plane);
-  auto& dst_plane = dst.plane(plane);
-  const auto row_bytes = static_cast<std::size_t>(src_plane.width) * static_cast<std::size_t>(bytes_per_sample);
-  auto src_ptr = static_cast<const std::uint8_t*>(src_plane.data);
-  auto dst_ptr = static_cast<std::uint8_t*>(dst_plane.data);
-
-  for (int y = 0; y < src_plane.height; ++y) {
-    std::memcpy(dst_ptr, src_ptr, row_bytes);
-    src_ptr += src_plane.stride_bytes;
-    dst_ptr += dst_plane.stride_bytes;
-  }
-}
-
 static bool has_crop(const EngineParams& ep) {
   return ep.l > 0 || ep.r > 0 || ep.t > 0 || ep.b > 0;
 }
@@ -355,11 +335,11 @@ ds::Result<ds::VideoProcessResult> FFT3DCore::process(ds::VideoProcessContext& c
     auto core_process = [&](int i) {
       if (state.process[i] == PlaneAction::Process) {
         if (has_crop(*state.ep)) {
-          copy_plane_pixels(src, context.dst, i, state.ep->vi.Format.BytesPerSample);
+          neo_fft3d::engine::CopyFramePlanePixels(src, context.dst, i, state.ep->vi.Format.BytesPerSample);
         }
         state.engine[i]->ProcessFrame(n, context.frames, context.dst);
       } else if (state.process[i] == PlaneAction::Copy) {
-        copy_plane_pixels(src, context.dst, i, state.ep->vi.Format.BytesPerSample);
+        neo_fft3d::engine::CopyFramePlanePixels(src, context.dst, i, state.ep->vi.Format.BytesPerSample);
       }
     };
 
