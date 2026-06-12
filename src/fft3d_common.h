@@ -7,6 +7,11 @@
 #include <cmath>
 #include <algorithm>
 #include <string>
+#include <vector>
+#include <limits>
+#include <complex>
+#include <memory>
+#include <new>
 
 #ifdef HAS_EXECUTION
   #include <execution>
@@ -28,15 +33,11 @@
   #define FRAME_ALIGN 64
 #endif
 
-#include <vector>
-#include <limits>
-#include <complex>
-#include <memory>
-#include <new>
-
 // Ensure fftwlite.h is included BEFORE we use fftwf_complex
 #include "fftwlite.h"
 #include "dualsynth_compat.hpp"
+
+using byte = std::uint8_t;
 
 template <typename T, std::size_t Alignment = FRAME_ALIGN>
 class AlignedAllocator {
@@ -58,13 +59,13 @@ public:
         if (n == 0) return nullptr;
         if (n > (std::numeric_limits<std::size_t>::max)() / sizeof(T))
             throw std::bad_alloc();
-            
+
         std::size_t size_bytes = n * sizeof(T);
         if (size_bytes > (std::numeric_limits<std::size_t>::max)() - Alignment + 1)
             throw std::bad_alloc();
 
         std::size_t aligned_size = (size_bytes + Alignment - 1) & ~(Alignment - 1);
-        
+
         void* ptr = _aligned_malloc(aligned_size, Alignment);
         if (!ptr) throw std::bad_alloc();
         return static_cast<T*>(ptr);
@@ -81,8 +82,8 @@ public:
 template <typename T>
 using AlignedVector = std::vector<T, AlignedAllocator<T, FRAME_ALIGN>>;
 
-static_assert(sizeof(std::complex<float>) == sizeof(fftwf_complex) && 
-              alignof(std::complex<float>) == alignof(fftwf_complex), 
+static_assert(sizeof(std::complex<float>) == sizeof(fftwf_complex) &&
+              alignof(std::complex<float>) == alignof(fftwf_complex),
               "std::complex<float> and fftwf_complex must have the identical ABI size and alignment.");
 
 inline fftwf_complex* as_fftw(std::complex<float>* ptr) {
@@ -97,8 +98,6 @@ inline std::complex<float>* as_complex(fftwf_complex* ptr) {
 
 #ifndef _WIN32
   #define wsprintf sprintf
-  #define _aligned_malloc(a,b) aligned_alloc(b,a)
-  #define _aligned_free(a) free(a)
 #endif
 
 #ifndef MAX

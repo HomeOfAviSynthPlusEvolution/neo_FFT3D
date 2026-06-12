@@ -422,9 +422,10 @@ public:
     DSFrame src, psrc, dst;
     int pxf, pyf;
 
-    byte* coverbuf;
-    float *in;
-    fftwf_complex *outrez;
+    byte* coverbuf {nullptr};
+    float *in {nullptr};
+    fftwf_complex *outrez {nullptr};
+    std::size_t required_cache_size {0};
     {
       std::lock_guard<std::mutex> lock(thread_check_mutex);
       // Find empty slot
@@ -442,16 +443,19 @@ public:
       }
       else
         thread_id_store[thread_id] = 1;
-    }
-    
-    if (fftcache) {
-      std::lock_guard<std::mutex> lock_cache(cache_mutex);
-      fftcache->resize(ep->bt + thread_id_store.size() + 2);
+
+      if (fftcache) {
+        required_cache_size = static_cast<std::size_t>(ep->bt) + thread_id_store.size() + 2;
+      }
+      coverbuf = mt_coverbuf[thread_id].data();
+      in = mt_in[thread_id].data();
+      outrez = as_fftw(mt_out[thread_id].data());
     }
 
-    coverbuf = mt_coverbuf[thread_id].data();
-    in = mt_in[thread_id].data();
-    outrez = as_fftw(mt_out[thread_id].data());
+    if (fftcache) {
+      std::lock_guard<std::mutex> lock_cache(cache_mutex);
+      fftcache->resize(required_cache_size);
+    }
 
     if (ep->pfactor != 0) {
       GlobalLockGuard fftw_lock(ep->avs_env, "fftw", ep->has_at_least_v12);

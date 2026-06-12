@@ -54,12 +54,12 @@ TEST_CASE("Cache LRU eviction and access ordering", "[cache]") {
 
 TEST_CASE("Cache refresh explicitly updates MRU", "[cache]") {
     cache<float> c(2, 1);
-    
+
     auto w10 = c.get_write(10);
     c.publish(w10, 10);
     auto w20 = c.get_write(20);
     c.publish(w20, 20);
-    
+
     // Release leases so eviction can happen
     w10.reset();
     w20.reset();
@@ -82,11 +82,11 @@ TEST_CASE("Cache resize preserves existing keys and consumes new slots first", "
     auto w1 = c.get_write(1);
     c.publish(w1, 1);
     (*w1)[0] = 1.0f;
-    
+
     auto w2 = c.get_write(2);
     c.publish(w2, 2);
     (*w2)[0] = 2.0f;
-    
+
     w1.reset();
     w2.reset();
 
@@ -95,7 +95,7 @@ TEST_CASE("Cache resize preserves existing keys and consumes new slots first", "
     auto w3 = c.get_write(3);
     c.publish(w3, 3);
     (*w3)[0] = 3.0f;
-    
+
     auto w4 = c.get_write(4);
     c.publish(w4, 4);
     (*w4)[0] = 4.0f;
@@ -126,37 +126,59 @@ TEST_CASE("Cache resize preserves existing keys and consumes new slots first", "
 
 TEST_CASE("Cache concurrency lease safety", "[cache]") {
     cache<float> c(2, 1);
-    
+
     // Thread A gets a write lease but doesn't publish yet
     auto lease_A = c.get_write(10);
-    
-    // Thread B tries to get a write lease. Since lease_A is active (use_count > 1), 
+
+    // Thread B tries to get a write lease. Since lease_A is active (use_count > 1),
     // it shouldn't evict the slot used by lease_A. Instead it uses the second empty slot.
     auto lease_B = c.get_write(20);
-    
+
     // Thread C tries to get a write lease. All slots are leased!
     // The cache should dynamically resize to accommodate.
     auto lease_C = c.get_write(30);
-    
+
     REQUIRE(lease_A != nullptr);
     REQUIRE(lease_B != nullptr);
     REQUIRE(lease_C != nullptr);
     REQUIRE(lease_A != lease_B);
     REQUIRE(lease_A != lease_C);
     REQUIRE(lease_B != lease_C);
-    
+
     // Publish them
     c.publish(lease_A, 10);
     c.publish(lease_B, 20);
     c.publish(lease_C, 30);
-    
+
     // Drop leases
     lease_A.reset();
     lease_B.reset();
     lease_C.reset();
-    
+
     // All 3 should be readable because the cache resized
     REQUIRE(c.get_read(10) != nullptr);
     REQUIRE(c.get_read(20) != nullptr);
     REQUIRE(c.get_read(30) != nullptr);
+}
+
+TEST_CASE("Cache write reservation hides evicted key until publish", "[cache]") {
+    cache<float> c(1, 1);
+
+    auto old_lease = c.get_write(10);
+    (*old_lease)[0] = 10.0f;
+    c.publish(old_lease, 10);
+    old_lease.reset();
+
+    auto write_lease = c.get_write(20);
+    REQUIRE(write_lease != nullptr);
+
+    REQUIRE(c.get_read(10) == nullptr);
+
+    (*write_lease)[0] = 20.0f;
+    c.publish(write_lease, 20);
+    write_lease.reset();
+
+    auto new_lease = c.get_read(20);
+    REQUIRE(new_lease != nullptr);
+    REQUIRE((*new_lease)[0] == 20.0f);
 }
