@@ -136,11 +136,11 @@ set(NEO_FFT3D_ENGINE_SOURCES
   src/engine/frame_buffer.cpp
   src/engine/frame_buffer.hpp
   src/engine/fft3d_engine.hpp
+  src/engine/pattern_analysis.cpp
+  src/engine/pattern_analysis.hpp
   src/fft3d_common.h
   src/fftwlite.h
   src/functions.h
-  src/helper.cpp
-  src/helper.h
   src/neo_fft3d.hpp
 )
 

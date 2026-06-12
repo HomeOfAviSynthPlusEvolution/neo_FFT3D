@@ -14,9 +14,9 @@
 #include "fft/fft_backend.hpp"
 #include "fft/fftw_lock.hpp"
 #include "functions.h"
-#include "helper.h"
 #include "cache.hpp"
 #include "engine/frame_buffer.hpp"
+#include "engine/pattern_analysis.hpp"
 
 #include <dualsynth/video_filter.hpp>
 
@@ -182,8 +182,21 @@ private:
     );
   }
 
+  neo_fft3d::ConstFloatPlaneView kernel_float_view(const AlignedVector<float>& data) const {
+    return neo_fft3d::make_float_plane_view(
+      data.data(),
+      outpitch,
+      ep->bh,
+      static_cast<std::ptrdiff_t>(outpitch) * static_cast<std::ptrdiff_t>(sizeof(float))
+    );
+  }
+
   neo_fft3d::ComplexBlockView kernel_complex_blocks(AlignedVector<std::complex<float>>& data, int block_count) const {
     return neo_fft3d::make_complex_block_view(data.data(), outpitch, ep->bh, block_count);
+  }
+
+  neo_fft3d::ComplexBlockView kernel_complex_blocks(std::complex<float>* data, int block_count) const {
+    return neo_fft3d::make_complex_block_view(data, outpitch, ep->bh, block_count);
   }
 
 public:
@@ -465,7 +478,7 @@ public:
 
     if ((ep->sigma2 != ep->sigma || ep->sigma3 != ep->sigma || ep->sigma4 != ep->sigma) && ep->pfactor == 0)
     {// we have different sigmas, so create pattern from sigmas
-      SigmasToPattern(ep->sigma, ep->sigma2, ep->sigma3, ep->sigma4, ep->bh, outwidth, outpitch, norm, pattern2d.data());
+      neo_fft3d::SigmasToPattern(ep->sigma, ep->sigma2, ep->sigma3, ep->sigma4, outwidth, norm, kernel_float_view(pattern2d));
       isPatternSet = true;
       ep->pfactor = 1;
     }
@@ -572,8 +585,8 @@ public:
         CoverToOverlap(ep.get(), iop.get(), overlap_span(in), cover_plane_view(coverbuf), ep->IsChroma);
         plan->Execute(in, outrez, howmanyblocks);
         if (ep->px == 0 && ep->py == 0) // try find pattern block with minimal noise sigma
-          FindPatternBlock(as_fftw(outrez), outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin.data(), ep->degrid, as_fftw(gridsample.data()));
-        SetPattern(as_fftw(outrez), outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin.data(), pattern2d.data(), psigma, ep->degrid, as_fftw(gridsample.data()));
+          neo_fft3d::FindPatternBlock(kernel_complex_blocks(outrez, howmanyblocks), outwidth, iop->nox, iop->noy, ep->px, ep->py, kernel_float_view(pwin), ep->degrid, kernel_complex_blocks(gridsample, 1));
+        neo_fft3d::SetPattern(kernel_complex_blocks(outrez, howmanyblocks), outwidth, iop->nox, iop->noy, ep->px, ep->py, kernel_float_view(pwin), kernel_float_view(pattern2d), psigma, ep->degrid, kernel_complex_blocks(gridsample, 1));
         isPatternSet = true;
       }
       else if (ep->pfactor != 0 && ep->pshow == true)
@@ -591,13 +604,13 @@ public:
         // make FFT 2D
         plan->Execute(in, outrez, howmanyblocks);
         if (ep->px == 0 && ep->py == 0) // try find pattern block with minimal noise sigma
-          FindPatternBlock(as_fftw(outrez), outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf, pwin.data(), ep->degrid, as_fftw(gridsample.data()));
+          neo_fft3d::FindPatternBlock(kernel_complex_blocks(outrez, howmanyblocks), outwidth, iop->nox, iop->noy, pxf, pyf, kernel_float_view(pwin), ep->degrid, kernel_complex_blocks(gridsample, 1));
         else
         {
           pxf = ep->px; // fixed bug in v1.6
           pyf = ep->py;
         }
-        SetPattern(as_fftw(outrez), outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf, pwin.data(), pattern2d.data(), psigma, ep->degrid, as_fftw(gridsample.data()));
+        neo_fft3d::SetPattern(kernel_complex_blocks(outrez, howmanyblocks), outwidth, iop->nox, iop->noy, pxf, pyf, kernel_float_view(pwin), kernel_float_view(pattern2d), psigma, ep->degrid, kernel_complex_blocks(gridsample, 1));
 
         // change analysis and synthesis window to constant to show
         std::fill_n(iop->wanxl.data(), ep->ow, 1.0f);
@@ -616,7 +629,7 @@ public:
         // make FFT 2D
         plan->Execute(in, outrez, howmanyblocks);
 
-        PutPatternOnly(as_fftw(outrez), outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf);
+        neo_fft3d::PutPatternOnly(kernel_complex_blocks(outrez, howmanyblocks), outwidth, iop->nox, iop->noy, pxf, pyf);
         // do inverse 2D FFT, get filtered 'in' array
         planinv->Execute(outrez, in, howmanyblocks);
 
@@ -688,7 +701,7 @@ public:
         if (!pattern3d_initialized) {
           std::lock_guard<std::mutex> lock(init3d_mutex);
           if (!pattern3d_initialized)
-            Pattern2Dto3D(pattern2d.data(), ep->bh, outwidth, outpitch, (float)btcur, pattern3d.data());
+            neo_fft3d::Pattern2Dto3D(kernel_float_view(pattern2d), (float)btcur, kernel_float_view(pattern3d));
           pattern3d_initialized = true;
         }
 

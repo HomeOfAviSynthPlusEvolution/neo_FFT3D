@@ -8,15 +8,22 @@
  *
  */
 
-#include "helper.h"
+#include "engine/pattern_analysis.hpp"
+
+#include "fft3d_common.h"
+
+namespace neo_fft3d {
 
 //-------------------------------------------------------------------
-void SigmasToPattern(float sigma, float sigma2, float sigma3, float sigma4, int bh, int outwidth, int outpitch, float norm, float *pattern2d)
+void SigmasToPattern(float sigma, float sigma2, float sigma3, float sigma4, int outwidth, float norm, FloatPlaneView pattern2d_view)
 {
   // it is not fast, but called only in constructor
   float sigmacur;
   float ft2 = sqrt(0.5f) / 2; // frequency for sigma2
   float ft3 = sqrt(0.5f) / 4; // frequency for sigma3
+  const int bh = static_cast<int>(pattern2d_view.extent(0));
+  const int outpitch = static_cast<int>(pattern2d_view.mapping().stride(0));
+  float* pattern2d = pattern2d_view.data_handle();
   for (int h = 0; h < bh; h++)
   {
     for (int w = 0; w < outwidth; w++)
@@ -43,12 +50,16 @@ void SigmasToPattern(float sigma, float sigma2, float sigma3, float sigma4, int 
 }
 
 //-------------------------------------------------------------------------------------------
-void FindPatternBlock(fftwf_complex *outcur0, int outwidth, int outpitch, int bh, int nox, int noy, int &px, int &py, float *pwin, float degrid, fftwf_complex *gridsample)
+void FindPatternBlock(ComplexBlockView spectrum, int outwidth, int nox, int noy, int &px, int &py, ConstFloatPlaneView pwin_view, float degrid, ComplexBlockView gridsample_view)
 {
   // since v1.7 outwidth must be really an outpitch
   int h;
   int w;
   fftwf_complex *outcur;
+  const int outpitch = spectrum.outpitch;
+  const int bh = spectrum.block_height;
+  const float* pwin = pwin_view.data_handle();
+  fftwf_complex* gridsample = gridsample_view.fftw_data();
   float psd;
   float sigmaSquaredcur;
   float sigmaSquared;
@@ -58,7 +69,7 @@ void FindPatternBlock(fftwf_complex *outcur0, int outwidth, int outpitch, int bh
   {
     for (int bx = 2; bx < nox - 2; bx++)
     {
-      outcur = outcur0 + nox*by*bh*outpitch + bx*bh*outpitch;
+      outcur = spectrum.fftw_block_data(nox*by + bx);
       sigmaSquaredcur = 0;
       float gcur = degrid*outcur[0][0] / gridsample[0][0]; // grid (windowing) correction factor
       for (h = 0; h < bh; h++)
@@ -88,11 +99,17 @@ void FindPatternBlock(fftwf_complex *outcur0, int outwidth, int outpitch, int bh
   }
 }
 //-------------------------------------------------------------------------------------------
-void SetPattern(fftwf_complex *outcur, int outwidth, int outpitch, int bh, int nox, int noy, int px, int py, float *pwin, float *pattern2d, float &psigma, float degrid, fftwf_complex *gridsample)
+void SetPattern(ComplexBlockView spectrum, int outwidth, int nox, int noy, int px, int py, ConstFloatPlaneView pwin_view, FloatPlaneView pattern2d_view, float &psigma, float degrid, ComplexBlockView gridsample_view)
 {
+  (void)noy;
   int h;
   int w;
-  outcur += nox*py*bh*outpitch + px*bh*outpitch;
+  const int outpitch = spectrum.outpitch;
+  const int bh = spectrum.block_height;
+  fftwf_complex* outcur = spectrum.fftw_block_data(nox*py + px);
+  const float* pwin = pwin_view.data_handle();
+  float* pattern2d = pattern2d_view.data_handle();
+  fftwf_complex* gridsample = gridsample_view.fftw_data();
   float psd;
   float sigmaSquared = 0;
   float weight = 0;
@@ -130,10 +147,13 @@ void SetPattern(fftwf_complex *outcur, int outwidth, int outpitch, int bh, int n
   psigma = sqrt(sigmaSquared / (weight*bh*outwidth)); // mean std deviation (sigma)
 }
 //-------------------------------------------------------------------------------------------
-void PutPatternOnly(fftwf_complex *outcur, int outwidth, int outpitch, int bh, int nox, int noy, int px, int py)
+void PutPatternOnly(ComplexBlockView spectrum, int outwidth, int nox, int noy, int px, int py)
 {
   int h, w;
   int block;
+  fftwf_complex* outcur = spectrum.fftw_data();
+  const int outpitch = spectrum.outpitch;
+  const int bh = spectrum.block_height;
   int pblock = py*nox + px;
   int blocks = nox*noy;
 
@@ -167,10 +187,14 @@ void PutPatternOnly(fftwf_complex *outcur, int outwidth, int outpitch, int bh, i
 
 }
 //-------------------------------------------------------------------------------------------
-void Pattern2Dto3D(float *pattern2d, int bh, int outwidth, int outpitch, float mult, float *pattern3d)
+void Pattern2Dto3D(ConstFloatPlaneView pattern2d_view, float mult, FloatPlaneView pattern3d_view)
 {
   // slow, but executed once only per clip
+  const int bh = static_cast<int>(pattern2d_view.extent(0));
+  const int outpitch = static_cast<int>(pattern2d_view.mapping().stride(0));
   int size = bh*outpitch;
+  const float* pattern2d = pattern2d_view.data_handle();
+  float* pattern3d = pattern3d_view.data_handle();
   for (int i = 0; i < size; i++)
   { // get 3D pattern
     pattern3d[i] = pattern2d[i] * mult;
@@ -210,3 +234,4 @@ void Pattern2Dto3D(float *pattern2d, int bh, int outwidth, int outpitch, float m
 //   }
 // }
 
+} // namespace neo_fft3d
