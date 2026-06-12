@@ -36,7 +36,8 @@ if (NEO_FFT3D_BUILD_TEST_TOOLS)
 
   add_executable(neo-fft3d_frame_buffer_test
     tests/unit/frame_buffer_test.cpp
-    src/engine/frame_buffer.cpp
+    src/engine/frame_cover.cpp
+    src/engine/overlap_transform.cpp
   )
   target_include_directories(neo-fft3d_frame_buffer_test PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}"

@@ -12,9 +12,10 @@ set(NEO_FFT3D_ENGINE_SOURCES
   src/engine/engine_params.hpp
   src/engine/engine_workspace.cpp
   src/engine/engine_workspace.hpp
-  src/engine/frame_buffer.cpp
+  src/engine/frame_cover.cpp
   src/engine/frame_buffer.hpp
   src/engine/fft3d_engine.hpp
+  src/engine/overlap_transform.cpp
   src/engine/pattern_analysis.cpp
   src/engine/pattern_analysis.hpp
   src/fft3d_common.h
