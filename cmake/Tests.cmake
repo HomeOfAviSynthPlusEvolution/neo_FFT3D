@@ -34,6 +34,17 @@ if (NEO_FFT3D_BUILD_TEST_TOOLS)
   target_link_libraries(neo-fft3d_cache_test PRIVATE Catch2::Catch2WithMain)
   add_test(NAME neo-fft3d_cache_test COMMAND "$<TARGET_FILE:neo-fft3d_cache_test>")
 
+  add_executable(neo-fft3d_frame_buffer_test
+    tests/unit/frame_buffer_test.cpp
+    src/engine/frame_buffer.cpp
+  )
+  target_include_directories(neo-fft3d_frame_buffer_test PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+  )
+  target_link_libraries(neo-fft3d_frame_buffer_test PRIVATE Catch2::Catch2WithMain DualSynth::dualsynth)
+  add_test(NAME neo-fft3d_frame_buffer_test COMMAND "$<TARGET_FILE:neo-fft3d_frame_buffer_test>")
+
   add_executable(neo-fft3d_c_apply_null_slots_test
     tests/unit/c_apply_null_slots_test.cpp
     src/code_impl/Apply.cpp
