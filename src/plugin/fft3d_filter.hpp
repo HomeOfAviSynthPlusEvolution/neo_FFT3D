@@ -14,9 +14,14 @@
 #include <memory>
 
 class FFT3DEngine;
-struct FFTFunctionPointers;
 
 namespace neo_fft3d {
+
+enum class PlaneAction : int {
+  None = 1,
+  Copy = 2,
+  Process = 3
+};
 
 struct FFT3DCore {
   static constexpr const char* name = "FFT3D";
@@ -32,7 +37,12 @@ struct FFT3DCore {
     State(const State&) = delete;
     State& operator=(const State&) = delete;
 
-    std::array<int, 4> process {2, 2, 2, 2};
+    std::array<PlaneAction, 4> process {
+      PlaneAction::Copy,
+      PlaneAction::Copy,
+      PlaneAction::Copy,
+      PlaneAction::Copy
+    };
     std::array<std::unique_ptr<FFT3DEngine>, 4> engine {};
     int engine_count {0};
     std::unique_ptr<EngineParams> ep;

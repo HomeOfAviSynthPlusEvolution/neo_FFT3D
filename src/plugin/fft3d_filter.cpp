@@ -47,6 +47,50 @@ EngineVideoInfo make_engine_video_info(const ds::VideoInputInfo& input) {
   vi.Format.SSH = input.format.subsampling_h;
   return vi;
 }
+
+EngineParams make_default_engine_params(float default_sigma, EngineVideoInfo vi) {
+  EngineParams ep {};
+  ep.sigma = default_sigma;
+  ep.beta = 1.0f;
+  ep.bw = 32;
+  ep.bh = 32;
+  ep.bt = 3;
+  ep.ow = -1;
+  ep.oh = -1;
+  ep.kratio = 2.0f;
+  ep.sharpen = 0.0f;
+  ep.scutoff = 0.3f;
+  ep.svr = 1.0f;
+  ep.smin = 4.0f;
+  ep.smax = 20.0f;
+  ep.measure = true;
+  ep.interlaced = false;
+  ep.wintype = 0;
+  ep.pframe = 0;
+  ep.px = 0;
+  ep.py = 0;
+  ep.pshow = false;
+  ep.pcutoff = 0.1f;
+  ep.pfactor = 0.0f;
+  ep.sigma2 = default_sigma;
+  ep.sigma3 = default_sigma;
+  ep.sigma4 = default_sigma;
+  ep.degrid = 1.0f;
+  ep.dehalo = 0.0f;
+  ep.hr = 2.0f;
+  ep.ht = 50.0f;
+  ep.l = 0;
+  ep.t = 0;
+  ep.r = 0;
+  ep.b = 0;
+  ep.opt = 0;
+  ep.vi = vi;
+  return ep;
+}
+
+PlaneAction plane_action_from_legacy(int value) {
+  return static_cast<PlaneAction>(value);
+}
 } // namespace
 
 FFT3DCore::State::State() = default;
@@ -76,32 +120,7 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
 
     float default_sigma = get_param_val(context.params->get_double("sigma", 2.0));
 
-    state.ep = std::make_unique<EngineParams>(EngineParams {
-      default_sigma, 1.0f,
-      32, 32,
-      3,
-      -1, -1,
-      2.0f,
-      0.0f,
-      0.3f,
-      1.0f,
-      4.0f, 20.0f,
-      true,
-      false,
-      0,
-      0,
-      0, 0,
-      false,
-      0.1f,
-      0.0f,
-      default_sigma, default_sigma, default_sigma,
-      1.0f,
-      0.0f,
-      2.0f, 50.0f,
-      0, 0, 0, 0,
-      0,
-      in_vi
-    });
+    state.ep = std::make_unique<EngineParams>(make_default_engine_params(default_sigma, in_vi));
 
     state.ep->beta = get_param_val(context.params->get_double("beta", state.ep->beta), state.ep->beta);
     state.ep->bw = get_param_val(context.params->get_int("bw", state.ep->bw));
@@ -165,17 +184,17 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
       throw "Height cannot be cropped to zero or below";
     }
 
-    state.process[0] = state.process[1] = state.process[2] = state.process[3] = 2;
+    state.process.fill(PlaneAction::Copy);
 
     auto read_vs_planes = [&]() {
       std::vector<std::int64_t> user_planes;
       auto val_planes = get_param_val(context.params->get_int_array("planes", user_planes));
       if (val_planes.empty()) {
-        state.process[0] = state.process[1] = state.process[2] = 3;
+        state.process[0] = state.process[1] = state.process[2] = PlaneAction::Process;
       } else {
         for (auto&& p : val_planes) {
           if (p >= 0 && p < state.ep->vi.Format.Planes) {
-            state.process[p] = 3;
+            state.process[p] = PlaneAction::Process;
           } else {
             throw "planes: plane index out of bounds";
           }
@@ -183,9 +202,9 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
       }
     };
     auto read_avs_yuv = [&]() {
-      state.process[0] = get_param_val(context.params->get_int("y", 3));
-      state.process[1] = get_param_val(context.params->get_int("u", 3));
-      state.process[2] = get_param_val(context.params->get_int("v", 3));
+      state.process[0] = plane_action_from_legacy(get_param_val(context.params->get_int("y", 3)));
+      state.process[1] = plane_action_from_legacy(get_param_val(context.params->get_int("u", 3)));
+      state.process[2] = plane_action_from_legacy(get_param_val(context.params->get_int("v", 3)));
     };
 
     switch (context.host) {
@@ -232,7 +251,7 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
     }
 
     for (int i = 0; i < state.ep->vi.Format.Planes; i++) {
-      if (state.process[i] == 3) {
+      if (state.process[i] == PlaneAction::Process) {
         state.ep->IsChroma = state.ep->vi.Format.IsFamilyYUV && i != 0;
         state.ep->framewidth = state.ep->IsChroma ? state.ep->vi.Width >> state.ep->vi.Format.SSW : state.ep->vi.Width;
         state.ep->frameheight = state.ep->IsChroma ? state.ep->vi.Height >> state.ep->vi.Format.SSH : state.ep->vi.Height;
@@ -318,7 +337,7 @@ ds::Result<ds::VideoProcessResult> FFT3DCore::process(ds::VideoProcessContext& c
     const ds::VideoFrameView& src = src_res.value().frame;
 
     for (int i = 0; i < state.ep->vi.Format.Planes; i++) {
-      if (state.process[i] == 3 && state.engine[i]) {
+      if (state.process[i] == PlaneAction::Process && state.engine[i]) {
         if (state.ep->bt > 1) {
           int from = (std::max)(n - state.ep->bt / 2, 0);
           int to = (std::min)(n + (state.ep->bt - 1) / 2, state.ep->vi.Frames - 1);
@@ -330,12 +349,12 @@ ds::Result<ds::VideoProcessResult> FFT3DCore::process(ds::VideoProcessContext& c
     }
 
     auto core_process = [&](int i) {
-      if (state.process[i] == 3) {
+      if (state.process[i] == PlaneAction::Process) {
         if (has_crop(*state.ep)) {
           copy_plane_pixels(src, context.dst, i, state.ep->vi.Format.BytesPerSample);
         }
         state.engine[i]->ProcessFrame(n, context.frames, context.dst);
-      } else if (state.process[i] == 2) {
+      } else if (state.process[i] == PlaneAction::Copy) {
         copy_plane_pixels(src, context.dst, i, state.ep->vi.Format.BytesPerSample);
       }
     };
