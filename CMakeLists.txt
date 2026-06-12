@@ -133,6 +133,8 @@ set(NEO_FFT3D_ENGINE_SOURCES
   src/common/fft3d_views.hpp
   src/cpuid.cpp
   src/engine/engine_params.hpp
+  src/engine/engine_workspace.cpp
+  src/engine/engine_workspace.hpp
   src/engine/frame_buffer.cpp
   src/engine/frame_buffer.hpp
   src/engine/fft3d_engine.hpp

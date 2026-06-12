@@ -15,6 +15,7 @@
 #include "fft/fft_backend.hpp"
 #include "fft/fftw_lock.hpp"
 #include "cache.hpp"
+#include "engine/engine_workspace.hpp"
 #include "engine/frame_buffer.hpp"
 #include "engine/pattern_analysis.hpp"
 
@@ -44,9 +45,7 @@ public:
   AlignedVector<float> pattern2d;
   AlignedVector<float> pattern3d;
 
-  std::vector<AlignedVector<float>> mt_in;
-  std::vector<AlignedVector<std::complex<float>>> mt_out;
-  std::vector<AlignedVector<byte>> mt_coverbuf;
+  neo_fft3d::EngineWorkspace workspace;
 
   std::unique_ptr<cache<std::complex<float>>> fftcache;
 
@@ -79,41 +78,12 @@ public:
   int CPUFlags;
 
   std::mutex cache_mutex;
-  std::mutex thread_check_mutex;
-
-  std::vector<int> thread_id_store;
 
   neo_fft3d::cpu::CpuDispatch ffp;
   bool pattern3d_initialized {false};
   std::mutex init3d_mutex;
 
 private:
-  class ThreadSlotGuard {
-  public:
-    ThreadSlotGuard(FFT3DEngine& owner, unsigned int thread_id) noexcept
-      : owner_(&owner), thread_id_(thread_id) {}
-
-    ~ThreadSlotGuard() {
-      if (owner_) {
-        owner_->release_thread_slot(thread_id_);
-      }
-    }
-
-    ThreadSlotGuard(const ThreadSlotGuard&) = delete;
-    ThreadSlotGuard& operator=(const ThreadSlotGuard&) = delete;
-
-  private:
-    FFT3DEngine* owner_;
-    unsigned int thread_id_;
-  };
-
-  void release_thread_slot(unsigned int thread_id) noexcept {
-    std::lock_guard<std::mutex> lock(thread_check_mutex);
-    if (thread_id < thread_id_store.size()) {
-      thread_id_store[thread_id] = 0;
-    }
-  }
-
   ds::VideoFrameView fetch_frame(ds::VideoFrameProvider& provider, int frame_num) const {
     auto frame = provider.get(0, frame_num);
     if (!frame.has_value()) {
@@ -257,10 +227,13 @@ public:
       covarProcess.resize(outsize);
     }
     // in and out are thread dependent now // neo-r1
-    mt_in.emplace_back(insize);
-    auto in = mt_in[0].data();
-    mt_out.emplace_back(outsize); //v1.8
-    auto outrez = mt_out[0].data();
+    workspace.configure(
+      static_cast<std::size_t>(coverheight) * static_cast<std::size_t>(coverpitch) * static_cast<std::size_t>(ep->vi.Format.BytesPerSample),
+      static_cast<std::size_t>(insize),
+      static_cast<std::size_t>(outsize)
+    );
+    auto in = workspace.initial_overlap();
+    auto outrez = workspace.initial_spectrum();
     gridsample.resize(outsize); //v1.8
 
     if (ep->bt > 1)
@@ -533,39 +506,17 @@ public:
   }
 
   void ProcessFrame(int n, ds::VideoFrameProvider& provider, ds::MutableVideoFrameView dst) {
-    unsigned int thread_id;
     int pxf, pyf;
 
-    byte* coverbuf {nullptr};
-    float *in {nullptr};
-    std::complex<float>* outrez {nullptr};
+    auto workspace_lease = workspace.acquire();
+    const auto& workspace_slot = workspace_lease.get();
+    byte* coverbuf = workspace_slot.cover;
+    float* in = workspace_slot.overlap;
+    std::complex<float>* outrez = workspace_slot.spectrum;
     std::size_t required_cache_size {0};
-    {
-      std::lock_guard<std::mutex> lock(thread_check_mutex);
-      // Find empty slot
-      auto it = std::find(thread_id_store.begin(), thread_id_store.end(), 0);
-      thread_id = static_cast<int>(std::distance(thread_id_store.begin(), it));
-      if (it == thread_id_store.end()) {
-        thread_id_store.push_back(1);
-
-        while (mt_coverbuf.size() <= thread_id)
-          mt_coverbuf.emplace_back(coverheight * coverpitch * ep->vi.Format.BytesPerSample);
-        while (mt_in.size() <= thread_id)
-          mt_in.emplace_back(insize);
-        while (mt_out.size() <= thread_id)
-          mt_out.emplace_back(outsize);
-      }
-      else
-        thread_id_store[thread_id] = 1;
-
-      if (fftcache) {
-        required_cache_size = static_cast<std::size_t>(ep->bt) + thread_id_store.size() + 2;
-      }
-      coverbuf = mt_coverbuf[thread_id].data();
-      in = mt_in[thread_id].data();
-      outrez = mt_out[thread_id].data();
+    if (fftcache) {
+      required_cache_size = static_cast<std::size_t>(ep->bt) + workspace_slot.slot_count + 2;
     }
-    ThreadSlotGuard thread_slot_guard(*this, thread_id);
 
     if (fftcache) {
       std::lock_guard<std::mutex> lock_cache(cache_mutex);
