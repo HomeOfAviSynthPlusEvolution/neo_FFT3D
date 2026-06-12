@@ -7,7 +7,7 @@ namespace neo_fft3d::cpu {
 
 class CpuDispatch {
 public:
-  void configure(int cpu_flags, float degrid, float pfactor, int bt, int opt);
+  void configure(float degrid, float pfactor, int bt, int opt);
 
   void Apply2D(ComplexBlockView out, SharedFunctionParams sfp) const;
   void Apply3D(const TemporalComplexBlockViews& in, ComplexBlockView out, SharedFunctionParams sfp) const;

@@ -4,9 +4,7 @@
 
 namespace neo_fft3d::cpu {
 
-void CpuDispatch::configure(int cpu_flags, float degrid, float pfactor, int bt, int opt) {
-  (void)cpu_flags;
-
+void CpuDispatch::configure(float degrid, float pfactor, int bt, int opt) {
   Apply2DProc apply2d_c {};
   Apply3DProc apply3d2_c {};
   Apply3DProc apply3d3_c {};

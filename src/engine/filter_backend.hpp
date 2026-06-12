@@ -24,7 +24,7 @@ public:
     fft::PlanBuffers buffers
   ) = 0;
 
-  virtual void ConfigureKernels(int cpu_flags, const EngineParams& params) = 0;
+  virtual void ConfigureKernels(const EngineParams& params) = 0;
 
   virtual void Apply2D(ComplexBlockView out, SharedFunctionParams sfp) const = 0;
   virtual void Apply3D(const TemporalComplexBlockViews& in, ComplexBlockView out, SharedFunctionParams sfp) const = 0;

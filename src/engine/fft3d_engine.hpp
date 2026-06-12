@@ -78,8 +78,6 @@ public:
   bool isPatternSet;
   float psigma {0};
 
-  int CPUFlags;
-
   std::mutex cache_mutex;
 
   bool pattern3d_initialized {false};
@@ -441,8 +439,7 @@ public:
       isPatternSet = false; // pattern must be estimated
     }
 
-    CPUFlags = GetCPUFlags();
-    backend->ConfigureKernels(CPUFlags, *ep);
+    backend->ConfigureKernels(*ep);
 
     // prepare  window compensation array gridsample
     // allocate large array for simplicity :)
