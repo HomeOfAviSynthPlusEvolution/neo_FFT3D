@@ -37,8 +37,8 @@ void Kalman_Hwy_Impl(float* outcur_ptr, float* outLast_ptr, float* pattern2d_ptr
   const hn::ScalableTag<float> d;
   const int N = static_cast<int>(hn::Lanes(d));
 
-  const auto one = hn::Set(d, 1.0f);
-  const auto eps = hn::Set(d, 1e-15f);
+  const auto one = hn::Set(d, 1.0F);
+  const auto eps = hn::Set(d, 1e-15F);
   const auto kratio2 = hn::Set(d, sfp.kratio2);
 
   for (int i = 0; i < size; i += N) {
@@ -110,8 +110,8 @@ void Kalman_Hwy_Wrap(fftwf_complex* outcur, fftwf_complex* outLast, SharedFuncti
   const int size = sfp.outpitch;
   for (int block = 0; block < sfp.howmanyblocks; block++) {
     const auto block_offset = complex_block_offset(sfp, block);
-    auto outcur_block = reinterpret_cast<float*>(outcur + block_offset);
-    auto outLast_block = reinterpret_cast<float*>(outLast + block_offset);
+    auto *outcur_block = reinterpret_cast<float*>(outcur + block_offset);
+    auto *outLast_block = reinterpret_cast<float*>(outLast + block_offset);
 
     auto outcur_view = ds::make_plane_view(
       outcur_block,
@@ -148,7 +148,7 @@ HWY_EXPORT(Kalman_Hwy_Wrap_t);
 HWY_EXPORT(Kalman_Hwy_Wrap_f);
 
 void Kalman_Hwy(fftwf_complex* curr, fftwf_complex* prev, SharedFunctionParams sfp) {
-  if (sfp.pfactor != 0.0f) {
+  if (sfp.pfactor != 0.0F) {
     HWY_DYNAMIC_POINTER(Kalman_Hwy_Wrap_t)(curr, prev, sfp);
   } else {
     HWY_DYNAMIC_POINTER(Kalman_Hwy_Wrap_f)(curr, prev, sfp);

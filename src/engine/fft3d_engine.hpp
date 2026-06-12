@@ -19,6 +19,7 @@
 #include "engine/frame_views.hpp"
 #include "engine/pattern_analysis.hpp"
 
+#include <algorithm>
 #include <dualsynth/video_filter.hpp>
 
 #include <atomic>
@@ -128,19 +129,21 @@ private:
   }
 
 public:
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   FFT3DEngine(EngineParams _ep, int _plane, std::unique_ptr<neo_fft3d::engine::FilterBackend> _backend) :
   ep(std::make_unique<EngineParams>(_ep)), iop(std::make_unique<IOParams>()), plane(_plane), backend(std::move(_backend)) {
     if (!backend) {
       throw std::invalid_argument("neo_fft3d: filter backend is required");
     }
 
-    int i, j;
+    int i;
+    int j;
 
     float factor;
     switch(ep->vi.Format.BytesPerSample) {
-      case 1: factor = 1.0f; break;
+      case 1: factor = 1.0F; break;
       case 2: factor = float(1 << (ep->vi.Format.BitsPerSample-8)); break;
-      default: factor = 1 / 255.0f;
+      default: factor = 1 / 255.0F;
     }
 
     ep->sigma *= factor;
@@ -150,12 +153,22 @@ public:
     ep->smin *= factor;
     ep->smax *= factor;
 
-    if (ep->ow * 2 > ep->bw) throw("ow must be less than bw / 2");
-    if (ep->oh * 2 > ep->bh) throw("oh must be less than bh / 2");
-    if (ep->ow < 0) ep->ow = ep->bw / 3; // changed from ep->bw/4 to ep->bw/3 in v.1.2
-    if (ep->oh < 0) ep->oh = ep->bh / 3; // changed from bh/4 to bh/3 in v.1.2
+    if (ep->ow * 2 > ep->bw) {
+      throw("ow must be less than bw / 2");
+    }
+    if (ep->oh * 2 > ep->bh) {
+      throw("oh must be less than bh / 2");
+    }
+    if (ep->ow < 0) {
+      ep->ow = ep->bw / 3; // changed from ep->bw/4 to ep->bw/3 in v.1.2
+    }
+    if (ep->oh < 0) {
+      ep->oh = ep->bh / 3; // changed from bh/4 to bh/3 in v.1.2
+    }
 
-    if (ep->bt < -1 || ep->bt > 5) throw("bt must be -1 (Sharpen), 0 (Kalman), 1..5 (Wiener)");
+    if (ep->bt < -1 || ep->bt > 5) {
+      throw("bt must be -1 (Sharpen), 0 (Kalman), 1..5 (Wiener)");
+    }
 
     int xRatioShift = ep->IsChroma ? ep->vi.Format.SSW : 0;
     int yRatioShift = ep->IsChroma ? ep->vi.Format.SSH : 0;
@@ -170,8 +183,9 @@ public:
     mirw = ep->bw - ep->ow; // set mirror size as block interval
     mirh = ep->bh - ep->oh;
 
-    if (ep->beta < 1)
+    if (ep->beta < 1) {
       throw("beta must be not less 1.0");
+    }
 
     coverwidth = iop->nox*(ep->bw - ep->ow) + ep->ow;
     coverheight = iop->noy*(ep->bh - ep->oh) + ep->oh;
@@ -194,12 +208,13 @@ public:
       static_cast<std::size_t>(insize),
       static_cast<std::size_t>(outsize)
     );
-    auto in = workspace.initial_overlap();
-    auto outrez = workspace.initial_spectrum();
+    auto *in = workspace.initial_overlap();
+    auto *outrez = workspace.initial_spectrum();
     gridsample.resize(outsize); //v1.8
 
-    if (ep->bt > 1)
+    if (ep->bt > 1) {
       fftcache = std::make_unique<cache<std::complex<float>>>(ep->bt + 3, outsize);
+    }
 
     howmanyblocks = iop->nox*iop->noy;
     const neo_fft3d::fft::PlanOptions plan_options {ep->measure};
@@ -251,20 +266,20 @@ public:
     // define analysis and synthesis windows
     // combining window (analize mult by synthesis) is raised cosine (Hanning)
 
-    float pi = 3.1415926535897932384626433832795f;
+    float pi = 3.1415926535897932384626433832795F;
     if (ep->wintype == 0) // window type
     { // , used in all version up to 1.3
       // half-cosine, the same for analysis and synthesis
       // define analysis windows
       for (i = 0; i < ep->ow; i++)
       {
-        iop->wanxl[i] = cosf(pi*(i - ep->ow + 0.5f) / (ep->ow * 2)); // left analize window (half-cosine)
-        iop->wanxr[i] = cosf(pi*(i + 0.5f) / (ep->ow * 2)); // right analize window (half-cosine)
+        iop->wanxl[i] = cosf(pi*(i - ep->ow + 0.5F) / (ep->ow * 2)); // left analize window (half-cosine)
+        iop->wanxr[i] = cosf(pi*(i + 0.5F) / (ep->ow * 2)); // right analize window (half-cosine)
       }
       for (i = 0; i < ep->oh; i++)
       {
-        iop->wanyl[i] = cosf(pi*(i - ep->oh + 0.5f) / (ep->oh * 2));
-        iop->wanyr[i] = cosf(pi*(i + 0.5f) / (ep->oh * 2));
+        iop->wanyl[i] = cosf(pi*(i - ep->oh + 0.5F) / (ep->oh * 2));
+        iop->wanyr[i] = cosf(pi*(i + 0.5F) / (ep->oh * 2));
       }
       // use the same windows for synthesis too.
       for (i = 0; i < ep->ow; i++)
@@ -284,13 +299,13 @@ public:
       // define analysis windows as more flat (to decrease grid)
       for (i = 0; i < ep->ow; i++)
       {
-        iop->wanxl[i] = sqrt(cosf(pi*(i - ep->ow + 0.5f) / (ep->ow * 2)));
-        iop->wanxr[i] = sqrt(cosf(pi*(i + 0.5f) / (ep->oh * 2)));
+        iop->wanxl[i] = sqrt(cosf(pi*(i - ep->ow + 0.5F) / (ep->ow * 2)));
+        iop->wanxr[i] = sqrt(cosf(pi*(i + 0.5F) / (ep->oh * 2)));
       }
       for (i = 0; i < ep->oh; i++)
       {
-        iop->wanyl[i] = sqrt(cosf(pi*(i - ep->oh + 0.5f) / (ep->oh * 2)));
-        iop->wanyr[i] = sqrt(cosf(pi*(i + 0.5f) / (ep->oh * 2)));
+        iop->wanyl[i] = sqrt(cosf(pi*(i - ep->oh + 0.5F) / (ep->oh * 2)));
+        iop->wanyr[i] = sqrt(cosf(pi*(i + 0.5F) / (ep->oh * 2)));
       }
       // define synthesis as supplenent to rised cosine (Hanning)
       for (i = 0; i < ep->ow; i++)
@@ -307,58 +322,60 @@ public:
     else //  (ep->wintype==2) - added in v.1.4
     {
       // define analysis windows as flat (to prevent grid)
-      std::fill_n(iop->wanxl.data(), ep->ow, 1.0f);
-      std::fill_n(iop->wanxr.data(), ep->ow, 1.0f);
-      std::fill_n(iop->wanyl.data(), ep->oh, 1.0f);
-      std::fill_n(iop->wanyr.data(), ep->oh, 1.0f);
+      std::fill_n(iop->wanxl.data(), ep->ow, 1.0F);
+      std::fill_n(iop->wanxr.data(), ep->ow, 1.0F);
+      std::fill_n(iop->wanyl.data(), ep->oh, 1.0F);
+      std::fill_n(iop->wanyr.data(), ep->oh, 1.0F);
 
       // define synthesis as rised cosine (Hanning)
       for (i = 0; i < ep->ow; i++)
       {
-        iop->wsynxl[i] = cosf(pi*(i - ep->ow + 0.5f) / (ep->ow * 2));
+        iop->wsynxl[i] = cosf(pi*(i - ep->ow + 0.5F) / (ep->ow * 2));
         iop->wsynxl[i] = iop->wsynxl[i] * iop->wsynxl[i];// left window (rised cosine)
-        iop->wsynxr[i] = cosf(pi*(i + 0.5f) / (ep->ow * 2));
+        iop->wsynxr[i] = cosf(pi*(i + 0.5F) / (ep->ow * 2));
         iop->wsynxr[i] = iop->wsynxr[i] * iop->wsynxr[i]; // right window (falled cosine)
       }
       for (i = 0; i < ep->oh; i++)
       {
-        iop->wsynyl[i] = cosf(pi*(i - ep->oh + 0.5f) / (ep->oh * 2));
+        iop->wsynyl[i] = cosf(pi*(i - ep->oh + 0.5F) / (ep->oh * 2));
         iop->wsynyl[i] = iop->wsynyl[i] * iop->wsynyl[i];
-        iop->wsynyr[i] = cosf(pi*(i + 0.5f) / (ep->oh * 2));
+        iop->wsynyr[i] = cosf(pi*(i + 0.5F) / (ep->oh * 2));
         iop->wsynyr[i] = iop->wsynyr[i] * iop->wsynyr[i];
       }
     }
 
     // window for sharpen
-    auto tmp_wsharpen = wsharpen.data();
+    auto *tmp_wsharpen = wsharpen.data();
     for (j = 0; j < ep->bh; j++)
     {
       int dj = j;
-      if (j >= ep->bh / 2)
+      if (j >= ep->bh / 2) {
         dj = ep->bh - j;
+      }
       float d2v = float(dj*dj)*(ep->svr*ep->svr) / ((ep->bh / 2)*(ep->bh / 2)); // v1.7
       for (i = 0; i < outwidth; i++)
       {
-        float d2 = d2v + float(i*i) / ((ep->bw / 2)*(ep->bw / 2)); // distance_2 - v1.7
+        float d2 = d2v + (float(i*i) / ((ep->bw / 2)*(ep->bw / 2))); // distance_2 - v1.7
         tmp_wsharpen[i] = 1 - exp(-d2 / (2 * ep->scutoff*ep->scutoff));
       }
       tmp_wsharpen += outpitch;
     }
 
     // window for dehalo - added in v1.9
-    auto tmp_wdehalo = wdehalo.data();
+    auto *tmp_wdehalo = wdehalo.data();
     float wmax = 0;
     for (j = 0; j < ep->bh; j++)
     {
       int dj = j;
-      if (j >= ep->bh / 2)
+      if (j >= ep->bh / 2) {
         dj = ep->bh - j;
+      }
       float d2v = float(dj*dj)*(ep->svr*ep->svr) / ((ep->bh / 2)*(ep->bh / 2));
       for (i = 0; i < outwidth; i++)
       {
-        float d2 = d2v + float(i*i) / ((ep->bw / 2)*(ep->bw / 2)); // squared distance in frequency domain
-        tmp_wdehalo[i] = exp(-0.7f*d2*ep->hr*ep->hr) - exp(-d2*ep->hr*ep->hr); // some window with max around 1/hr, small at low and high frequencies
-        if (tmp_wdehalo[i] > wmax) wmax = tmp_wdehalo[i]; // for normalization
+        float d2 = d2v + (float(i*i) / ((ep->bw / 2)*(ep->bw / 2))); // squared distance in frequency domain
+        tmp_wdehalo[i] = exp(-0.7F*d2*ep->hr*ep->hr) - exp(-d2*ep->hr*ep->hr); // some window with max around 1/hr, small at low and high frequencies
+        wmax = std::max(tmp_wdehalo[i], wmax); // for normalization
       }
       tmp_wdehalo += outpitch;
     }
@@ -373,7 +390,7 @@ public:
       tmp_wdehalo += outpitch;
     }
 
-    norm = 1.0f / (ep->bw*ep->bh); // do not forget set FFT normalization factor
+    norm = 1.0F / (ep->bw*ep->bh); // do not forget set FFT normalization factor
 
     sigmaSquaredNoiseNormed2D = ep->sigma*ep->sigma / norm;
     sigmaNoiseNormed2D = ep->sigma / sqrtf(norm);
@@ -385,24 +402,26 @@ public:
     // init Kalman
     if (ep->bt == 0) // Kalman
     {
-      std::fill_n(reinterpret_cast<float*>(outLast.data()), outsize * 2, 0.0f);
+      std::fill_n(reinterpret_cast<float*>(outLast.data()), outsize * 2, 0.0F);
       std::fill_n(reinterpret_cast<float*>(covar.data()), outsize * 2, sigmaSquaredNoiseNormed2D);
       std::fill_n(reinterpret_cast<float*>(covarProcess.data()), outsize * 2, sigmaSquaredNoiseNormed2D);
     }
 
     pwin.resize(ep->bh*outpitch); // pattern window array
 
-    float fw2, fh2;
-    auto tmp_pwin = pwin.data();
+    float fw2;
+    float fh2;
+    auto *tmp_pwin = pwin.data();
     for (j = 0; j < ep->bh; j++)
     {
-      if (j < ep->bh / 2)
-        fh2 = (j*2.0f / ep->bh)*(j*2.0f / ep->bh);
-      else
-        fh2 = ((ep->bh - 1 - j)*2.0f / ep->bh)*((ep->bh - 1 - j)*2.0f / ep->bh);
+      if (j < ep->bh / 2) {
+        fh2 = (j*2.0F / ep->bh)*(j*2.0F / ep->bh);
+      } else {
+        fh2 = ((ep->bh - 1 - j)*2.0F / ep->bh)*((ep->bh - 1 - j)*2.0F / ep->bh);
+      }
       for (i = 0; i < outwidth; i++)
       {
-        fw2 = (i*2.0f / ep->bw)*(j*2.0f / ep->bw);
+        fw2 = (i*2.0F / ep->bw)*(j*2.0F / ep->bw);
         tmp_pwin[i] = (fh2 + fw2) / (fh2 + fw2 + ep->pcutoff*ep->pcutoff);
       }
       tmp_pwin += outpitch;
@@ -451,7 +470,7 @@ public:
       break;
     case 2: std::fill_n(reinterpret_cast<uint16_t*>(coverbuf.data()), coverheight*coverpitch, (1 << ep->vi.Format.BitsPerSample) - 1);
       break; // 255
-    case 4: std::fill_n(reinterpret_cast<float*>(coverbuf.data()), coverheight*coverpitch, 1.0f);
+    case 4: std::fill_n(reinterpret_cast<float*>(coverbuf.data()), coverheight*coverpitch, 1.0F);
       break; // 255
     }
     CoverToOverlap(ep.get(), iop.get(), views.Overlap(in), views.Cover(coverbuf.data()), false);
@@ -468,8 +487,10 @@ public:
     }
   }
 
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   void ProcessFrame(int n, ds::VideoFrameProvider& provider, ds::MutableVideoFrameView dst) {
-    int pxf, pyf;
+    int pxf;
+    int pyf;
 
     auto workspace_lease = workspace.acquire();
     const auto& workspace_slot = workspace_lease.get();
@@ -489,7 +510,7 @@ public:
 
     if (ep->pfactor != 0) {
       neo_fft3d::fft::GlobalLockGuard fftw_lock;
-      if (ep->pfactor != 0 && isPatternSet == false && ep->pshow == false) // get noise pattern
+      if (ep->pfactor != 0 && !isPatternSet && !ep->pshow) // get noise pattern
       {
         auto psrc = neo_fft3d::engine::FetchFrame(provider, ep->pframe);
         const auto& psrc_plane = psrc.plane(plane);
@@ -499,12 +520,13 @@ public:
         FrameToCover(ep.get(), plane, views.Source(psrc_plane), views.MutableCover(coverbuf), mirw, mirh);
         CoverToOverlap(ep.get(), iop.get(), views.Overlap(in), views.Cover(coverbuf), ep->IsChroma);
         plan->Execute(in, outrez, howmanyblocks);
-        if (ep->px == 0 && ep->py == 0) // try find pattern block with minimal noise sigma
+        if (ep->px == 0 && ep->py == 0) { // try find pattern block with minimal noise sigma
           neo_fft3d::FindPatternBlock(kernel_complex_blocks(outrez, howmanyblocks), outwidth, iop->nox, iop->noy, ep->px, ep->py, kernel_float_view(pwin), ep->degrid, kernel_complex_blocks(gridsample, 1));
+        }
         neo_fft3d::SetPattern(kernel_complex_blocks(outrez, howmanyblocks), outwidth, iop->nox, iop->noy, ep->px, ep->py, kernel_float_view(pwin), kernel_float_view(pattern2d), psigma, ep->degrid, kernel_complex_blocks(gridsample, 1));
         isPatternSet = true;
       }
-      else if (ep->pfactor != 0 && ep->pshow == true)
+      else if (ep->pfactor != 0 && ep->pshow)
       {
         // show noise pattern window
         auto src = neo_fft3d::engine::FetchFrame(provider, n);
@@ -518,9 +540,9 @@ public:
         CoverToOverlap(ep.get(), iop.get(), views.Overlap(in), views.Cover(coverbuf), ep->IsChroma);
         // make FFT 2D
         plan->Execute(in, outrez, howmanyblocks);
-        if (ep->px == 0 && ep->py == 0) // try find pattern block with minimal noise sigma
+        if (ep->px == 0 && ep->py == 0) { // try find pattern block with minimal noise sigma
           neo_fft3d::FindPatternBlock(kernel_complex_blocks(outrez, howmanyblocks), outwidth, iop->nox, iop->noy, pxf, pyf, kernel_float_view(pwin), ep->degrid, kernel_complex_blocks(gridsample, 1));
-        else
+        } else
         {
           pxf = ep->px; // fixed bug in v1.6
           pyf = ep->py;
@@ -528,14 +550,14 @@ public:
         neo_fft3d::SetPattern(kernel_complex_blocks(outrez, howmanyblocks), outwidth, iop->nox, iop->noy, pxf, pyf, kernel_float_view(pwin), kernel_float_view(pattern2d), psigma, ep->degrid, kernel_complex_blocks(gridsample, 1));
 
         // change analysis and synthesis window to constant to show
-        std::fill_n(iop->wanxl.data(), ep->ow, 1.0f);
-        std::fill_n(iop->wanxr.data(), ep->ow, 1.0f);
-        std::fill_n(iop->wsynxl.data(), ep->ow, 1.0f);
-        std::fill_n(iop->wsynxr.data(), ep->ow, 1.0f);
-        std::fill_n(iop->wanyl.data(), ep->oh, 1.0f);
-        std::fill_n(iop->wanyr.data(), ep->oh, 1.0f);
-        std::fill_n(iop->wsynyl.data(), ep->oh, 1.0f);
-        std::fill_n(iop->wsynyr.data(), ep->oh, 1.0f);
+        std::fill_n(iop->wanxl.data(), ep->ow, 1.0F);
+        std::fill_n(iop->wanxr.data(), ep->ow, 1.0F);
+        std::fill_n(iop->wsynxl.data(), ep->ow, 1.0F);
+        std::fill_n(iop->wsynxr.data(), ep->ow, 1.0F);
+        std::fill_n(iop->wanyl.data(), ep->oh, 1.0F);
+        std::fill_n(iop->wanyr.data(), ep->oh, 1.0F);
+        std::fill_n(iop->wsynyl.data(), ep->oh, 1.0F);
+        std::fill_n(iop->wsynyr.data(), ep->oh, 1.0F);
 
         // put source bytes to float array of overlapped blocks
         // cur frame
@@ -568,8 +590,9 @@ public:
 
     int btcur = ep->bt; // bt used for current frame
   //	if ( (bt/2 > n) || bt==3 && n==vi.num_frames-1 )
-    if ((ep->bt / 2 > n) || (ep->bt - 1) / 2 > (ep->vi.Frames - 1 - n))
+    if ((ep->bt / 2 > n) || (ep->bt - 1) / 2 > (ep->vi.Frames - 1 - n)) {
       btcur = 1; //	do 2D filter for first and last frames
+    }
 
     SharedFunctionParams sfp {
       outwidth,
@@ -608,15 +631,17 @@ public:
         CoverToOverlap(ep.get(), iop.get(), views.Overlap(in), views.Cover(coverbuf), ep->IsChroma);
         plan->Execute(in, outrez, howmanyblocks);
         backend->Apply2D(kernel_complex_blocks(outrez, howmanyblocks), sfp);
-        if (ep->pfactor != 0)
+        if (ep->pfactor != 0) {
           backend->Sharpen(kernel_complex_blocks(outrez, howmanyblocks), sfp);
+        }
       }
       else // 3D
       {
         if (!pattern3d_initialized) {
           std::lock_guard<std::mutex> lock(init3d_mutex);
-          if (!pattern3d_initialized)
+          if (!pattern3d_initialized) {
             neo_fft3d::Pattern2Dto3D(kernel_float_view(pattern2d), (float)btcur, kernel_float_view(pattern3d));
+          }
           pattern3d_initialized = true;
         }
 
@@ -735,7 +760,9 @@ public:
   }
 
   bool CacheRefresh(int n) {
-    if (!fftcache) return false;
+    if (!fftcache) {
+      return false;
+    }
     std::lock_guard<std::mutex> lock(cache_mutex);
     return fftcache->refresh(n);
   }

@@ -49,11 +49,13 @@ std::ptrdiff_t byte_offset_for_sample(int row, int pitch, int column, int bytes_
 } // namespace
 
 template<typename pixel_t>
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static void FrameToCover_impl(const pixel_t *srcp, int src_width, int src_height, int src_pitch, pixel_t *coverbuf, int coverwidth, int coverheight, int coverpitch, int mirw, int mirh, bool interlaced)
 {
-  int h, w;
+  int h;
+  int w;
   int width2 = src_width + src_width + mirw + mirw - 2;
-  pixel_t * coverbuf1 = coverbuf + coverpitch*mirh;
+  pixel_t * coverbuf1 = coverbuf + (coverpitch*mirh);
 
   constexpr int pixelsize = static_cast<int>(sizeof(pixel_t));
   const auto src_line_bytes = bytes_for_samples(src_width, pixelsize);
@@ -110,7 +112,7 @@ static void FrameToCover_impl(const pixel_t *srcp, int src_width, int src_height
     }
   }
 
-  pixel_t * pmirror = coverbuf1 - coverpitch * 2; // pointer to vertical mirror
+  pixel_t * pmirror = coverbuf1 - (coverpitch * 2); // pointer to vertical mirror
   for (h = src_height + mirh; h < coverheight; h++)
   {
     memcpy((byte *)coverbuf1, (const byte *)pmirror, cover_line_bytes); // mirror bottom line by line
@@ -135,7 +137,7 @@ static void CoverToFrame_impl(const pixel_t *coverbuf, int coverwidth, int cover
   constexpr int pixelsize = static_cast<int>(sizeof(pixel_t));
   const auto dst_line_bytes = bytes_for_samples(dst_width, pixelsize);
 
-  const pixel_t *coverbuf1 = coverbuf + coverpitch*mirh + mirw;
+  const pixel_t *coverbuf1 = coverbuf + (coverpitch*mirh) + mirw;
   if (!interlaced) // progressive
   {
     for (h = 0; h < dst_height; h++)
@@ -177,7 +179,7 @@ void FrameToCover(EngineParams * ep, int plane, neo_fft3d::BytePlaneView src, ne
   const int coverwidth = view_width_samples(cover, bytes_per_sample);
   const int coverheight = view_height(cover);
   const int coverpitch = view_stride_samples(cover, bytes_per_sample);
-  auto new_src_ptr = src.data_handle() + byte_offset_for_sample(t, src_pitch, l, bytes_per_sample);
+  const auto *new_src_ptr = src.data_handle() + byte_offset_for_sample(t, src_pitch, l, bytes_per_sample);
   switch (ep->vi.Format.BitsPerSample)
   {
   case 8: FrameToCover_impl<uint8_t>(new_src_ptr, width, height, src_pitch, cover.data_handle(), coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
@@ -203,7 +205,7 @@ void CoverToFrame(EngineParams * ep, int plane, neo_fft3d::BytePlaneView cover, 
   const int coverheight = view_height(cover);
   const int coverpitch = view_stride_samples(cover, bytes_per_sample);
   const int dst_pitch = view_stride_samples(dst, bytes_per_sample);
-  auto new_dst_ptr = dst.data_handle() + byte_offset_for_sample(t, dst_pitch, l, bytes_per_sample);
+  auto *new_dst_ptr = dst.data_handle() + byte_offset_for_sample(t, dst_pitch, l, bytes_per_sample);
   switch (ep->vi.Format.BitsPerSample)
   {
   case 8: CoverToFrame_impl<uint8_t>(cover.data_handle(), coverwidth, coverheight, coverpitch, new_dst_ptr, width, height, dst_pitch, mirw, mirh, ep->interlaced); break;

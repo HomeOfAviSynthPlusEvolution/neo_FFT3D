@@ -28,8 +28,8 @@ inline ds::VideoFrameView FetchFrame(ds::VideoFrameProvider& provider, int frame
 
 inline void CopyPlanePixels(const ds::PlaneView& src, const ds::MutablePlaneView& dst, int bytes_per_sample) {
   const auto row_bytes = static_cast<std::size_t>(src.width) * static_cast<std::size_t>(bytes_per_sample);
-  auto src_ptr = static_cast<const byte*>(src.data);
-  auto dst_ptr = static_cast<byte*>(dst.data);
+  const auto *src_ptr = static_cast<const byte*>(src.data);
+  auto *dst_ptr = static_cast<byte*>(dst.data);
 
   for (int y = 0; y < src.height; ++y) {
     std::memcpy(dst_ptr, src_ptr, row_bytes);

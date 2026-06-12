@@ -48,7 +48,7 @@ const char* avs_signature() {
 void VS_CC create_vapoursynth_fft3d(
   const VSMap* in,
   VSMap* out,
-  void*,
+  void* /*unused*/,
   VSCore* core,
   const VSAPI* vsapi
 ) {
@@ -57,7 +57,7 @@ void VS_CC create_vapoursynth_fft3d(
 
 // AVS AddFunction requires this callback signature.
 // NOLINTNEXTLINE(performance-unnecessary-value-param)
-AVSValue __cdecl create_avisynth_fft3d(AVSValue args, void*, IScriptEnvironment* env) {
+AVSValue __cdecl create_avisynth_fft3d(AVSValue args, void* /*unused*/, IScriptEnvironment* env) {
   return ds::avisynth::create_video_filter_bridge<FFT3DBridge>(args, env);
 }
 

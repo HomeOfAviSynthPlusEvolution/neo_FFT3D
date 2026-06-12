@@ -12,7 +12,7 @@ public:
     : api_(api), plan_(plan), dir_(dir), batch_(batch) {}
 
   ~FftwPlan() override {
-    if (plan_) {
+    if (plan_ != nullptr) {
       api_.fftwf_destroy_plan(plan_);
     }
   }
@@ -125,7 +125,7 @@ public:
       );
     }
 
-    if (!plan) {
+    if (plan == nullptr) {
       throw std::runtime_error("fftw: failed to create plan");
     }
 

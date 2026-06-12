@@ -8,6 +8,8 @@
  *
  */
 
+#include <algorithm>
+
 #include "code_impl_C.h"
 
 template <bool pattern>
@@ -16,22 +18,23 @@ void Kalman_C(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionParam
   fftwf_complex * dummy[5] = {nullptr, outLast, outcur, nullptr, nullptr};
   loop_wrapper_C(dummy, outLast, sfp,
     [&](LambdaFunctionParams lfp) {
-      float GainRe, GainIm;
-      float SumRe, SumIm;
+      float GainRe;
+      float GainIm;
+      float SumRe;
+      float SumIm;
       float sigma;
 
-      auto incur = dummy[2];
-      auto inprev = dummy[1];
-      auto out = outLast;
+      auto *incur = dummy[2];
+      auto *inprev = dummy[1];
+      auto *out = outLast;
 
       if constexpr (pattern) {
         sigma = lfp.pattern2d[lfp.w];
         // Prevent bad blocks, maybe incorrect -- by XL
-        if (sigma < 1e-15f)
-          sigma = 1e-15f;
-      }
-      else
+        sigma = std::max(sigma, 1e-15F);
+      } else {
         sigma = sfp.sigmaSquaredNoiseNormed2D;
+      }
       // use one of possible method for motion detection:
       if ((incur[lfp.w][0] - inprev[lfp.w][0]) * (incur[lfp.w][0] - inprev[lfp.w][0]) > sigma * sfp.kratio2 ||
           (incur[lfp.w][1] - inprev[lfp.w][1]) * (incur[lfp.w][1] - inprev[lfp.w][1]) > sigma * sfp.kratio2 )

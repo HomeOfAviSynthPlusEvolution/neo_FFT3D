@@ -37,7 +37,10 @@ static inline void cpuid_leaf(std::uint32_t cpuinfo[4], std::uint32_t leaf) {
   cpuinfo[2] = static_cast<std::uint32_t>(raw[2]);
   cpuinfo[3] = static_cast<std::uint32_t>(raw[3]);
 #else
-  unsigned int eax, ebx, ecx, edx;
+  unsigned int eax;
+  unsigned int ebx;
+  unsigned int ecx;
+  unsigned int edx;
   // for deeper leaves __get_cpuid is not enough
   __get_cpuid_count(leaf, 0, &eax, &ebx, &ecx, &edx);
   cpuinfo[0] = eax;
@@ -61,36 +64,51 @@ static std::uint32_t get_xcr0()
     return xcr0;
 }
 
+// The feature probe is intentionally table-like and mirrors the legacy flags.
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 static int CPUCheckForExtensions()
 {
   int result = 0;
   std::uint32_t cpuinfo[4] {};
 
   cpuid_leaf(cpuinfo, 1U);
-  if (IS_BIT_SET(cpuinfo[3], 0))
+  if (IS_BIT_SET(cpuinfo[3], 0)) {
     result |= CPUF_FPU;
-  if (IS_BIT_SET(cpuinfo[3], 23))
+  }
+  if (IS_BIT_SET(cpuinfo[3], 23)) {
     result |= CPUF_MMX;
-  if (IS_BIT_SET(cpuinfo[3], 25))
+  }
+  if (IS_BIT_SET(cpuinfo[3], 25)) {
     result |= CPUF_SSE | CPUF_INTEGER_SSE;
-  if (IS_BIT_SET(cpuinfo[3], 26))
+  }
+  if (IS_BIT_SET(cpuinfo[3], 26)) {
     result |= CPUF_SSE2;
-  if (IS_BIT_SET(cpuinfo[2], 0))
+  }
+  if (IS_BIT_SET(cpuinfo[2], 0)) {
     result |= CPUF_SSE3;
-  if (IS_BIT_SET(cpuinfo[2], 9))
+  }
+  if (IS_BIT_SET(cpuinfo[2], 9)) {
     result |= CPUF_SSSE3;
-  if (IS_BIT_SET(cpuinfo[2], 19))
+  }
+  if (IS_BIT_SET(cpuinfo[2], 19)) {
     result |= CPUF_SSE4_1;
-  if (IS_BIT_SET(cpuinfo[2], 20))
+  }
+  if (IS_BIT_SET(cpuinfo[2], 20)) {
     result |= CPUF_SSE4_2;
-  if (IS_BIT_SET(cpuinfo[2], 22))
+  }
+  if (IS_BIT_SET(cpuinfo[2], 22)) {
     result |= CPUF_MOVBE;
-  if (IS_BIT_SET(cpuinfo[2], 23))
+  }
+  if (IS_BIT_SET(cpuinfo[2], 23)) {
     result |= CPUF_POPCNT;
-  if (IS_BIT_SET(cpuinfo[2], 25))
+  }
+  if (IS_BIT_SET(cpuinfo[2], 25)) {
     result |= CPUF_AES;
-  if (IS_BIT_SET(cpuinfo[2], 29))
+  }
+  if (IS_BIT_SET(cpuinfo[2], 29)) {
     result |= CPUF_F16C;
+  }
+
   // AVX
   bool xgetbv_supported = IS_BIT_SET(cpuinfo[2], 27);
   bool avx_supported = IS_BIT_SET(cpuinfo[2], 28);
@@ -99,36 +117,47 @@ static int CPUCheckForExtensions()
     std::uint32_t xgetbv0_32 = get_xcr0();
     if ((xgetbv0_32 & 0x6U) == 0x6U) {
       result |= CPUF_AVX;
-      if (IS_BIT_SET(cpuinfo[2], 12))
+      if (IS_BIT_SET(cpuinfo[2], 12)) {
         result |= CPUF_FMA3;
+      }
       cpuid_leaf(cpuinfo, 7U);
-      if (IS_BIT_SET(cpuinfo[1], 5))
+      if (IS_BIT_SET(cpuinfo[1], 5)) {
         result |= CPUF_AVX2;
+      }
     }
-    if((xgetbv0_32 & (0x7U << 5)) && // OPMASK: upper-256 enabled by OS
-       (xgetbv0_32 & (0x3U << 1))) { // XMM/YMM enabled by OS
+    if (((xgetbv0_32 & (0x7U << 5)) != 0U) && // OPMASK: upper-256 enabled by OS
+        ((xgetbv0_32 & (0x3U << 1)) != 0U)) { // XMM/YMM enabled by OS
       // Verify that XCR0[7:5] = "111b" (OPMASK state, upper 256-bit of ZMM0-ZMM15 and
       // ZMM16-ZMM31 state are enabled by OS)
       /// and that XCR0[2:1] = "11b" (XMM state and YMM state are enabled by OS).
       cpuid_leaf(cpuinfo, 7U);
-      if (IS_BIT_SET(cpuinfo[1], 16))
+      if (IS_BIT_SET(cpuinfo[1], 16)) {
         result |= CPUF_AVX512F;
-      if (IS_BIT_SET(cpuinfo[1], 17))
+      }
+      if (IS_BIT_SET(cpuinfo[1], 17)) {
         result |= CPUF_AVX512DQ;
-      if (IS_BIT_SET(cpuinfo[1], 21))
+      }
+      if (IS_BIT_SET(cpuinfo[1], 21)) {
         result |= CPUF_AVX512IFMA;
-      if (IS_BIT_SET(cpuinfo[1], 26))
+      }
+      if (IS_BIT_SET(cpuinfo[1], 26)) {
         result |= CPUF_AVX512PF;
-      if (IS_BIT_SET(cpuinfo[1], 27))
+      }
+      if (IS_BIT_SET(cpuinfo[1], 27)) {
         result |= CPUF_AVX512ER;
-      if (IS_BIT_SET(cpuinfo[1], 28))
+      }
+      if (IS_BIT_SET(cpuinfo[1], 28)) {
         result |= CPUF_AVX512CD;
-      if (IS_BIT_SET(cpuinfo[1], 30))
+      }
+      if (IS_BIT_SET(cpuinfo[1], 30)) {
         result |= CPUF_AVX512BW;
-      if (IS_BIT_SET(cpuinfo[1], 31))
+      }
+      if (IS_BIT_SET(cpuinfo[1], 31)) {
         result |= CPUF_AVX512VL;
-      if (IS_BIT_SET(cpuinfo[2], 1)) // [2]!
+      }
+      if (IS_BIT_SET(cpuinfo[2], 1)) { // [2]!
         result |= CPUF_AVX512VBMI;
+      }
     }
   }
 
@@ -138,18 +167,22 @@ static int CPUCheckForExtensions()
   {
     cpuid_leaf(cpuinfo, 0x80000001U);
 
-    if (IS_BIT_SET(cpuinfo[3], 31))
+    if (IS_BIT_SET(cpuinfo[3], 31)) {
       result |= CPUF_3DNOW;
+    }
 
-    if (IS_BIT_SET(cpuinfo[3], 30))
+    if (IS_BIT_SET(cpuinfo[3], 30)) {
       result |= CPUF_3DNOW_EXT;
+    }
 
-    if (IS_BIT_SET(cpuinfo[3], 22))
+    if (IS_BIT_SET(cpuinfo[3], 22)) {
       result |= CPUF_INTEGER_SSE;
+    }
 
-    if (result & CPUF_AVX) {
-      if (IS_BIT_SET(cpuinfo[2], 16))
+    if ((result & CPUF_AVX) != 0) {
+      if (IS_BIT_SET(cpuinfo[2], 16)) {
         result |= CPUF_FMA4;
+      }
     }
   }
 

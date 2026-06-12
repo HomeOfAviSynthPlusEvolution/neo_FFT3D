@@ -69,7 +69,7 @@ struct ComplexBlockView {
   }
 
   std::complex<float>* block_data(int block) const noexcept {
-    return data + static_cast<std::size_t>(block) * block_size();
+    return data + (static_cast<std::size_t>(block) * block_size());
   }
 
   fftwf_complex* fftw_data() const noexcept {

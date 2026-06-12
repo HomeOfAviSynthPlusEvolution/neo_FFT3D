@@ -44,9 +44,9 @@ void Apply2D_Hwy_Impl(
   const int N = static_cast<int>(hn::Lanes(d));
 
   const auto zero = hn::Zero(d);
-  const auto eps = hn::Set(d, 1.0e-15f);
-  const auto one = hn::Set(d, 1.0f);
-  const auto lowlimit = hn::Set(d, (sfp.beta - 1.0f) / sfp.beta);
+  const auto eps = hn::Set(d, 1.0e-15F);
+  const auto one = hn::Set(d, 1.0F);
+  const auto lowlimit = hn::Set(d, (sfp.beta - 1.0F) / sfp.beta);
   const auto sigma_sq = hn::Set(d, sfp.sigmaSquaredNoiseNormed);
   const auto grid_frac = hn::Set(d, gridfraction);
 
@@ -132,7 +132,7 @@ void Apply2D_Hwy_Wrap(fftwf_complex* out, SharedFunctionParams sfp) {
     const auto block_offset = complex_block_offset(sfp, block);
     fftwf_complex* out_block = out + block_offset;
     const fftwf_complex* gridsample = sfp.gridsample.fftw_data();
-    const float gridfraction = degrid ? sfp.degrid * out_block[0][0] / gridsample[0][0] : 0.0f;
+    const float gridfraction = degrid ? sfp.degrid * out_block[0][0] / gridsample[0][0] : 0.0F;
 
     auto out_view = ds::make_plane_view(
       reinterpret_cast<float*>(out_block),
@@ -146,11 +146,11 @@ void Apply2D_Hwy_Wrap(fftwf_complex* out, SharedFunctionParams sfp) {
     auto wd_view = sfp.wdehalo;
 
     for (int h = 0; h < sfp.bh; h++) {
-      if (sfp.sharpen == 0.0f && sfp.dehalo == 0.0f) {
+      if (sfp.sharpen == 0.0F && sfp.dehalo == 0.0F) {
         Apply2D_Hwy_Impl<pattern, degrid, false, false>(out_view, gs_view, pat_view, ws_view, wd_view, h, sfp, size, gridfraction);
-      } else if (sfp.sharpen != 0.0f && sfp.dehalo == 0.0f) {
+      } else if (sfp.sharpen != 0.0F && sfp.dehalo == 0.0F) {
         Apply2D_Hwy_Impl<pattern, degrid, true, false>(out_view, gs_view, pat_view, ws_view, wd_view, h, sfp, size, gridfraction);
-      } else if (sfp.sharpen == 0.0f && sfp.dehalo != 0.0f) {
+      } else if (sfp.sharpen == 0.0F && sfp.dehalo != 0.0F) {
         Apply2D_Hwy_Impl<pattern, degrid, false, true>(out_view, gs_view, pat_view, ws_view, wd_view, h, sfp, size, gridfraction);
       } else {
         Apply2D_Hwy_Impl<pattern, degrid, true, true>(out_view, gs_view, pat_view, ws_view, wd_view, h, sfp, size, gridfraction);
@@ -167,7 +167,7 @@ void Apply2D_Hwy_Wrap_ff(fftwf_complex* out, SharedFunctionParams sfp) { Apply2D
 
 template <typename D, typename V>
 HWY_INLINE void WienerFactor3D_Hwy(const D d, V& dr, V& di, const V& noise, const V& lowlimit) {
-  const auto eps = hn::Set(d, 1.0e-15f);
+  const auto eps = hn::Set(d, 1.0e-15F);
   const auto psd = hn::Add(hn::Add(hn::Mul(dr, dr), hn::Mul(di, di)), eps);
   auto factor = hn::Div(hn::Sub(psd, noise), psd);
   factor = hn::Max(factor, lowlimit);
@@ -190,7 +190,7 @@ void Apply3D_Hwy_Impl(
   const int N = static_cast<int>(hn::Lanes(d));
 
   const auto zero = hn::Zero(d);
-  const auto lowlimit = hn::Set(d, (sfp.beta - 1.0f) / sfp.beta);
+  const auto lowlimit = hn::Set(d, (sfp.beta - 1.0F) / sfp.beta);
   const auto sigma_sq = hn::Set(d, sfp.sigmaSquaredNoiseNormed);
   const auto grid_frac = hn::Set(d, gridfraction);
 
@@ -211,10 +211,12 @@ void Apply3D_Hwy_Impl(
     }
 
     if constexpr (bt == 2) {
-      auto incur_r = zero, incur_i = zero;
+      auto incur_r = zero;
+      auto incur_i = zero;
       hn::LoadInterleaved2(d, &in_views[2][h, 2 * i], incur_r, incur_i);
 
-      auto inprev_r = zero, inprev_i = zero;
+      auto inprev_r = zero;
+      auto inprev_i = zero;
       hn::LoadInterleaved2(d, &in_views[1][h, 2 * i], inprev_r, inprev_i);
 
       auto f3d0r = hn::Sub(hn::Add(incur_r, inprev_r), gc_r);
@@ -225,22 +227,25 @@ void Apply3D_Hwy_Impl(
       WienerFactor3D_Hwy(d, f3d0r, f3d0i, noise3d, lowlimit);
       WienerFactor3D_Hwy(d, f3d1r, f3d1i, noise3d, lowlimit);
 
-      auto final_r = hn::Mul(hn::Set(d, 0.5f), hn::Add(hn::Add(f3d0r, f3d1r), gc_r));
-      auto final_i = hn::Mul(hn::Set(d, 0.5f), hn::Add(hn::Add(f3d0i, f3d1i), gc_i));
+      auto final_r = hn::Mul(hn::Set(d, 0.5F), hn::Add(hn::Add(f3d0r, f3d1r), gc_r));
+      auto final_i = hn::Mul(hn::Set(d, 0.5F), hn::Add(hn::Add(f3d0i, f3d1i), gc_i));
 
       hn::StoreInterleaved2(final_r, final_i, d, &out_view[h, 2 * i]);
     }
     else if constexpr (bt == 3) {
-      constexpr float sin120 = 0.86602540378443864676372317075294f;
-      constexpr float athird = 1.0f/3.0f;
+      constexpr float sin120 = 0.86602540378443864676372317075294F;
+      constexpr float athird = 1.0F/3.0F;
 
-      auto incur_r = zero, incur_i = zero;
+      auto incur_r = zero;
+      auto incur_i = zero;
       hn::LoadInterleaved2(d, &in_views[2][h, 2 * i], incur_r, incur_i);
 
-      auto inprev_r = zero, inprev_i = zero;
+      auto inprev_r = zero;
+      auto inprev_i = zero;
       hn::LoadInterleaved2(d, &in_views[1][h, 2 * i], inprev_r, inprev_i);
 
-      auto innext_r = zero, innext_i = zero;
+      auto innext_r = zero;
+      auto innext_i = zero;
       hn::LoadInterleaved2(d, &in_views[3][h, 2 * i], innext_r, innext_i);
 
       auto pnr = hn::Add(inprev_r, innext_r);
@@ -249,8 +254,8 @@ void Apply3D_Hwy_Impl(
       auto fcr = hn::Sub(hn::Add(incur_r, pnr), gc_r);
       auto fci = hn::Sub(hn::Add(incur_i, pni), gc_i);
 
-      auto half_pnr = hn::Mul(hn::Set(d, 0.5f), pnr);
-      auto half_pni = hn::Mul(hn::Set(d, 0.5f), pni);
+      auto half_pnr = hn::Mul(hn::Set(d, 0.5F), pnr);
+      auto half_pni = hn::Mul(hn::Set(d, 0.5F), pni);
 
       auto v_sin120 = hn::Set(d, sin120);
       auto di = hn::Mul(v_sin120, hn::Sub(inprev_i, innext_i));
@@ -271,16 +276,20 @@ void Apply3D_Hwy_Impl(
       hn::StoreInterleaved2(final_r, final_i, d, &out_view[h, 2 * i]);
     }
     else if constexpr (bt == 4) {
-      auto incur_r = zero, incur_i = zero;
+      auto incur_r = zero;
+      auto incur_i = zero;
       hn::LoadInterleaved2(d, &in_views[2][h, 2 * i], incur_r, incur_i);
 
-      auto inprev_r = zero, inprev_i = zero;
+      auto inprev_r = zero;
+      auto inprev_i = zero;
       hn::LoadInterleaved2(d, &in_views[1][h, 2 * i], inprev_r, inprev_i);
 
-      auto innext_r = zero, innext_i = zero;
+      auto innext_r = zero;
+      auto innext_i = zero;
       hn::LoadInterleaved2(d, &in_views[3][h, 2 * i], innext_r, innext_i);
 
-      auto inprev2_r = zero, inprev2_i = zero;
+      auto inprev2_r = zero;
+      auto inprev2_i = zero;
       hn::LoadInterleaved2(d, &in_views[0][h, 2 * i], inprev2_r, inprev2_i);
 
       auto sum_cur_prev2_r = hn::Add(incur_r, inprev2_r);
@@ -310,30 +319,35 @@ void Apply3D_Hwy_Impl(
       WienerFactor3D_Hwy(d, fcr, fci, noise3d, lowlimit);
       WienerFactor3D_Hwy(d, fnr, fni, noise3d, lowlimit);
 
-      auto final_r = hn::Mul(hn::Set(d, 0.25f), hn::Add(hn::Add(hn::Add(fp2r, fpr), hn::Add(fcr, fnr)), gc_r));
-      auto final_i = hn::Mul(hn::Set(d, 0.25f), hn::Add(hn::Add(hn::Add(fp2i, fpi), hn::Add(fci, fni)), gc_i));
+      auto final_r = hn::Mul(hn::Set(d, 0.25F), hn::Add(hn::Add(hn::Add(fp2r, fpr), hn::Add(fcr, fnr)), gc_r));
+      auto final_i = hn::Mul(hn::Set(d, 0.25F), hn::Add(hn::Add(hn::Add(fp2i, fpi), hn::Add(fci, fni)), gc_i));
 
       hn::StoreInterleaved2(final_r, final_i, d, &out_view[h, 2 * i]);
     }
     else if constexpr (bt == 5) {
-      constexpr float sin72 = 0.95105651629515357211643933337938f;
-      constexpr float cos72 = 0.30901699437494742410229341718282f;
-      constexpr float sin144 = 0.58778525229247312916870595463907f;
-      constexpr float cos144 = -0.80901699437494742410229341718282f;
+      constexpr float sin72 = 0.95105651629515357211643933337938F;
+      constexpr float cos72 = 0.30901699437494742410229341718282F;
+      constexpr float sin144 = 0.58778525229247312916870595463907F;
+      constexpr float cos144 = -0.80901699437494742410229341718282F;
 
-      auto incur_r = zero, incur_i = zero;
+      auto incur_r = zero;
+      auto incur_i = zero;
       hn::LoadInterleaved2(d, &in_views[2][h, 2 * i], incur_r, incur_i);
 
-      auto inprev_r = zero, inprev_i = zero;
+      auto inprev_r = zero;
+      auto inprev_i = zero;
       hn::LoadInterleaved2(d, &in_views[1][h, 2 * i], inprev_r, inprev_i);
 
-      auto innext_r = zero, innext_i = zero;
+      auto innext_r = zero;
+      auto innext_i = zero;
       hn::LoadInterleaved2(d, &in_views[3][h, 2 * i], innext_r, innext_i);
 
-      auto inprev2_r = zero, inprev2_i = zero;
+      auto inprev2_r = zero;
+      auto inprev2_i = zero;
       hn::LoadInterleaved2(d, &in_views[0][h, 2 * i], inprev2_r, inprev2_i);
 
-      auto innext2_r = zero, innext2_i = zero;
+      auto innext2_r = zero;
+      auto innext2_i = zero;
       hn::LoadInterleaved2(d, &in_views[4][h, 2 * i], innext2_r, innext2_i);
 
       const auto v_cos72 = hn::Set(d, cos72);
@@ -388,8 +402,8 @@ void Apply3D_Hwy_Impl(
       WienerFactor3D_Hwy(d, fnr, fni, noise3d, lowlimit);
       WienerFactor3D_Hwy(d, fn2r, fn2i, noise3d, lowlimit);
 
-      auto final_r = hn::Mul(hn::Set(d, 0.2f), hn::Add(hn::Add(hn::Add(hn::Add(fp2r, fpr), hn::Add(fcr, fnr)), fn2r), gc_r));
-      auto final_i = hn::Mul(hn::Set(d, 0.2f), hn::Add(hn::Add(hn::Add(hn::Add(fp2i, fpi), hn::Add(fci, fni)), fn2i), gc_i));
+      auto final_r = hn::Mul(hn::Set(d, 0.2F), hn::Add(hn::Add(hn::Add(hn::Add(fp2r, fpr), hn::Add(fcr, fnr)), fn2r), gc_r));
+      auto final_i = hn::Mul(hn::Set(d, 0.2F), hn::Add(hn::Add(hn::Add(hn::Add(fp2i, fpi), hn::Add(fci, fni)), fn2i), gc_i));
 
       hn::StoreInterleaved2(final_r, final_i, d, &out_view[h, 2 * i]);
     }
@@ -403,7 +417,7 @@ void Apply3D_Hwy_Wrap(fftwf_complex** in, fftwf_complex* out, SharedFunctionPara
     const auto block_offset = complex_block_offset(sfp, block);
     fftwf_complex* out_block = out + block_offset;
     const fftwf_complex* gridsample = sfp.gridsample.fftw_data();
-    const float gridfraction = degrid ? sfp.degrid * (in[2] + block_offset)[0][0] / gridsample[0][0] : 0.0f;
+    const float gridfraction = degrid ? sfp.degrid * (in[2] + block_offset)[0][0] / gridsample[0][0] : 0.0F;
 
     auto out_view = ds::make_plane_view(
       reinterpret_cast<float*>(out_block),
@@ -474,14 +488,14 @@ HWY_EXPORT(Apply2D_Hwy_Wrap_ft);
 HWY_EXPORT(Apply2D_Hwy_Wrap_ff);
 
 void Apply2D_Hwy(fftwf_complex* out, SharedFunctionParams sfp) {
-  if (sfp.pfactor != 0.0f) {
-    if (sfp.degrid != 0.0f) {
+  if (sfp.pfactor != 0.0F) {
+    if (sfp.degrid != 0.0F) {
       HWY_DYNAMIC_POINTER(Apply2D_Hwy_Wrap_tt)(out, sfp);
     } else {
       HWY_DYNAMIC_POINTER(Apply2D_Hwy_Wrap_tf)(out, sfp);
     }
   } else {
-    if (sfp.degrid != 0.0f) {
+    if (sfp.degrid != 0.0F) {
       HWY_DYNAMIC_POINTER(Apply2D_Hwy_Wrap_ft)(out, sfp);
     } else {
       HWY_DYNAMIC_POINTER(Apply2D_Hwy_Wrap_ff)(out, sfp);
@@ -501,47 +515,77 @@ EXPORT_3D(4)
 EXPORT_3D(5)
 #undef EXPORT_3D
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 void Apply3D_Hwy(fftwf_complex** in, fftwf_complex* out, SharedFunctionParams sfp) {
   int bt = 2;
-  if (in[4]) bt = 5;
-  else if (in[0]) bt = 4;
-  else if (in[3]) bt = 3;
-  else bt = 2;
+  if (in[4] != nullptr) {
+    bt = 5;
+  } else if (in[0] != nullptr) {
+    bt = 4;
+  } else if (in[3] != nullptr) {
+    bt = 3;
+  } else {
+    bt = 2;
+  }
 
-  const bool pattern = (sfp.pfactor != 0.0f);
-  const bool degrid = (sfp.degrid != 0.0f);
+  const bool pattern = (sfp.pfactor != 0.0F);
+  const bool degrid = (sfp.degrid != 0.0F);
 
   if (bt == 2) {
     if (pattern) {
-      if (degrid) HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_2_tt)(in, out, sfp);
-      else HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_2_tf)(in, out, sfp);
+      if (degrid) {
+        HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_2_tt)(in, out, sfp);
+      } else {
+        HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_2_tf)(in, out, sfp);
+      }
     } else {
-      if (degrid) HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_2_ft)(in, out, sfp);
-      else HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_2_ff)(in, out, sfp);
+      if (degrid) {
+        HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_2_ft)(in, out, sfp);
+      } else {
+        HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_2_ff)(in, out, sfp);
+      }
     }
   } else if (bt == 3) {
     if (pattern) {
-      if (degrid) HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_3_tt)(in, out, sfp);
-      else HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_3_tf)(in, out, sfp);
+      if (degrid) {
+        HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_3_tt)(in, out, sfp);
+      } else {
+        HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_3_tf)(in, out, sfp);
+      }
     } else {
-      if (degrid) HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_3_ft)(in, out, sfp);
-      else HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_3_ff)(in, out, sfp);
+      if (degrid) {
+        HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_3_ft)(in, out, sfp);
+      } else {
+        HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_3_ff)(in, out, sfp);
+      }
     }
   } else if (bt == 4) {
     if (pattern) {
-      if (degrid) HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_4_tt)(in, out, sfp);
-      else HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_4_tf)(in, out, sfp);
+      if (degrid) {
+        HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_4_tt)(in, out, sfp);
+      } else {
+        HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_4_tf)(in, out, sfp);
+      }
     } else {
-      if (degrid) HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_4_ft)(in, out, sfp);
-      else HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_4_ff)(in, out, sfp);
+      if (degrid) {
+        HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_4_ft)(in, out, sfp);
+      } else {
+        HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_4_ff)(in, out, sfp);
+      }
     }
   } else {
     if (pattern) {
-      if (degrid) HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_5_tt)(in, out, sfp);
-      else HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_5_tf)(in, out, sfp);
+      if (degrid) {
+        HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_5_tt)(in, out, sfp);
+      } else {
+        HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_5_tf)(in, out, sfp);
+      }
     } else {
-      if (degrid) HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_5_ft)(in, out, sfp);
-      else HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_5_ff)(in, out, sfp);
+      if (degrid) {
+        HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_5_ft)(in, out, sfp);
+      } else {
+        HWY_DYNAMIC_POINTER(Apply3D_Hwy_Wrap_5_ff)(in, out, sfp);
+      }
     }
   }
 }

@@ -24,7 +24,7 @@ struct LambdaFunctionParams {
   float *wdehalo;
   // Grid
   fftwf_complex *gridsample;
-  float gridfraction = 0.0f;
+  float gridfraction = 0.0F;
   // Kalman
   fftwf_complex *covar;
   fftwf_complex *covarProcess;
@@ -32,8 +32,8 @@ struct LambdaFunctionParams {
   float lowlimit;
 
   template <bool pattern>
-  inline void wiener_factor_3d(float &dr, float &di) {
-    float _psd = dr * dr + di * di + 1.0e-15f; // power spectrum density 0
+  void wiener_factor_3d(float &dr, float &di) {
+    float _psd = (dr * dr) + (di * di) + 1.0e-15F; // power spectrum density 0
     float _wiener_factor = MAX((_psd - (pattern ? pattern3d[w] : sigmaSquaredNoiseNormed) ) / _psd, lowlimit); // limited Wiener filter
     dr *= _wiener_factor;
     di *= _wiener_factor;
@@ -70,11 +70,21 @@ inline void loop_wrapper_C(fftwf_complex** in, fftwf_complex* &out, SharedFuncti
         f(lfp);
       }
       // Data
-      if (in[0]) in[0] += sfp.outpitch;
-      if (in[1]) in[1] += sfp.outpitch;
-      if (in[2]) in[2] += sfp.outpitch;
-      if (in[3]) in[3] += sfp.outpitch;
-      if (in[4]) in[4] += sfp.outpitch;
+      if (in[0] != nullptr) {
+        in[0] += sfp.outpitch;
+      }
+      if (in[1] != nullptr) {
+        in[1] += sfp.outpitch;
+      }
+      if (in[2] != nullptr) {
+        in[2] += sfp.outpitch;
+      }
+      if (in[3] != nullptr) {
+        in[3] += sfp.outpitch;
+      }
+      if (in[4] != nullptr) {
+        in[4] += sfp.outpitch;
+      }
       out += sfp.outpitch;
       // Pattern
       lfp.pattern2d += sfp.outpitch;

@@ -22,8 +22,8 @@ void SigmasToPattern(float sigma, float sigma2, float sigma3, float sigma4, int 
 {
   // it is not fast, but called only in constructor
   float sigmacur;
-  float ft2 = std::sqrt(0.5f) / 2.0f; // frequency for sigma2
-  float ft3 = std::sqrt(0.5f) / 4.0f; // frequency for sigma3
+  float ft2 = std::sqrt(0.5F) / 2.0F; // frequency for sigma2
+  float ft3 = std::sqrt(0.5F) / 4.0F; // frequency for sigma3
   const int bh = static_cast<int>(pattern2d_view.extent(0));
   const int outpitch = static_cast<int>(pattern2d_view.mapping().stride(0));
   float* pattern2d = pattern2d_view.data_handle();
@@ -31,9 +31,9 @@ void SigmasToPattern(float sigma, float sigma2, float sigma3, float sigma4, int 
   {
     for (int w = 0; w < outwidth; w++)
     {
-      float fy = (static_cast<float>(bh) - 2.0f * static_cast<float>(abs(h - bh / 2))) / static_cast<float>(bh); // normalized to 1
+      float fy = (static_cast<float>(bh) - 2.0F * static_cast<float>(abs(h - (bh / 2)))) / static_cast<float>(bh); // normalized to 1
       float fx = static_cast<float>(w) / static_cast<float>(outwidth);  // normalized to 1
-      float f = std::sqrt((fx*fx + fy*fy)*0.5f); // normalized to 1
+      float f = std::sqrt((fx*fx + fy*fy)*0.5F); // normalized to 1
       if (f < ft3)
       { // low frequencies
         sigmacur = sigma4 + (sigma3 - sigma4)*f / ft3;
@@ -66,13 +66,13 @@ void FindPatternBlock(ComplexBlockView spectrum, int outwidth, int nox, int noy,
   float psd;
   float sigmaSquaredcur;
   float sigmaSquared;
-  sigmaSquared = 1e15f;
+  sigmaSquared = 1e15F;
 
   for (int by = 2; by < noy - 2; by++)
   {
     for (int bx = 2; bx < nox - 2; bx++)
     {
-      outcur = spectrum.fftw_block_data(nox*by + bx);
+      outcur = spectrum.fftw_block_data((nox*by) + bx);
       sigmaSquaredcur = 0;
       float gcur = degrid*outcur[0][0] / gridsample[0][0]; // grid (windowing) correction factor
       for (h = 0; h < bh; h++)
@@ -109,7 +109,7 @@ void SetPattern(ComplexBlockView spectrum, int outwidth, int nox, int noy, int p
   int w;
   const int outpitch = spectrum.outpitch;
   const int bh = spectrum.block_height;
-  fftwf_complex* outcur = spectrum.fftw_block_data(nox*py + px);
+  fftwf_complex* outcur = spectrum.fftw_block_data((nox*py) + px);
   const float* pwin = pwin_view.data_handle();
   float* pattern2d = pattern2d_view.data_handle();
   fftwf_complex* gridsample = gridsample_view.fftw_data();
@@ -154,12 +154,13 @@ void SetPattern(ComplexBlockView spectrum, int outwidth, int nox, int noy, int p
 //-------------------------------------------------------------------------------------------
 void PutPatternOnly(ComplexBlockView spectrum, int outwidth, int nox, int noy, int px, int py)
 {
-  int h, w;
+  int h;
+  int w;
   int block;
   fftwf_complex* outcur = spectrum.fftw_data();
   const int outpitch = spectrum.outpitch;
   const int bh = spectrum.block_height;
-  int pblock = py*nox + px;
+  int pblock = (py*nox) + px;
   int blocks = nox*noy;
 
   for (block = 0; block < pblock; block++)

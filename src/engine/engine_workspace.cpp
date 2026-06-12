@@ -25,7 +25,7 @@ EngineWorkspace::Lease& EngineWorkspace::Lease::operator=(Lease&& other) noexcep
 }
 
 void EngineWorkspace::Lease::reset() noexcept {
-  if (owner_) {
+  if (owner_ != nullptr) {
     owner_->release(slot_.id);
     owner_ = nullptr;
   }

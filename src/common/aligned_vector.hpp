@@ -53,7 +53,7 @@ public:
   AlignedAllocator() noexcept = default;
 
   template <typename U>
-  constexpr AlignedAllocator(const AlignedAllocator<U, Alignment>&) noexcept {}
+  constexpr AlignedAllocator(const AlignedAllocator<U, Alignment>& /*unused*/) noexcept {}
 
   template <typename U>
   struct rebind {
@@ -70,18 +70,18 @@ public:
 
     const std::size_t size_bytes = n * sizeof(T);
     void* ptr = neo_fft3d::aligned_malloc_bytes(size_bytes, Alignment);
-    if (!ptr) {
+    if (ptr == nullptr) {
       throw std::bad_alloc();
     }
     return static_cast<T*>(ptr);
   }
 
-  void deallocate(T* p, std::size_t) noexcept {
+  void deallocate(T* p, std::size_t /*unused*/) noexcept {
     neo_fft3d::aligned_free_bytes(p);
   }
 
-  bool operator==(const AlignedAllocator&) const noexcept { return true; }
-  bool operator!=(const AlignedAllocator&) const noexcept { return false; }
+  bool operator==(const AlignedAllocator& /*unused*/) const noexcept { return true; }
+  bool operator!=(const AlignedAllocator& /*unused*/) const noexcept { return false; }
 };
 
 template <typename T>

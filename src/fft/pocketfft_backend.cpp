@@ -27,9 +27,9 @@ public:
     const std::size_t r_size = static_cast<std::size_t>(bh_) * static_cast<std::size_t>(bw_);
     const std::size_t c_size = static_cast<std::size_t>(bh_) * static_cast<std::size_t>(outpitch_);
     for (int i = 0; i < count; ++i) {
-      float* p_in = real_in + i * r_size;
-      std::complex<float>* p_out = complex_out + i * c_size;
-      pocketfft::r2c(shape_, stride_in_r_, stride_out_c_, axes_, true, p_in, p_out, 1.0f);
+      float* p_in = real_in + (i * r_size);
+      std::complex<float>* p_out = complex_out + (i * c_size);
+      pocketfft::r2c(shape_, stride_in_r_, stride_out_c_, axes_, true, p_in, p_out, 1.0F);
     }
   }
 
@@ -38,9 +38,9 @@ public:
     const std::size_t r_size = static_cast<std::size_t>(bh_) * static_cast<std::size_t>(bw_);
     const std::size_t c_size = static_cast<std::size_t>(bh_) * static_cast<std::size_t>(outpitch_);
     for (int i = 0; i < count; ++i) {
-      std::complex<float>* p_in = complex_in + i * c_size;
-      float* p_out = real_out + i * r_size;
-      pocketfft::c2r(shape_, stride_in_c_, stride_out_r_, axes_, false, p_in, p_out, 1.0f);
+      std::complex<float>* p_in = complex_in + (i * c_size);
+      float* p_out = real_out + (i * r_size);
+      pocketfft::c2r(shape_, stride_in_c_, stride_out_r_, axes_, false, p_in, p_out, 1.0F);
     }
   }
 
@@ -75,7 +75,7 @@ public:
   void Unload() noexcept override {}
   [[nodiscard]] bool Loaded() const noexcept override { return true; }
   [[nodiscard]] bool HasThreading() const noexcept override { return false; }
-  void SetThreadCount(int) override {}
+  void SetThreadCount(int /*nthreads*/) override {}
 
   [[nodiscard]] std::unique_ptr<FFTPlan> CreatePlan(
     int bh,
@@ -83,9 +83,9 @@ public:
     int outpitch,
     Direction dir,
     int max_batch,
-    PlanOptions,
+    PlanOptions /*options*/,
     PlanBuffers
-  ) override {
+   /*buffers*/) override {
     return std::make_unique<PocketFFTPlan>(bh, bw, outpitch, dir, max_batch);
   }
 };

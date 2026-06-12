@@ -39,7 +39,9 @@ class cache {
 
     std::shared_ptr<AlignedVector<value_t>> get_read(const std::int32_t key) {
       auto it = std::find_if(_vault.begin(), _vault.end(), [key](const CacheNode& n) { return n.key == key; });
-      if (it == _vault.end()) return nullptr;
+      if (it == _vault.end()) {
+        return nullptr;
+      }
 
       std::rotate(it, it + 1, _vault.end());
       return _vault.back().data;
@@ -80,7 +82,9 @@ class cache {
     }
 
     void resize(size_t new_vault_size) {
-      if (new_vault_size <= _vault.size()) return;
+      if (new_vault_size <= _vault.size()) {
+        return;
+      }
 
       _vault.reserve(new_vault_size);
       size_t to_add = new_vault_size - _vault.size();

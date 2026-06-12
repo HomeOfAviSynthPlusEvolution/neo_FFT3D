@@ -50,18 +50,18 @@ EngineVideoInfo make_engine_video_info(const ds::VideoInputInfo& input) {
 EngineParams make_default_engine_params(float default_sigma, EngineVideoInfo vi) {
   EngineParams ep {};
   ep.sigma = default_sigma;
-  ep.beta = 1.0f;
+  ep.beta = 1.0F;
   ep.bw = 32;
   ep.bh = 32;
   ep.bt = 3;
   ep.ow = -1;
   ep.oh = -1;
-  ep.kratio = 2.0f;
-  ep.sharpen = 0.0f;
-  ep.scutoff = 0.3f;
-  ep.svr = 1.0f;
-  ep.smin = 4.0f;
-  ep.smax = 20.0f;
+  ep.kratio = 2.0F;
+  ep.sharpen = 0.0F;
+  ep.scutoff = 0.3F;
+  ep.svr = 1.0F;
+  ep.smin = 4.0F;
+  ep.smax = 20.0F;
   ep.measure = true;
   ep.interlaced = false;
   ep.wintype = 0;
@@ -69,15 +69,15 @@ EngineParams make_default_engine_params(float default_sigma, EngineVideoInfo vi)
   ep.px = 0;
   ep.py = 0;
   ep.pshow = false;
-  ep.pcutoff = 0.1f;
-  ep.pfactor = 0.0f;
+  ep.pcutoff = 0.1F;
+  ep.pfactor = 0.0F;
   ep.sigma2 = default_sigma;
   ep.sigma3 = default_sigma;
   ep.sigma4 = default_sigma;
-  ep.degrid = 1.0f;
-  ep.dehalo = 0.0f;
-  ep.hr = 2.0f;
-  ep.ht = 50.0f;
+  ep.degrid = 1.0F;
+  ep.dehalo = 0.0F;
+  ep.hr = 2.0F;
+  ep.ht = 50.0F;
   ep.l = 0;
   ep.t = 0;
   ep.r = 0;
@@ -97,6 +97,7 @@ FFT3DCore::State::~State() = default;
 FFT3DCore::State::State(State&& old) noexcept = default;
 FFT3DCore::State& FFT3DCore::State::operator=(State&& old) noexcept = default;
 
+// NOLINTNEXTLINE(readability-function-cognitive-complexity)
 ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
   ds::VideoInitContext& context
 ) {
@@ -117,7 +118,7 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
 
     EngineVideoInfo in_vi = make_engine_video_info(input);
 
-    float default_sigma = get_param_val(context.params->get_double("sigma", 2.0f), 2.0f);
+    float default_sigma = get_param_val(context.params->get_double("sigma", 2.0F), 2.0F);
 
     state.ep = std::make_unique<EngineParams>(make_default_engine_params(default_sigma, in_vi));
 
@@ -139,9 +140,7 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
 
     int temp_pframe = get_param_val(context.params->get_int("pframe", state.ep->pframe));
     if (in_vi.Frames > 0) {
-      if (temp_pframe < 0) {
-        temp_pframe = 0;
-      }
+      temp_pframe = std::max(temp_pframe, 0);
       if (temp_pframe >= in_vi.Frames) {
         temp_pframe = in_vi.Frames - 1;
       }
@@ -224,19 +223,16 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
 
     state.mt = get_param_val(context.params->get_bool("mt", state.mt));
     state.fft_threads = get_param_val(context.params->get_int("ncpu", state.fft_threads));
-    if (state.fft_threads < 1) {
-      state.fft_threads = 1;
-    }
+    state.fft_threads = std::max(state.fft_threads, 1);
 
     if (fft_backend_name == "fftw") {
       state.fft_backend = fft::CreateFFTWBackend();
       if (!state.fft_backend->Load()) {
         if (explicit_backend) {
           throw std::runtime_error("fft_backend: failed to load fftw library");
-        } else {
-          state.fft_backend = fft::CreatePocketFFTBackend();
-          state.fft_backend->Load();
         }
+        state.fft_backend = fft::CreatePocketFFTBackend();
+        state.fft_backend->Load();
       }
     } else if (fft_backend_name == "pocketfft") {
       state.fft_backend = fft::CreatePocketFFTBackend();
@@ -288,12 +284,12 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
 
 ds::Result<ds::VideoRequestResult> FFT3DCore::request(ds::VideoRequestContext& context) {
   try {
-    auto& state = context.state<State>();
+    const auto& state = context.state<State>();
     int n = context.output_frame;
 
     if (state.ep->bt > 1 && state.engine_count > 0) {
-      int from = (std::max)(n - state.ep->bt / 2, 0);
-      int to = (std::min)(n + (state.ep->bt - 1) / 2, state.ep->vi.Frames - 1);
+      int from = (std::max)(n - (state.ep->bt / 2), 0);
+      int to = (std::min)(n + ((state.ep->bt - 1) / 2), state.ep->vi.Frames - 1);
       for (int i = from; i <= to; i++) {
         context.request_frame(0, i);
       }
@@ -301,7 +297,7 @@ ds::Result<ds::VideoRequestResult> FFT3DCore::request(ds::VideoRequestContext& c
       context.request_frame(0, n);
     }
 
-    if (state.ep->pfactor != 0.0f) {
+    if (state.ep->pfactor != 0.0F) {
       context.request_frame(0, state.ep->pframe);
     }
 
@@ -329,8 +325,8 @@ ds::Result<ds::VideoProcessResult> FFT3DCore::process(ds::VideoProcessContext& c
     for (int i = 0; i < state.ep->vi.Format.Planes; i++) {
       if (state.process[i] == PlaneAction::Process && state.engine[i]) {
         if (state.ep->bt > 1) {
-          int from = (std::max)(n - state.ep->bt / 2, 0);
-          int to = (std::min)(n + (state.ep->bt - 1) / 2, state.ep->vi.Frames - 1);
+          int from = (std::max)(n - (state.ep->bt / 2), 0);
+          int to = (std::min)(n + ((state.ep->bt - 1) / 2), state.ep->vi.Frames - 1);
           for (int f = from; f <= to; f++) {
             state.engine[i]->CacheRefresh(f);
           }

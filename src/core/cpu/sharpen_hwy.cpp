@@ -38,7 +38,7 @@ void Sharpen_Hwy_Impl(float* out_complex_ptr, float* gridsample_ptr, float* wsha
   const int N = static_cast<int>(hn::Lanes(d));
 
   const auto zero = hn::Zero(d);
-  const auto one = hn::Set(d, 1.0f);
+  const auto one = hn::Set(d, 1.0F);
   const auto grid_frac = hn::Set(d, gridfraction);
 
   const auto s_factor_coef = hn::Set(d, sfp.sharpen);
@@ -63,7 +63,7 @@ void Sharpen_Hwy_Impl(float* out_complex_ptr, float* gridsample_ptr, float* wsha
       ci = hn::Sub(ci, gc_i);
     }
 
-    auto psd = hn::Add(hn::Add(hn::Mul(cr, cr), hn::Mul(ci, ci)), hn::Set(d, 1.0e-15f));
+    auto psd = hn::Add(hn::Add(hn::Mul(cr, cr), hn::Mul(ci, ci)), hn::Set(d, 1.0e-15F));
 
     auto s_fact = one;
     if constexpr (sharpen) {
@@ -115,7 +115,7 @@ void Sharpen_Hwy_Wrap(fftwf_complex* out, SharedFunctionParams sfp) {
     const auto block_offset = complex_block_offset(sfp, block);
     fftwf_complex* out_block = out + block_offset;
     const fftwf_complex* gridsample = sfp.gridsample.fftw_data();
-    const float gridfraction = degrid ? sfp.degrid * out_block[0][0] / gridsample[0][0] : 0.0f;
+    const float gridfraction = degrid ? sfp.degrid * out_block[0][0] / gridsample[0][0] : 0.0F;
 
     auto out_view = ds::make_plane_view(
       reinterpret_cast<float*>(out_block),
@@ -128,11 +128,12 @@ void Sharpen_Hwy_Wrap(fftwf_complex* out, SharedFunctionParams sfp) {
     auto wd_view = sfp.wdehalo;
 
     for (int h = 0; h < sfp.bh; h++) {
-      if (sfp.sharpen == 0.0f && sfp.dehalo == 0.0f) {
+      if (sfp.sharpen == 0.0F && sfp.dehalo == 0.0F) {
         return;
-      } else if (sfp.sharpen != 0.0f && sfp.dehalo == 0.0f) {
+      }
+      if (sfp.sharpen != 0.0F && sfp.dehalo == 0.0F) {
         Sharpen_Hwy_Impl<degrid, true, false>(&out_view[h, 0], &gs_view[h, 0], &ws_view[h, 0], &wd_view[h, 0], sfp, size, gridfraction);
-      } else if (sfp.sharpen == 0.0f && sfp.dehalo != 0.0f) {
+      } else if (sfp.sharpen == 0.0F && sfp.dehalo != 0.0F) {
         Sharpen_Hwy_Impl<degrid, false, true>(&out_view[h, 0], &gs_view[h, 0], &ws_view[h, 0], &wd_view[h, 0], sfp, size, gridfraction);
       } else {
         Sharpen_Hwy_Impl<degrid, true, true>(&out_view[h, 0], &gs_view[h, 0], &ws_view[h, 0], &wd_view[h, 0], sfp, size, gridfraction);
@@ -155,7 +156,7 @@ HWY_EXPORT(Sharpen_Hwy_Wrap_t);
 HWY_EXPORT(Sharpen_Hwy_Wrap_f);
 
 void Sharpen_Hwy(fftwf_complex* out, SharedFunctionParams sfp) {
-  if (sfp.degrid != 0.0f) {
+  if (sfp.degrid != 0.0F) {
     HWY_DYNAMIC_POINTER(Sharpen_Hwy_Wrap_t)(out, sfp);
   } else {
     HWY_DYNAMIC_POINTER(Sharpen_Hwy_Wrap_f)(out, sfp);

@@ -62,14 +62,17 @@ struct FFTFunctionPointers {
     #endif
     void fftw3_open() {
       library = dlopen(LIBFFTW3F_LIBNAME, RTLD_NOW);
-      if (library == nullptr)
+      if (library == nullptr) {
         library = dlopen(LIBFFTW3F_LIBNAME_VERSIONED, RTLD_NOW);
-      if (library == nullptr)
+      }
+      if (library == nullptr) {
         throw(LIBFFTW3F_LIBNAME_NOT_FOUND);
+      }
     }
     void fftw3_close() { dlclose(library); library = nullptr; }
-    func_t fftw3_address(const char * func) { return dlsym(library, func); }
+    func_t fftw3_address(const char * func) const { return dlsym(library, func); }
   #endif
+  // NOLINTNEXTLINE(readability-function-cognitive-complexity)
   void load() {
     library = nullptr;
     fftw3_open();
@@ -92,8 +95,8 @@ struct FFTFunctionPointers {
     }
   }
 
-  bool has_threading() {
-    return library && fftwf_init_threads && fftwf_plan_with_nthreads;
+  bool has_threading() const {
+    return (library != nullptr) && (fftwf_init_threads != nullptr) && (fftwf_plan_with_nthreads != nullptr);
   }
 };
 

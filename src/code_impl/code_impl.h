@@ -40,12 +40,12 @@ struct SharedFunctionParams {
 };
 
 // C
-  template <bool pattern, bool degrid> void Apply2D_C(fftwf_complex *, SharedFunctionParams);
-  template <bool pattern, bool degrid> void Apply3D2_C(fftwf_complex **, fftwf_complex *, SharedFunctionParams);
-  template <bool pattern, bool degrid> void Apply3D3_C(fftwf_complex **, fftwf_complex *, SharedFunctionParams);
-  template <bool pattern, bool degrid> void Apply3D4_C(fftwf_complex **, fftwf_complex *, SharedFunctionParams);
-  template <bool pattern, bool degrid> void Apply3D5_C(fftwf_complex **, fftwf_complex *, SharedFunctionParams);
-  template <bool degrid> void Sharpen_C(fftwf_complex *, SharedFunctionParams);
-  template <bool pattern> void Kalman_C(fftwf_complex *, fftwf_complex *, SharedFunctionParams);
+  template <bool pattern, bool degrid> void Apply2D_C(fftwf_complex * /*out*/, SharedFunctionParams /*sfp*/);
+  template <bool pattern, bool degrid> void Apply3D2_C(fftwf_complex ** /*in*/, fftwf_complex * /*out*/, SharedFunctionParams /*sfp*/);
+  template <bool pattern, bool degrid> void Apply3D3_C(fftwf_complex ** /*in*/, fftwf_complex * /*out*/, SharedFunctionParams /*sfp*/);
+  template <bool pattern, bool degrid> void Apply3D4_C(fftwf_complex ** /*in*/, fftwf_complex * /*out*/, SharedFunctionParams /*sfp*/);
+  template <bool pattern, bool degrid> void Apply3D5_C(fftwf_complex ** /*in*/, fftwf_complex * /*out*/, SharedFunctionParams /*sfp*/);
+  template <bool degrid> void Sharpen_C(fftwf_complex * /*out*/, SharedFunctionParams /*sfp*/);
+  template <bool pattern> void Kalman_C(fftwf_complex * /*outcur*/, fftwf_complex * /*outLast*/, SharedFunctionParams /*sfp*/);
 
 #endif
