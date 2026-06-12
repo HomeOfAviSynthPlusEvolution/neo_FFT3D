@@ -132,6 +132,7 @@ set(NEO_FFT3D_ENGINE_SOURCES
   src/buffer.h
   src/cache.hpp
   src/common/aligned_vector.hpp
+  src/common/fft3d_views.hpp
   src/cpuid.cpp
   src/engine/engine_params.hpp
   src/engine/fft3d_engine.hpp
