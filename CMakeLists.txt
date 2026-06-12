@@ -18,7 +18,7 @@ set(VAPOURSYNTH_TAG "R72" CACHE STRING "VapourSynth tag used when pkg-config can
 
 include(FetchContent)
 
-# 1. 引入 Google Highway (后续 SIMD 算子使用)
+# 1. Import Google Highway (for future SIMD operators)
 FetchContent_Declare(
   highway
   GIT_REPOSITORY https://github.com/google/highway.git
@@ -30,7 +30,7 @@ set(HWY_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 set(HWY_ENABLE_TESTS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(highway)
 
-# 2. 引入 dualsynth2
+# 2. Import dualsynth2
 set(DS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(DS_BUILD_ACCEPTANCE_PLUGIN OFF CACHE BOOL "" FORCE)
 if(MSVC)
@@ -43,7 +43,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(dualsynth2)
 
-# 3. 引入 PocketFFT (纯头文件 C++ 变换库)
+# 3. Import PocketFFT (header-only C++ transform library)
 FetchContent_Declare(
   pocketfft
   GIT_REPOSITORY https://github.com/mreineck/pocketfft.git
@@ -51,7 +51,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(pocketfft)
 
-# 3. 动态拉取 AviSynth+ 与 VapourSynth 官方头文件并进行兼容适配 (对齐 DelogoHD)
+# 4. Dynamically pull official AviSynth+ and VapourSynth headers and perform compatibility adaptation (align with DelogoHD)
 function(fetch_avisynth_headers out_var)
   FetchContent_Declare(
     avisynthplus_headers
@@ -120,7 +120,7 @@ else()
 endif()
 add_vapoursynth_compat_headers(vapoursynth_headers)
 
-# 4. 编译目标定义
+# 5. Compile targets definition
 file(GLOB CODE "src/*.cpp")
 file(GLOB CODE_FFT "src/fft/*.cpp")
 file(GLOB CODE_CORE "src/core/cpu/*.cpp")
@@ -140,7 +140,7 @@ add_library(neo-fft3d SHARED
   ${CODE_IMPL}
 )
 
-# 链接依赖，自动带入 dualsynth2、hwy、以及拉取的 AVS/VS 官方头文件
+# Link dependencies, automatically bringing in dualsynth2, hwy, and pulled AVS/VS official headers
 target_link_libraries(neo-fft3d PRIVATE
   DualSynth::dualsynth
   hwy
@@ -157,7 +157,7 @@ target_include_directories(neo-fft3d PRIVATE
 
 target_compile_definitions(neo-fft3d PRIVATE _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_DEPRECATE)
 
-# 5. Git 版本控制注入
+# 6. Git version control injection
 find_package(Git REQUIRED)
 execute_process(
   COMMAND ${GIT_EXECUTABLE} describe --first-parent --tags --always
@@ -183,11 +183,11 @@ configure_file(
   "${GENERATED_DIR}/version.rc"
 )
 
-# 将生成的 rc 文件作为源文件加入编译
+# Add generated rc file as source file to compilation
 target_sources(neo-fft3d PRIVATE "${GENERATED_DIR}/version.rc")
 target_include_directories(neo-fft3d PRIVATE "${GENERATED_DIR}")
 
-# 6. 测试工具构建定义
+# 7. Test tools build definition
 option(NEO_FFT3D_BUILD_TEST_TOOLS "Build Neo_FFT3D baseline test tools" ON)
 
 if (NEO_FFT3D_BUILD_TEST_TOOLS)
@@ -206,7 +206,7 @@ if (NOT WIN32)
   target_link_libraries(neo-fft3d PRIVATE dl)
 endif()
 
-# 7. CTest 单元测试与基准校验集成
+# 8. CTest unit tests and baseline verification integration
 if (NEO_FFT3D_BUILD_TEST_TOOLS)
   enable_testing()
   find_package(Python3 COMPONENTS Interpreter REQUIRED)
