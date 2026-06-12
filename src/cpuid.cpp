@@ -26,9 +26,17 @@
 #else
 #include <x86intrin.h>
 #include <cpuid.h>
-#undef __cpuid
+#endif
 
-static inline void __cpuid(int cpuinfo[4], int leaf) {
+static inline void cpuid_leaf(uint32_t cpuinfo[4], uint32_t leaf) {
+#ifdef AVS_WINDOWS
+  int raw[4] {};
+  __cpuid(raw, static_cast<int>(leaf));
+  cpuinfo[0] = static_cast<uint32_t>(raw[0]);
+  cpuinfo[1] = static_cast<uint32_t>(raw[1]);
+  cpuinfo[2] = static_cast<uint32_t>(raw[2]);
+  cpuinfo[3] = static_cast<uint32_t>(raw[3]);
+#else
   unsigned int eax, ebx, ecx, edx;
   // for deeper leaves __get_cpuid is not enough
   __get_cpuid_count(leaf, 0, &eax, &ebx, &ecx, &edx);
@@ -36,11 +44,10 @@ static inline void __cpuid(int cpuinfo[4], int leaf) {
   cpuinfo[1] = ebx;
   cpuinfo[2] = ecx;
   cpuinfo[3] = edx;
+#endif
 }
 
-#endif
-
-#define IS_BIT_SET(bitfield, bit) ((bitfield) & (1<<(bit)) ? true : false)
+#define IS_BIT_SET(bitfield, bit) (((bitfield) & (1U << (bit))) != 0U)
 
 static uint32_t get_xcr0()
 {
@@ -57,9 +64,9 @@ static uint32_t get_xcr0()
 static int CPUCheckForExtensions()
 {
   int result = 0;
-  int cpuinfo[4];
+  uint32_t cpuinfo[4] {};
 
-  __cpuid(cpuinfo, 1);
+  cpuid_leaf(cpuinfo, 1U);
   if (IS_BIT_SET(cpuinfo[3], 0))
     result |= CPUF_FPU;
   if (IS_BIT_SET(cpuinfo[3], 23))
@@ -90,20 +97,20 @@ static int CPUCheckForExtensions()
   if (xgetbv_supported && avx_supported)
   {
     uint32_t xgetbv0_32 = get_xcr0();
-    if ((xgetbv0_32 & 0x6u) == 0x6u) {
+    if ((xgetbv0_32 & 0x6U) == 0x6U) {
       result |= CPUF_AVX;
       if (IS_BIT_SET(cpuinfo[2], 12))
         result |= CPUF_FMA3;
-      __cpuid(cpuinfo, 7);
+      cpuid_leaf(cpuinfo, 7U);
       if (IS_BIT_SET(cpuinfo[1], 5))
         result |= CPUF_AVX2;
     }
-    if((xgetbv0_32 & (0x7u << 5)) && // OPMASK: upper-256 enabled by OS
-       (xgetbv0_32 & (0x3u << 1))) { // XMM/YMM enabled by OS
+    if((xgetbv0_32 & (0x7U << 5)) && // OPMASK: upper-256 enabled by OS
+       (xgetbv0_32 & (0x3U << 1))) { // XMM/YMM enabled by OS
       // Verify that XCR0[7:5] = "111b" (OPMASK state, upper 256-bit of ZMM0-ZMM15 and
       // ZMM16-ZMM31 state are enabled by OS)
       /// and that XCR0[2:1] = "11b" (XMM state and YMM state are enabled by OS).
-      __cpuid(cpuinfo, 7);
+      cpuid_leaf(cpuinfo, 7U);
       if (IS_BIT_SET(cpuinfo[1], 16))
         result |= CPUF_AVX512F;
       if (IS_BIT_SET(cpuinfo[1], 17))
@@ -126,10 +133,10 @@ static int CPUCheckForExtensions()
   }
 
   // 3DNow!, 3DNow!, ISSE, FMA4
-  __cpuid(cpuinfo, 0x80000000);
-  if (cpuinfo[0] >= 0x80000001)
+  cpuid_leaf(cpuinfo, 0x80000000U);
+  if (cpuinfo[0] >= 0x80000001U)
   {
-    __cpuid(cpuinfo, 0x80000001);
+    cpuid_leaf(cpuinfo, 0x80000001U);
 
     if (IS_BIT_SET(cpuinfo[3], 31))
       result |= CPUF_3DNOW;

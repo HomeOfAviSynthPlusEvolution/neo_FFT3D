@@ -12,6 +12,9 @@
 
 #include "fft3d_common.h"
 
+#include <cmath>
+#include <cstddef>
+
 namespace neo_fft3d {
 
 //-------------------------------------------------------------------
@@ -19,8 +22,8 @@ void SigmasToPattern(float sigma, float sigma2, float sigma3, float sigma4, int 
 {
   // it is not fast, but called only in constructor
   float sigmacur;
-  float ft2 = sqrt(0.5f) / 2; // frequency for sigma2
-  float ft3 = sqrt(0.5f) / 4; // frequency for sigma3
+  float ft2 = std::sqrt(0.5f) / 2.0f; // frequency for sigma2
+  float ft3 = std::sqrt(0.5f) / 4.0f; // frequency for sigma3
   const int bh = static_cast<int>(pattern2d_view.extent(0));
   const int outpitch = static_cast<int>(pattern2d_view.mapping().stride(0));
   float* pattern2d = pattern2d_view.data_handle();
@@ -28,9 +31,9 @@ void SigmasToPattern(float sigma, float sigma2, float sigma3, float sigma4, int 
   {
     for (int w = 0; w < outwidth; w++)
     {
-      float fy = (bh - 2.0f*abs(h - bh / 2)) / bh; // normalized to 1
-      float fx = (w*1.0f) / outwidth;  // normalized to 1
-      float f = sqrt((fx*fx + fy*fy)*0.5f); // normalized to 1
+      float fy = (static_cast<float>(bh) - 2.0f * static_cast<float>(abs(h - bh / 2))) / static_cast<float>(bh); // normalized to 1
+      float fx = static_cast<float>(w) / static_cast<float>(outwidth);  // normalized to 1
+      float f = std::sqrt((fx*fx + fy*fy)*0.5f); // normalized to 1
       if (f < ft3)
       { // low frequencies
         sigmacur = sigma4 + (sigma3 - sigma4)*f / ft3;
@@ -88,7 +91,7 @@ void FindPatternBlock(ComplexBlockView spectrum, int outwidth, int nox, int noy,
         pwin += outpitch;
         gridsample += outpitch;
       }
-      pwin -= outpitch*bh; // restore
+      pwin -= static_cast<std::ptrdiff_t>(outpitch) * static_cast<std::ptrdiff_t>(bh); // restore
       if (sigmaSquaredcur < sigmaSquared)
       {
         px = bx;
@@ -122,7 +125,7 @@ void SetPattern(ComplexBlockView spectrum, int outwidth, int nox, int noy, int p
     }
     pwin += outpitch;
   }
-  pwin -= outpitch*bh; // restore
+  pwin -= static_cast<std::ptrdiff_t>(outpitch) * static_cast<std::ptrdiff_t>(bh); // restore
 
   float gcur = degrid*outcur[0][0] / gridsample[0][0]; // grid (windowing) correction factor
 
@@ -144,7 +147,9 @@ void SetPattern(ComplexBlockView spectrum, int outwidth, int nox, int noy, int p
     pwin += outpitch;
     gridsample += outpitch;
   }
-  psigma = sqrt(sigmaSquared / (weight*bh*outwidth)); // mean std deviation (sigma)
+  psigma = std::sqrt(
+    sigmaSquared / (weight * static_cast<float>(bh) * static_cast<float>(outwidth))
+  ); // mean std deviation (sigma)
 }
 //-------------------------------------------------------------------------------------------
 void PutPatternOnly(ComplexBlockView spectrum, int outwidth, int nox, int noy, int px, int py)
@@ -170,7 +175,7 @@ void PutPatternOnly(ComplexBlockView spectrum, int outwidth, int nox, int noy, i
     }
   }
 
-  outcur += bh*outpitch;
+  outcur += static_cast<std::ptrdiff_t>(bh) * static_cast<std::ptrdiff_t>(outpitch);
 
   for (block = pblock + 1; block < blocks; block++)
   {

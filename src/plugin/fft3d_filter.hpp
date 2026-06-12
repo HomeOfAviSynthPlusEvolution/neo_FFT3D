@@ -43,7 +43,7 @@ struct FFT3DCore {
       PlaneAction::Copy,
       PlaneAction::Copy
     };
-    std::array<std::unique_ptr<FFT3DEngine>, 4> engine {};
+    std::array<std::unique_ptr<FFT3DEngine>, 4> engine;
     int engine_count {0};
     std::unique_ptr<EngineParams> ep;
     std::shared_ptr<neo_fft3d::fft::FFTBackend> fft_backend;

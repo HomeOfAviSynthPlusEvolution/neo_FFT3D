@@ -9,11 +9,25 @@
 #include "core/cpu/core_hwy.h"
 #include <dualsynth/mdspan.hpp>
 
+#include <cstddef>
+
 HWY_BEFORE_NAMESPACE();
 namespace neo_fft3d::cpu {
 namespace HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
+
+HWY_INLINE std::ptrdiff_t complex_block_offset(const SharedFunctionParams& sfp, int block) {
+  return static_cast<std::ptrdiff_t>(block) *
+         static_cast<std::ptrdiff_t>(sfp.outpitch) *
+         static_cast<std::ptrdiff_t>(sfp.bh);
+}
+
+HWY_INLINE std::ptrdiff_t complex_float_stride_bytes(int outpitch) {
+  return static_cast<std::ptrdiff_t>(outpitch) *
+         2 *
+         static_cast<std::ptrdiff_t>(sizeof(float));
+}
 
 template <bool pattern, bool degrid, bool sharpen, bool dehalo>
 void Apply2D_Hwy_Impl(
@@ -28,7 +42,7 @@ void Apply2D_Hwy_Impl(
     float gridfraction
 ) {
   const hn::ScalableTag<float> d;
-  const size_t N = hn::Lanes(d);
+  const int N = static_cast<int>(hn::Lanes(d));
 
   const auto zero = hn::Zero(d);
   const auto eps = hn::Set(d, 1.0e-15f);
@@ -116,11 +130,17 @@ template <bool pattern, bool degrid>
 void Apply2D_Hwy_Wrap(fftwf_complex* out, SharedFunctionParams sfp) {
   const int size = sfp.outpitch;
   for (int block = 0; block < sfp.howmanyblocks; block++) {
-    fftwf_complex* out_block = out + block * sfp.outpitch * sfp.bh;
+    const auto block_offset = complex_block_offset(sfp, block);
+    fftwf_complex* out_block = out + block_offset;
     const fftwf_complex* gridsample = sfp.gridsample.fftw_data();
     const float gridfraction = degrid ? sfp.degrid * out_block[0][0] / gridsample[0][0] : 0.0f;
 
-    auto out_view = ds::make_plane_view(reinterpret_cast<float*>(out_block), sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
+    auto out_view = ds::make_plane_view(
+      reinterpret_cast<float*>(out_block),
+      sfp.outpitch * 2,
+      sfp.bh,
+      complex_float_stride_bytes(sfp.outpitch)
+    );
     auto gs_view = sfp.gridsample.block_float_view(0);
     auto pat_view = sfp.pattern2d;
     auto ws_view = sfp.wsharpen;
@@ -168,7 +188,7 @@ void Apply3D_Hwy_Impl(
     float gridfraction
 ) {
   const hn::ScalableTag<float> d;
-  const size_t N = hn::Lanes(d);
+  const int N = static_cast<int>(hn::Lanes(d));
 
   const auto zero = hn::Zero(d);
   const auto lowlimit = hn::Set(d, (sfp.beta - 1.0f) / sfp.beta);
@@ -381,19 +401,30 @@ template <int bt, bool pattern, bool degrid>
 void Apply3D_Hwy_Wrap(fftwf_complex** in, fftwf_complex* out, SharedFunctionParams sfp) {
   const int size = sfp.outpitch;
   for (int block = 0; block < sfp.howmanyblocks; block++) {
-    fftwf_complex* out_block = out + block * sfp.outpitch * sfp.bh;
+    const auto block_offset = complex_block_offset(sfp, block);
+    fftwf_complex* out_block = out + block_offset;
     const fftwf_complex* gridsample = sfp.gridsample.fftw_data();
-    const float gridfraction = degrid ? sfp.degrid * (in[2] + block * sfp.outpitch * sfp.bh)[0][0] / gridsample[0][0] : 0.0f;
+    const float gridfraction = degrid ? sfp.degrid * (in[2] + block_offset)[0][0] / gridsample[0][0] : 0.0f;
 
-    auto out_view = ds::make_plane_view(reinterpret_cast<float*>(out_block), sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
+    auto out_view = ds::make_plane_view(
+      reinterpret_cast<float*>(out_block),
+      sfp.outpitch * 2,
+      sfp.bh,
+      complex_float_stride_bytes(sfp.outpitch)
+    );
     auto gs_view = sfp.gridsample.block_float_view(0);
     auto pat_view = sfp.pattern3d;
 
     ds::PlaneView2D<float> in_views[5];
     for (int k = 0; k < 5; k++) {
       if (in[k]) {
-        fftwf_complex* in_block = in[k] + block * sfp.outpitch * sfp.bh;
-        in_views[k] = ds::make_plane_view(reinterpret_cast<float*>(in_block), sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
+        fftwf_complex* in_block = in[k] + block_offset;
+        in_views[k] = ds::make_plane_view(
+          reinterpret_cast<float*>(in_block),
+          sfp.outpitch * 2,
+          sfp.bh,
+          complex_float_stride_bytes(sfp.outpitch)
+        );
       } else {
         in_views[k] = ds::PlaneView2D<float>{};
       }

@@ -10,6 +10,8 @@
 
 #include "code_impl_C.h"
 
+#include <cmath>
+
 template <bool pattern, bool degrid, bool sharpen, bool dehalo>
 static inline void Apply2D_C_impl(fftwf_complex *out, SharedFunctionParams sfp)
 {
@@ -32,10 +34,16 @@ static inline void Apply2D_C_impl(fftwf_complex *out, SharedFunctionParams sfp)
 
       if constexpr (!pattern) {
         // Skip sharpen and dehalo for ApplyPattern family
-        float s_fact = 1 + sfp.sharpen * lfp.wsharpen[lfp.w] * sqrt(
-          psd * sfp.sigmaSquaredSharpenMaxNormed / ((psd + sfp.sigmaSquaredSharpenMinNormed) * (psd + sfp.sigmaSquaredSharpenMaxNormed))
-          );
-        float d_fact = (psd + sfp.ht2n) / ((psd + sfp.ht2n) + sfp.dehalo * lfp.wdehalo[lfp.w] * psd);
+        float s_fact = 1.0f;
+        if constexpr (sharpen) {
+          s_fact += sfp.sharpen * lfp.wsharpen[lfp.w] * std::sqrt(
+            psd * sfp.sigmaSquaredSharpenMaxNormed / ((psd + sfp.sigmaSquaredSharpenMinNormed) * (psd + sfp.sigmaSquaredSharpenMaxNormed))
+            );
+        }
+        float d_fact = 1.0f;
+        if constexpr (dehalo) {
+          d_fact = (psd + sfp.ht2n) / ((psd + sfp.ht2n) + sfp.dehalo * lfp.wdehalo[lfp.w] * psd);
+        }
 
         if (sharpen && !dehalo)
           factor *= s_fact;
@@ -55,7 +63,7 @@ template <bool pattern, bool degrid>
 void Apply2D_C(fftwf_complex *out, SharedFunctionParams sfp)
 {
   if (sfp.sharpen == 0 && sfp.dehalo == 0)
-    Apply2D_C_impl<pattern, degrid, true, false>(out, sfp);
+    Apply2D_C_impl<pattern, degrid, false, false>(out, sfp);
   else if (sfp.sharpen != 0 && sfp.dehalo == 0)
     Apply2D_C_impl<pattern, degrid, true, false>(out, sfp);
   else if (sfp.sharpen == 0 && sfp.dehalo != 0)

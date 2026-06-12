@@ -9,16 +9,34 @@
 #include "core/cpu/core_hwy.h"
 #include <dualsynth/mdspan.hpp>
 
+#include <cstddef>
+
 HWY_BEFORE_NAMESPACE();
 namespace neo_fft3d::cpu {
 namespace HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 
+HWY_INLINE std::ptrdiff_t interleaved_float_offset(int i) {
+  return static_cast<std::ptrdiff_t>(i) * 2;
+}
+
+HWY_INLINE std::ptrdiff_t complex_block_offset(const SharedFunctionParams& sfp, int block) {
+  return static_cast<std::ptrdiff_t>(block) *
+         static_cast<std::ptrdiff_t>(sfp.outpitch) *
+         static_cast<std::ptrdiff_t>(sfp.bh);
+}
+
+HWY_INLINE std::ptrdiff_t complex_float_stride_bytes(int outpitch) {
+  return static_cast<std::ptrdiff_t>(outpitch) *
+         2 *
+         static_cast<std::ptrdiff_t>(sizeof(float));
+}
+
 template <bool degrid, bool sharpen, bool dehalo>
 void Sharpen_Hwy_Impl(float* out_complex_ptr, float* gridsample_ptr, float* wsharpen_ptr, float* wdehalo_ptr, SharedFunctionParams sfp, int size, float gridfraction) {
   const hn::ScalableTag<float> d;
-  const size_t N = hn::Lanes(d);
+  const int N = static_cast<int>(hn::Lanes(d));
 
   const auto zero = hn::Zero(d);
   const auto one = hn::Set(d, 1.0f);
@@ -31,14 +49,15 @@ void Sharpen_Hwy_Impl(float* out_complex_ptr, float* gridsample_ptr, float* wsha
   const auto d_coef_ht = hn::Set(d, sfp.ht2n);
 
   for (int i = 0; i < size; i += N) {
+    const auto offset = interleaved_float_offset(i);
     auto cr = zero;
     auto ci = zero;
-    hn::LoadInterleaved2(d, out_complex_ptr + 2 * i, cr, ci);
+    hn::LoadInterleaved2(d, out_complex_ptr + offset, cr, ci);
 
     if constexpr (degrid) {
       auto gs_r = zero;
       auto gs_i = zero;
-      hn::LoadInterleaved2(d, gridsample_ptr + 2 * i, gs_r, gs_i);
+      hn::LoadInterleaved2(d, gridsample_ptr + offset, gs_r, gs_i);
       auto gc_r = hn::Mul(grid_frac, gs_r);
       auto gc_i = hn::Mul(grid_frac, gs_i);
       cr = hn::Sub(cr, gc_r);
@@ -79,14 +98,14 @@ void Sharpen_Hwy_Impl(float* out_complex_ptr, float* gridsample_ptr, float* wsha
     if constexpr (degrid) {
       auto gs_r = zero;
       auto gs_i = zero;
-      hn::LoadInterleaved2(d, gridsample_ptr + 2 * i, gs_r, gs_i);
+      hn::LoadInterleaved2(d, gridsample_ptr + offset, gs_r, gs_i);
       auto gc_r = hn::Mul(grid_frac, gs_r);
       auto gc_i = hn::Mul(grid_frac, gs_i);
       final_r = hn::Add(final_r, gc_r);
       final_i = hn::Add(final_i, gc_i);
     }
 
-    hn::StoreInterleaved2(final_r, final_i, d, out_complex_ptr + 2 * i);
+    hn::StoreInterleaved2(final_r, final_i, d, out_complex_ptr + offset);
   }
 }
 
@@ -94,11 +113,17 @@ template <bool degrid>
 void Sharpen_Hwy_Wrap(fftwf_complex* out, SharedFunctionParams sfp) {
   const int size = sfp.outpitch;
   for (int block = 0; block < sfp.howmanyblocks; block++) {
-    fftwf_complex* out_block = out + block * sfp.outpitch * sfp.bh;
+    const auto block_offset = complex_block_offset(sfp, block);
+    fftwf_complex* out_block = out + block_offset;
     const fftwf_complex* gridsample = sfp.gridsample.fftw_data();
     const float gridfraction = degrid ? sfp.degrid * out_block[0][0] / gridsample[0][0] : 0.0f;
 
-    auto out_view = ds::make_plane_view(reinterpret_cast<float*>(out_block), sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
+    auto out_view = ds::make_plane_view(
+      reinterpret_cast<float*>(out_block),
+      sfp.outpitch * 2,
+      sfp.bh,
+      complex_float_stride_bytes(sfp.outpitch)
+    );
     auto gs_view = sfp.gridsample.block_float_view(0);
     auto ws_view = sfp.wsharpen;
     auto wd_view = sfp.wdehalo;

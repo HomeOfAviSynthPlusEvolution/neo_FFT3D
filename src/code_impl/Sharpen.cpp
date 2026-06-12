@@ -10,6 +10,8 @@
 
 #include "code_impl_C.h"
 
+#include <cmath>
+
 template <bool degrid, bool sharpen, bool dehalo>
 static inline void Sharpen_C_impl(fftwf_complex *out, SharedFunctionParams sfp)
 {
@@ -29,12 +31,18 @@ static inline void Sharpen_C_impl(fftwf_complex *out, SharedFunctionParams sfp)
 
       float psd = cr * cr + ci * ci + 1.0e-15f;
 
-      float s_fact = 1 + sfp.sharpen * lfp.wsharpen[lfp.w] * sqrt(
-        psd * sfp.sigmaSquaredSharpenMaxNormed / ((psd + sfp.sigmaSquaredSharpenMinNormed) * (psd + sfp.sigmaSquaredSharpenMaxNormed))
-        );
-      float d_fact = (psd + sfp.ht2n) / ((psd + sfp.ht2n) + sfp.dehalo * lfp.wdehalo[lfp.w] * psd);
+      float s_fact = 1.0f;
+      if constexpr (sharpen) {
+        s_fact += sfp.sharpen * lfp.wsharpen[lfp.w] * std::sqrt(
+          psd * sfp.sigmaSquaredSharpenMaxNormed / ((psd + sfp.sigmaSquaredSharpenMinNormed) * (psd + sfp.sigmaSquaredSharpenMaxNormed))
+          );
+      }
+      float d_fact = 1.0f;
+      if constexpr (dehalo) {
+        d_fact = (psd + sfp.ht2n) / ((psd + sfp.ht2n) + sfp.dehalo * lfp.wdehalo[lfp.w] * psd);
+      }
 
-      float factor;
+      float factor = 1.0f;
 
       if constexpr (sharpen && !dehalo)
         factor = s_fact;

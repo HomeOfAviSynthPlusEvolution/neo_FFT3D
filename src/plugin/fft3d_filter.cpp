@@ -117,7 +117,7 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
 
     EngineVideoInfo in_vi = make_engine_video_info(input);
 
-    float default_sigma = get_param_val(context.params->get_double("sigma", 2.0));
+    float default_sigma = get_param_val(context.params->get_double("sigma", 2.0f), 2.0f);
 
     state.ep = std::make_unique<EngineParams>(make_default_engine_params(default_sigma, in_vi));
 

@@ -1,4 +1,5 @@
 #include "engine/frame_buffer.hpp"
+#include <cstddef>
 #include <numeric>
 #pragma warning (disable: 26451)
 
@@ -35,6 +36,18 @@ int view_stride_samples(neo_fft3d::MutableBytePlaneView view, int bytes_per_samp
   return view_stride_bytes(view) / bytes_per_sample;
 }
 
+std::ptrdiff_t sample_offset(int lhs, int rhs) {
+  return static_cast<std::ptrdiff_t>(lhs) * static_cast<std::ptrdiff_t>(rhs);
+}
+
+std::ptrdiff_t sample_offset(std::ptrdiff_t lhs, int rhs) {
+  return lhs * static_cast<std::ptrdiff_t>(rhs);
+}
+
+std::ptrdiff_t sample_offset(int lhs, std::ptrdiff_t rhs) {
+  return static_cast<std::ptrdiff_t>(lhs) * rhs;
+}
+
 } // namespace
 
 template<typename pixel_t, int _bits_per_pixel, bool chroma>
@@ -60,7 +73,7 @@ static void CoverToOverlap_impl(EngineParams * ep, IOParams * iop, float *dst_pt
   {
     for (h = 0; h < ep->oh; h++)
     {
-      inp = dst_ptr + h*ep->bw;
+      inp = dst_ptr + sample_offset(h, ep->bw);
       for (w = 0; w < ep->ow; w++)   // left part  (non-overlapped) row of first block
       {
         inp[w] = float(iop->wanxl[w] * iop->wanyl[h] * (srcp[w] - planeBase));   // Copy each byte from source to float array
@@ -99,7 +112,7 @@ static void CoverToOverlap_impl(EngineParams * ep, IOParams * iop, float *dst_pt
     }
     for (h = ep->oh; h < ep->bh - ep->oh; h++)
     {
-      inp = dst_ptr + h*ep->bw;
+      inp = dst_ptr + sample_offset(h, ep->bw);
       for (w = 0; w < ep->ow; w++)   // left part  (non-overlapped) row of first block
       {
         inp[w] = float(iop->wanxl[w] * (srcp[w] - planeBase));   // Copy each byte from source to float array
@@ -148,10 +161,13 @@ static void CoverToOverlap_impl(EngineParams * ep, IOParams * iop, float *dst_pt
     int w, h;
     int ihx;
     float ftmp;
-    auto srcp0 = srcp + src_pitch * (ihy - 1)  * (ep->bh - ep->oh);
+    auto srcp0 = srcp + sample_offset(sample_offset(src_pitch, ihy - 1), ep->bh - ep->oh);
     for (h = 0; h < ep->oh; h++) // top overlapped part
     {
-      auto inp = dst_ptr + (ihy - 1)*(yoffset + (ep->bh - ep->oh)*ep->bw) + (ep->bh - ep->oh)*ep->bw + h*ep->bw;
+      auto inp = dst_ptr +
+                 sample_offset(ihy - 1, static_cast<std::ptrdiff_t>(yoffset) + sample_offset(ep->bh - ep->oh, ep->bw)) +
+                 sample_offset(ep->bh - ep->oh, ep->bw) +
+                 sample_offset(h, ep->bw);
       for (w = 0; w < ep->ow; w++)   // first half line of first block
       {
         ftmp = float(iop->wanxl[w] * (srcp0[w] - planeBase));
@@ -202,7 +218,11 @@ static void CoverToOverlap_impl(EngineParams * ep, IOParams * iop, float *dst_pt
     // middle  vertical nonovelapped part
     for (h = 0; h < ep->bh - ep->oh - ep->oh; h++)
     {
-      auto inp = dst_ptr + (ihy - 1)*(yoffset + (ep->bh - ep->oh)*ep->bw) + (ep->bh)*ep->bw + h*ep->bw + yoffset;
+      auto inp = dst_ptr +
+                 sample_offset(ihy - 1, static_cast<std::ptrdiff_t>(yoffset) + sample_offset(ep->bh - ep->oh, ep->bw)) +
+                 sample_offset(ep->bh, ep->bw) +
+                 sample_offset(h, ep->bw) +
+                 yoffset;
       for (w = 0; w < ep->ow; w++)   // first half line of first block
       {
         ftmp = float(iop->wanxl[w] * (srcp0[w] - planeBase));
@@ -250,12 +270,15 @@ static void CoverToOverlap_impl(EngineParams * ep, IOParams * iop, float *dst_pt
   ); // std::for_each
 #endif
 
-  srcp += src_pitch * (iop->noy - 1)  * (ep->bh - ep->oh);
+  srcp += sample_offset(sample_offset(src_pitch, iop->noy - 1), ep->bh - ep->oh);
   ihy = iop->noy; // last bottom  part
   {
     for (h = 0; h < ep->oh; h++)
     {
-      inp = dst_ptr + (ihy - 1)*(yoffset + (ep->bh - ep->oh)*ep->bw) + (ep->bh - ep->oh)*ep->bw + h*ep->bw;
+      inp = dst_ptr +
+            sample_offset(ihy - 1, static_cast<std::ptrdiff_t>(yoffset) + sample_offset(ep->bh - ep->oh, ep->bw)) +
+            sample_offset(ep->bh - ep->oh, ep->bw) +
+            sample_offset(h, ep->bw);
       for (w = 0; w < ep->ow; w++)   // first half line of first block
       {
         ftmp = float(iop->wanxl[w] * iop->wanyr[h] * (srcp[w] - planeBase));
@@ -322,7 +345,7 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
   {
     for (h = 0; h < ep->bh - ep->oh; h++)
     {
-      inp = src_ptr + h*ep->bw;
+      inp = src_ptr + sample_offset(h, ep->bw);
       for (w = 0; w < ep->bw - ep->ow; w++)   // first half line of first block
       {
         dstp[w] = MIN(cast_t(max_pixel_value), MAX((cast_t)0, (cast_t)(inp[w] * norm + rounder + planeBase)));   // Copy each byte from float array to dest with windows
@@ -363,10 +386,13 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
 #endif
     int w, h;
     int ihx;
-    auto dstp0 = dstp + dst_pitch * (ihy - 1)  * (ep->bh - ep->oh);
+    auto dstp0 = dstp + sample_offset(sample_offset(dst_pitch, ihy - 1), ep->bh - ep->oh);
     for (h = 0; h < ep->oh; h++) // top overlapped part
     {
-      auto inp = src_ptr + (ihy - 1)*(yoffset + (ep->bh - ep->oh)*ep->bw) + (ep->bh - ep->oh)*ep->bw + h*ep->bw;
+      auto inp = src_ptr +
+                 sample_offset(ihy - 1, static_cast<std::ptrdiff_t>(yoffset) + sample_offset(ep->bh - ep->oh, ep->bw)) +
+                 sample_offset(ep->bh - ep->oh, ep->bw) +
+                 sample_offset(h, ep->bw);
 
       float wsynyrh = iop->wsynyr[h] * norm; // remove from cycle for speed
       float wsynylh = iop->wsynyl[h] * norm;
@@ -405,7 +431,11 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
     // middle  vertical non-ovelapped part
     for (h = 0; h < (ep->bh - ep->oh - ep->oh); h++)
     {
-      auto inp = src_ptr + (ihy - 1)*(yoffset + (ep->bh - ep->oh)*ep->bw) + (ep->bh)*ep->bw + h*ep->bw + yoffset;
+      auto inp = src_ptr +
+                 sample_offset(ihy - 1, static_cast<std::ptrdiff_t>(yoffset) + sample_offset(ep->bh - ep->oh, ep->bw)) +
+                 sample_offset(ep->bh, ep->bw) +
+                 sample_offset(h, ep->bw) +
+                 yoffset;
       for (w = 0; w < ep->bw - ep->ow; w++)   // first half line of first block
       {
         dstp0[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)((inp[w])*norm + rounder + planeBase)));
@@ -442,12 +472,15 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
   ); // std::for_each
 #endif
 
-  dstp += dst_pitch * (iop->noy - 1)  * (ep->bh - ep->oh);
+  dstp += sample_offset(sample_offset(dst_pitch, iop->noy - 1), ep->bh - ep->oh);
   ihy = iop->noy; // last bottom part
   {
     for (h = 0; h < ep->oh; h++)
     {
-      inp = src_ptr + (ihy - 1)*(yoffset + (ep->bh - ep->oh)*ep->bw) + (ep->bh - ep->oh)*ep->bw + h*ep->bw;
+      inp = src_ptr +
+            sample_offset(ihy - 1, static_cast<std::ptrdiff_t>(yoffset) + sample_offset(ep->bh - ep->oh, ep->bw)) +
+            sample_offset(ep->bh - ep->oh, ep->bw) +
+            sample_offset(h, ep->bw);
       for (w = 0; w < ep->bw - ep->ow; w++)   // first half line of first block
       {
         dstp[w] = MIN(cast_t(max_pixel_value), MAX(0, (cast_t)(inp[w] * norm + rounder + planeBase)));
@@ -498,6 +531,7 @@ void CoverToOverlap(EngineParams * ep, IOParams * iop, neo_fft3d::FloatSpan dst,
     case 14: CoverToOverlap_impl<uint16_t, 14, true>(ep, iop, dst_ptr, src_ptr, src_width, src_pitch); break;
     case 16: CoverToOverlap_impl<uint16_t, 16, true>(ep, iop, dst_ptr, src_ptr, src_width, src_pitch); break;
     case 32: CoverToOverlap_impl<float, 8 /*n/a*/, true>(ep, iop, dst_ptr, src_ptr, src_width, src_pitch); break;
+    default: break;
     }
   }
   else {
@@ -508,6 +542,7 @@ void CoverToOverlap(EngineParams * ep, IOParams * iop, neo_fft3d::FloatSpan dst,
     case 14: CoverToOverlap_impl<uint16_t, 14, false>(ep, iop, dst_ptr, src_ptr, src_width, src_pitch); break;
     case 16: CoverToOverlap_impl<uint16_t, 16, false>(ep, iop, dst_ptr, src_ptr, src_width, src_pitch); break;
     case 32: CoverToOverlap_impl<float, 8 /*n/a*/, false>(ep, iop, dst_ptr, src_ptr, src_width, src_pitch); break;
+    default: break;
     }
   }
 }
@@ -528,6 +563,7 @@ void OverlapToCover(EngineParams * ep, IOParams * iop, neo_fft3d::FloatSpan src,
     case 14: OverlapToCover_impl<uint16_t, 14, true>(ep, iop, src_ptr, norm, dst_ptr, dst_width, dst_pitch); break;
     case 16: OverlapToCover_impl<uint16_t, 16, true>(ep, iop, src_ptr, norm, dst_ptr, dst_width, dst_pitch); break;
     case 32: OverlapToCover_impl<float, 8 /*n/a*/, true>(ep, iop, src_ptr, norm, dst_ptr, dst_width, dst_pitch); break;
+    default: break;
     }
   }
   else {
@@ -538,6 +574,7 @@ void OverlapToCover(EngineParams * ep, IOParams * iop, neo_fft3d::FloatSpan src,
     case 14: OverlapToCover_impl<uint16_t, 14, false>(ep, iop, src_ptr, norm, dst_ptr, dst_width, dst_pitch); break;
     case 16: OverlapToCover_impl<uint16_t, 16, false>(ep, iop, src_ptr, norm, dst_ptr, dst_width, dst_pitch); break;
     case 32: OverlapToCover_impl<float, 8 /*n/a*/, false>(ep, iop, src_ptr, norm, dst_ptr, dst_width, dst_pitch); break;
+    default: break;
     }
   }
 }

@@ -9,37 +9,56 @@
 #include "core/cpu/core_hwy.h"
 #include <dualsynth/mdspan.hpp>
 
+#include <cstddef>
+
 HWY_BEFORE_NAMESPACE();
 namespace neo_fft3d::cpu {
 namespace HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 
+HWY_INLINE std::ptrdiff_t interleaved_float_offset(int i) {
+  return static_cast<std::ptrdiff_t>(i) * 2;
+}
+
+HWY_INLINE std::ptrdiff_t complex_block_offset(const SharedFunctionParams& sfp, int block) {
+  return static_cast<std::ptrdiff_t>(block) *
+         static_cast<std::ptrdiff_t>(sfp.outpitch) *
+         static_cast<std::ptrdiff_t>(sfp.bh);
+}
+
+HWY_INLINE std::ptrdiff_t complex_float_stride_bytes(int outpitch) {
+  return static_cast<std::ptrdiff_t>(outpitch) *
+         2 *
+         static_cast<std::ptrdiff_t>(sizeof(float));
+}
+
 template <bool pattern>
 void Kalman_Hwy_Impl(float* outcur_ptr, float* outLast_ptr, float* pattern2d_ptr, float* covar_ptr, float* covarProcess_ptr, SharedFunctionParams sfp, int size) {
   const hn::ScalableTag<float> d;
-  const size_t N = hn::Lanes(d);
+  const int N = static_cast<int>(hn::Lanes(d));
 
   const auto one = hn::Set(d, 1.0f);
   const auto eps = hn::Set(d, 1e-15f);
   const auto kratio2 = hn::Set(d, sfp.kratio2);
 
   for (int i = 0; i < size; i += N) {
+    const auto offset = interleaved_float_offset(i);
     auto incur_r = hn::Zero(d);
     auto incur_i = hn::Zero(d);
-    hn::LoadInterleaved2(d, outcur_ptr + 2 * i, incur_r, incur_i);
+    hn::LoadInterleaved2(d, outcur_ptr + offset, incur_r, incur_i);
 
     auto inprev_r = hn::Zero(d);
     auto inprev_i = hn::Zero(d);
-    hn::LoadInterleaved2(d, outLast_ptr + 2 * i, inprev_r, inprev_i);
+    hn::LoadInterleaved2(d, outLast_ptr + offset, inprev_r, inprev_i);
 
     auto cov_r = hn::Zero(d);
     auto cov_i = hn::Zero(d);
-    hn::LoadInterleaved2(d, covar_ptr + 2 * i, cov_r, cov_i);
+    hn::LoadInterleaved2(d, covar_ptr + offset, cov_r, cov_i);
 
     auto covP_r = hn::Zero(d);
     auto covP_i = hn::Zero(d);
-    hn::LoadInterleaved2(d, covarProcess_ptr + 2 * i, covP_r, covP_i);
+    hn::LoadInterleaved2(d, covarProcess_ptr + offset, covP_r, covP_i);
 
     auto sigma = hn::Set(d, sfp.sigmaSquaredNoiseNormed2D);
     if constexpr (pattern) {
@@ -81,9 +100,9 @@ void Kalman_Hwy_Impl(float* outcur_ptr, float* outLast_ptr, float* pattern2d_ptr
     auto final_out_r = hn::IfThenElse(mask_motion, incur_r, next_out_r);
     auto final_out_i = hn::IfThenElse(mask_motion, incur_i, next_out_i);
 
-    hn::StoreInterleaved2(final_cov_r, final_cov_i, d, covar_ptr + 2 * i);
-    hn::StoreInterleaved2(final_covP_r, final_covP_i, d, covarProcess_ptr + 2 * i);
-    hn::StoreInterleaved2(final_out_r, final_out_i, d, outLast_ptr + 2 * i);
+    hn::StoreInterleaved2(final_cov_r, final_cov_i, d, covar_ptr + offset);
+    hn::StoreInterleaved2(final_covP_r, final_covP_i, d, covarProcess_ptr + offset);
+    hn::StoreInterleaved2(final_out_r, final_out_i, d, outLast_ptr + offset);
   }
 }
 
@@ -91,11 +110,22 @@ template <bool pattern>
 void Kalman_Hwy_Wrap(fftwf_complex* outcur, fftwf_complex* outLast, SharedFunctionParams sfp) {
   const int size = sfp.outpitch;
   for (int block = 0; block < sfp.howmanyblocks; block++) {
-    float* outcur_block = reinterpret_cast<float*>(outcur + block * sfp.outpitch * sfp.bh);
-    float* outLast_block = reinterpret_cast<float*>(outLast + block * sfp.outpitch * sfp.bh);
+    const auto block_offset = complex_block_offset(sfp, block);
+    float* outcur_block = reinterpret_cast<float*>(outcur + block_offset);
+    float* outLast_block = reinterpret_cast<float*>(outLast + block_offset);
 
-    auto outcur_view = ds::make_plane_view(outcur_block, sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
-    auto outLast_view = ds::make_plane_view(outLast_block, sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
+    auto outcur_view = ds::make_plane_view(
+      outcur_block,
+      sfp.outpitch * 2,
+      sfp.bh,
+      complex_float_stride_bytes(sfp.outpitch)
+    );
+    auto outLast_view = ds::make_plane_view(
+      outLast_block,
+      sfp.outpitch * 2,
+      sfp.bh,
+      complex_float_stride_bytes(sfp.outpitch)
+    );
     auto cov_view = sfp.covar.block_float_view(block);
     auto covP_view = sfp.covarProcess.block_float_view(block);
     auto pat_view = sfp.pattern2d;
