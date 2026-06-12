@@ -5,8 +5,6 @@
 #ifndef __FFTWLITE_H__
 #define __FFTWLITE_H__
 
-#include "fft3d_common.h"
-
 #if _WIN32
   #include <windows.h>
   typedef HMODULE lib_t;

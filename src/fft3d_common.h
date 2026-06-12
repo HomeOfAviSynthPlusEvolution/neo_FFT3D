@@ -24,14 +24,76 @@
   #define SEQ_POLICY nullptr
 #endif
 
-#include "fftwlite.h"
-#include "dualsynth_compat.hpp"
-
 #ifndef FRAME_ALIGN
   #define FRAME_ALIGN 64
 #endif
 
-typedef unsigned char byte;
+#include <vector>
+#include <limits>
+#include <complex>
+#include <memory>
+#include <new>
+
+// Ensure fftwlite.h is included BEFORE we use fftwf_complex
+#include "fftwlite.h"
+#include "dualsynth_compat.hpp"
+
+template <typename T, std::size_t Alignment = FRAME_ALIGN>
+class AlignedAllocator {
+public:
+    using value_type = T;
+
+    static_assert(Alignment > 0 && (Alignment & (Alignment - 1)) == 0, "Alignment must be a positive power of 2");
+
+    AlignedAllocator() noexcept = default;
+    template <typename U>
+    constexpr AlignedAllocator(const AlignedAllocator<U, Alignment>&) noexcept {}
+
+    template <typename U>
+    struct rebind {
+        using other = AlignedAllocator<U, Alignment>;
+    };
+
+    T* allocate(std::size_t n) {
+        if (n == 0) return nullptr;
+        if (n > (std::numeric_limits<std::size_t>::max)() / sizeof(T))
+            throw std::bad_alloc();
+            
+        std::size_t size_bytes = n * sizeof(T);
+        if (size_bytes > (std::numeric_limits<std::size_t>::max)() - Alignment + 1)
+            throw std::bad_alloc();
+
+        std::size_t aligned_size = (size_bytes + Alignment - 1) & ~(Alignment - 1);
+        
+        void* ptr = _aligned_malloc(aligned_size, Alignment);
+        if (!ptr) throw std::bad_alloc();
+        return static_cast<T*>(ptr);
+    }
+
+    void deallocate(T* p, std::size_t) noexcept {
+        _aligned_free(p);
+    }
+
+    bool operator==(const AlignedAllocator&) const noexcept { return true; }
+    bool operator!=(const AlignedAllocator&) const noexcept { return false; }
+};
+
+template <typename T>
+using AlignedVector = std::vector<T, AlignedAllocator<T, FRAME_ALIGN>>;
+
+static_assert(sizeof(std::complex<float>) == sizeof(fftwf_complex) && 
+              alignof(std::complex<float>) == alignof(fftwf_complex), 
+              "std::complex<float> and fftwf_complex must have the identical ABI size and alignment.");
+
+inline fftwf_complex* as_fftw(std::complex<float>* ptr) {
+    return reinterpret_cast<fftwf_complex*>(ptr);
+}
+inline fftwf_complex* as_fftw(const std::shared_ptr<AlignedVector<std::complex<float>>>& sp) {
+    return sp ? reinterpret_cast<fftwf_complex*>(sp->data()) : nullptr;
+}
+inline std::complex<float>* as_complex(fftwf_complex* ptr) {
+    return reinterpret_cast<std::complex<float>*>(ptr);
+}
 
 #ifndef _WIN32
   #define wsprintf sprintf
@@ -95,10 +157,7 @@ struct IOParams {
   int nox, noy;
 
   // analysis
-  float *wanxl, *wanxr, *wanyl, *wanyr;
+  AlignedVector<float> wanxl, wanxr, wanyl, wanyr;
   // synthesis
-  float *wsynxl, *wsynxr, *wsynyl, *wsynyr;
-
-  float *wsharpen;
-  float *wdehalo;
+  AlignedVector<float> wsynxl, wsynxr, wsynyl, wsynyr;
 };

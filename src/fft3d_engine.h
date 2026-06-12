@@ -22,24 +22,39 @@
 
 class FFT3DEngine {
 public:
-  EngineParams* ep;
-  IOParams* iop;
+  std::unique_ptr<EngineParams> ep;
+  std::unique_ptr<IOParams> iop;
   int plane; // color plane
   FetchFrameFunctor* fetch_frame;
+  std::shared_ptr<neo_fft3d::fft::FFTBackend> fft_backend;
 
-  // additional parameterss
-  fftwf_complex *gridsample; //v1.8
   std::unique_ptr<neo_fft3d::fft::FFTPlan> plan, planinv, plan1;
+
+  AlignedVector<std::complex<float>> gridsample; //v1.8
+  AlignedVector<std::complex<float>> outLast;
+  AlignedVector<std::complex<float>> covar;
+  AlignedVector<std::complex<float>> covarProcess;
+
+  AlignedVector<float> wsharpen;
+  AlignedVector<float> wdehalo;
+  AlignedVector<float> pwin;
+  AlignedVector<float> pattern2d;
+  AlignedVector<float> pattern3d;
+
+  std::vector<AlignedVector<float>> mt_in;
+  std::vector<AlignedVector<std::complex<float>>> mt_out;
+  std::vector<AlignedVector<byte>> mt_coverbuf;
+
+  std::unique_ptr<cache<std::complex<float>>> fftcache;
+
+  char messagebuf[80] {0};
+
   int outwidth;
   int outpitch; //v.1.7
   int insize;
   int outsize;
   int howmanyblocks;
 
-  float *wsharpen;
-  float *wdehalo;
-
-  fftwf_complex *outLast, *covar, *covarProcess;
   float sigmaSquaredNoiseNormed2D {0};
   float sigmaNoiseNormed2D {0};
   float sigmaMotionNormed {0};
@@ -55,27 +70,15 @@ public:
   int mirw; // mirror width for padding
   int mirh; // mirror height for padding
 
-  float *pwin;
-  float *pattern2d;
-  float *pattern3d;
   bool isPatternSet;
   float psigma {0};
-  char *messagebuf;
-
-  // added in v.0.9 for delayed FFTW3.DLL loading
-  std::shared_ptr<neo_fft3d::fft::FFTBackend> fft_backend;
 
   int CPUFlags;
-
-  cache<fftwf_complex> *fftcache;
 
   std::mutex cache_mutex;
   std::mutex thread_check_mutex;
 
   std::vector<int> thread_id_store;
-  std::vector<float *> mt_in;
-  std::vector<fftwf_complex *> mt_out;
-  std::vector<byte *> mt_coverbuf;
 
   struct FilterFunctionPointers ffp;
   bool pattern3d_initialized {false};
@@ -83,7 +86,7 @@ public:
 
 public:
   FFT3DEngine(EngineParams _ep, int _plane, FetchFrameFunctor* _fetch_frame, std::shared_ptr<neo_fft3d::fft::FFTBackend> _fft_backend) :
-  ep(new EngineParams(_ep)), iop(new IOParams()), plane(_plane), fetch_frame(_fetch_frame), fft_backend(_fft_backend) {
+  ep(std::make_unique<EngineParams>(_ep)), iop(std::make_unique<IOParams>()), plane(_plane), fetch_frame(_fetch_frame), fft_backend(_fft_backend) {
     int i, j;
 
     float factor;
@@ -134,20 +137,19 @@ public:
     outsize = outpitch*ep->bh*iop->nox*iop->noy; // replace outwidth to outpitch here and below in v1.7
     if (ep->bt == 0) // Kalman
     {
-      outLast = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN);
-      covar = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN);
-      covarProcess = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN);
+      outLast.resize(outsize);
+      covar.resize(outsize);
+      covarProcess.resize(outsize);
     }
     // in and out are thread dependent now // neo-r1
-    mt_in.push_back((float *)_aligned_malloc(sizeof(float) * insize, FRAME_ALIGN));
-    auto in = mt_in[0];
-    mt_out.push_back((fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN)); //v1.8
-    auto outrez = mt_out[0];
-    gridsample = (fftwf_complex *)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN); //v1.8
+    mt_in.emplace_back(insize);
+    auto in = mt_in[0].data();
+    mt_out.emplace_back(outsize); //v1.8
+    auto outrez = as_fftw(mt_out[0].data());
+    gridsample.resize(outsize); //v1.8
 
-    fftcache = NULL;
     if (ep->bt > 1)
-      fftcache = new cache<fftwf_complex>(ep->bt + 3, outsize);
+      fftcache = std::make_unique<cache<std::complex<float>>>(ep->bt + 3, outsize);
 
     howmanyblocks = iop->nox*iop->noy;
     const neo_fft3d::fft::PlanOptions plan_options {ep->measure};
@@ -171,6 +173,7 @@ public:
         plan_options,
         plan_buffers
       );
+
       planinv = fft_backend->CreatePlan(
         ep->bh,
         ep->bw,
@@ -182,18 +185,18 @@ public:
       );
     }
 
-    iop->wanxl = new float[ep->ow];
-    iop->wanxr = new float[ep->ow];
-    iop->wanyl = new float[ep->oh];
-    iop->wanyr = new float[ep->oh];
+    iop->wanxl.resize(ep->ow);
+    iop->wanxr.resize(ep->ow);
+    iop->wanyl.resize(ep->oh);
+    iop->wanyr.resize(ep->oh);
 
-    iop->wsynxl = new float[ep->ow];
-    iop->wsynxr = new float[ep->ow];
-    iop->wsynyl = new float[ep->oh];
-    iop->wsynyr = new float[ep->oh];
+    iop->wsynxl.resize(ep->ow);
+    iop->wsynxr.resize(ep->ow);
+    iop->wsynyl.resize(ep->oh);
+    iop->wsynyr.resize(ep->oh);
 
-    wsharpen = (float*)_aligned_malloc(ep->bh*outpitch * sizeof(float), FRAME_ALIGN);
-    wdehalo = (float*)_aligned_malloc(ep->bh*outpitch * sizeof(float), FRAME_ALIGN);
+    wsharpen.resize(ep->bh*outpitch);
+    wdehalo.resize(ep->bh*outpitch);
 
     // define analysis and synthesis windows
     // combining window (analize mult by synthesis) is raised cosine (Hanning)
@@ -254,10 +257,10 @@ public:
     else //  (ep->wintype==2) - added in v.1.4
     {
       // define analysis windows as flat (to prevent grid)
-      std::fill_n(iop->wanxl, ep->ow, 1.0f);
-      std::fill_n(iop->wanxr, ep->ow, 1.0f);
-      std::fill_n(iop->wanyl, ep->oh, 1.0f);
-      std::fill_n(iop->wanyr, ep->oh, 1.0f);
+      std::fill_n(iop->wanxl.data(), ep->ow, 1.0f);
+      std::fill_n(iop->wanxr.data(), ep->ow, 1.0f);
+      std::fill_n(iop->wanyl.data(), ep->oh, 1.0f);
+      std::fill_n(iop->wanyr.data(), ep->oh, 1.0f);
 
       // define synthesis as rised cosine (Hanning)
       for (i = 0; i < ep->ow; i++)
@@ -277,7 +280,7 @@ public:
     }
 
     // window for sharpen
-    auto tmp_wsharpen = wsharpen;
+    auto tmp_wsharpen = wsharpen.data();
     for (j = 0; j < ep->bh; j++)
     {
       int dj = j;
@@ -293,7 +296,7 @@ public:
     }
 
     // window for dehalo - added in v1.9
-    auto tmp_wdehalo = wdehalo;
+    auto tmp_wdehalo = wdehalo.data();
     float wmax = 0;
     for (j = 0; j < ep->bh; j++)
     {
@@ -310,7 +313,7 @@ public:
       tmp_wdehalo += outpitch;
     }
 
-    tmp_wdehalo = wdehalo;
+    tmp_wdehalo = wdehalo.data();
     for (j = 0; j < ep->bh; j++)
     {
       for (i = 0; i < outwidth; i++)
@@ -332,14 +335,15 @@ public:
     // init Kalman
     if (ep->bt == 0) // Kalman
     {
-      std::fill_n((float*)outLast, outsize * 2, 0.0f);
-      std::fill_n((float*)covar, outsize * 2, sigmaSquaredNoiseNormed2D);
-      std::fill_n((float*)covarProcess, outsize * 2, sigmaSquaredNoiseNormed2D);
+      std::fill_n(reinterpret_cast<float*>(outLast.data()), outsize * 2, 0.0f);
+      std::fill_n(reinterpret_cast<float*>(covar.data()), outsize * 2, sigmaSquaredNoiseNormed2D);
+      std::fill_n(reinterpret_cast<float*>(covarProcess.data()), outsize * 2, sigmaSquaredNoiseNormed2D);
     }
 
-    pwin = new float[ep->bh*outpitch]; // pattern window array
+    pwin.resize(ep->bh*outpitch); // pattern window array
 
     float fw2, fh2;
+    auto tmp_pwin = pwin.data();
     for (j = 0; j < ep->bh; j++)
     {
       if (j < ep->bh / 2)
@@ -349,18 +353,17 @@ public:
       for (i = 0; i < outwidth; i++)
       {
         fw2 = (i*2.0f / ep->bw)*(j*2.0f / ep->bw);
-        pwin[i] = (fh2 + fw2) / (fh2 + fw2 + ep->pcutoff*ep->pcutoff);
+        tmp_pwin[i] = (fh2 + fw2) / (fh2 + fw2 + ep->pcutoff*ep->pcutoff);
       }
-      pwin += outpitch;
+      tmp_pwin += outpitch;
     }
-    pwin -= outpitch*ep->bh; // restore pointer
 
-    pattern2d = (float*)_aligned_malloc(ep->bh*outpitch * sizeof(float), FRAME_ALIGN); // noise pattern window array
-    pattern3d = (float*)_aligned_malloc(ep->bh*outpitch * sizeof(float), FRAME_ALIGN); // noise pattern window array
+    pattern2d.resize(ep->bh*outpitch); // noise pattern window array
+    pattern3d.resize(ep->bh*outpitch); // noise pattern window array
 
     if ((ep->sigma2 != ep->sigma || ep->sigma3 != ep->sigma || ep->sigma4 != ep->sigma) && ep->pfactor == 0)
     {// we have different sigmas, so create pattern from sigmas
-      SigmasToPattern(ep->sigma, ep->sigma2, ep->sigma3, ep->sigma4, ep->bh, outwidth, outpitch, norm, pattern2d);
+      SigmasToPattern(ep->sigma, ep->sigma2, ep->sigma3, ep->sigma4, ep->bh, outwidth, outpitch, norm, pattern2d.data());
       isPatternSet = true;
       ep->pfactor = 1;
     }
@@ -390,65 +393,28 @@ public:
       ); // 1 block
     }
 
-    byte* coverbuf = new byte[coverheight*coverpitch*ep->vi.Format.BytesPerSample];
+    std::vector<byte> coverbuf(coverheight*coverpitch*ep->vi.Format.BytesPerSample);
     // avs+
     switch (ep->vi.Format.BytesPerSample) {
-    case 1: memset(coverbuf, 255, coverheight*coverpitch);
+    case 1: std::memset(coverbuf.data(), 255, coverbuf.size());
       break;
-    case 2: std::fill_n((uint16_t *)coverbuf, coverheight*coverpitch, (1 << ep->vi.Format.BitsPerSample) - 1);
+    case 2: std::fill_n(reinterpret_cast<uint16_t*>(coverbuf.data()), coverheight*coverpitch, (1 << ep->vi.Format.BitsPerSample) - 1);
       break; // 255
-    case 4: std::fill_n((float *)coverbuf, coverheight*coverpitch, 1.0f);
+    case 4: std::fill_n(reinterpret_cast<float*>(coverbuf.data()), coverheight*coverpitch, 1.0f);
       break; // 255
     }
-    CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, false);
-    delete[] coverbuf;
+    CoverToOverlap(ep.get(), iop.get(), in, coverbuf.data(), coverwidth, coverpitch, false);
     // make FFT 2D
-    plan1->Execute(in, reinterpret_cast<std::complex<float>*>(gridsample), 1);
-
-    messagebuf = (char *)malloc(80); //1.8.5
+    plan1->Execute(in, gridsample.data(), 1);
 
   }
   ~FFT3DEngine() {
-    // This is where you can deallocate any memory you might have used.
     {
       GlobalLockGuard fftw_lock(ep->avs_env, "fftw", ep->has_at_least_v12);
-
       plan.reset();
       plan1.reset();
       planinv.reset();
     }
-    //	fftfp.fftwf_free(out);
-    delete[] iop->wanxl;
-    delete[] iop->wanxr;
-    delete[] iop->wanyl;
-    delete[] iop->wanyr;
-    delete[] iop->wsynxl;
-    delete[] iop->wsynxr;
-    delete[] iop->wsynyl;
-    delete[] iop->wsynyr;
-    _aligned_free(wsharpen);
-    _aligned_free(wdehalo);
-    delete[] pwin;
-    _aligned_free(pattern2d);
-    _aligned_free(pattern3d);
-    if (ep->bt == 0) // Kalman
-    {
-      _aligned_free(outLast);
-      _aligned_free(covar);
-      _aligned_free(covarProcess);
-    }
-    delete fftcache;
-    delete ep;
-    delete iop;
-    _aligned_free(gridsample); //fixed memory leakage in v1.8.5
-    for (auto it : mt_in)
-      _aligned_free(it);
-    for (auto it : mt_out)
-      _aligned_free(it);
-    for (auto it : mt_coverbuf)
-      _aligned_free(it);
-
-    free(messagebuf); //v1.8.5
   }
 
   DSFrame GetFrame(int n, std::unordered_map<int, DSFrame> in_frames) {
@@ -468,21 +434,24 @@ public:
         thread_id_store.push_back(1);
 
         while (mt_coverbuf.size() <= thread_id)
-          mt_coverbuf.push_back((byte*)_aligned_malloc(coverheight * coverpitch * ep->vi.Format.BytesPerSample, FRAME_ALIGN));
+          mt_coverbuf.emplace_back(coverheight * coverpitch * ep->vi.Format.BytesPerSample);
         while (mt_in.size() <= thread_id)
-          mt_in.push_back((float*)_aligned_malloc(sizeof(float) * insize, FRAME_ALIGN));
+          mt_in.emplace_back(insize);
         while (mt_out.size() <= thread_id)
-          mt_out.push_back((fftwf_complex*)_aligned_malloc(sizeof(fftwf_complex) * outsize, FRAME_ALIGN));
-
-        if (fftcache)
-          fftcache->resize(ep->bt + thread_id_store.size() + 2);
+          mt_out.emplace_back(outsize);
       }
       else
         thread_id_store[thread_id] = 1;
     }
-    coverbuf = mt_coverbuf[thread_id];
-    in = mt_in[thread_id];
-    outrez = mt_out[thread_id];
+    
+    if (fftcache) {
+      std::lock_guard<std::mutex> lock_cache(cache_mutex);
+      fftcache->resize(ep->bt + thread_id_store.size() + 2);
+    }
+
+    coverbuf = mt_coverbuf[thread_id].data();
+    in = mt_in[thread_id].data();
+    outrez = as_fftw(mt_out[thread_id].data());
 
     if (ep->pfactor != 0) {
       GlobalLockGuard fftw_lock(ep->avs_env, "fftw", ep->has_at_least_v12);
@@ -496,12 +465,12 @@ public:
         ep->framepitch = psrc.StrideBytes[plane] / ep->vi.Format.BytesPerSample;
 
         // put source bytes to float array of overlapped blocks
-        FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
-        CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
+        FrameToCover(ep.get(), plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
+        CoverToOverlap(ep.get(), iop.get(), in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
         plan->Execute(in, reinterpret_cast<std::complex<float>*>(outrez), howmanyblocks);
         if (ep->px == 0 && ep->py == 0) // try find pattern block with minimal noise sigma
-          FindPatternBlock(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin, ep->degrid, gridsample);
-        SetPattern(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin, pattern2d, psigma, ep->degrid, gridsample);
+          FindPatternBlock(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin.data(), ep->degrid, as_fftw(gridsample.data()));
+        SetPattern(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, ep->px, ep->py, pwin.data(), pattern2d.data(), psigma, ep->degrid, as_fftw(gridsample.data()));
         isPatternSet = true;
       }
       else if (ep->pfactor != 0 && ep->pshow == true)
@@ -518,33 +487,33 @@ public:
         ep->framepitch_dst = dst.StrideBytes[plane] / ep->vi.Format.BytesPerSample;
 
         // put source bytes to float array of overlapped blocks
-        FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
-        CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
+        FrameToCover(ep.get(), plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
+        CoverToOverlap(ep.get(), iop.get(), in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
         // make FFT 2D
         plan->Execute(in, reinterpret_cast<std::complex<float>*>(outrez), howmanyblocks);
         if (ep->px == 0 && ep->py == 0) // try find pattern block with minimal noise sigma
-          FindPatternBlock(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf, pwin, ep->degrid, gridsample);
+          FindPatternBlock(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf, pwin.data(), ep->degrid, as_fftw(gridsample.data()));
         else
         {
           pxf = ep->px; // fixed bug in v1.6
           pyf = ep->py;
         }
-        SetPattern(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf, pwin, pattern2d, psigma, ep->degrid, gridsample);
+        SetPattern(outrez, outwidth, outpitch, ep->bh, iop->nox, iop->noy, pxf, pyf, pwin.data(), pattern2d.data(), psigma, ep->degrid, as_fftw(gridsample.data()));
 
         // change analysis and synthesis window to constant to show
-        std::fill_n(iop->wanxl, ep->ow, 1.0f);
-        std::fill_n(iop->wanxr, ep->ow, 1.0f);
-        std::fill_n(iop->wsynxl, ep->ow, 1.0f);
-        std::fill_n(iop->wsynxr, ep->ow, 1.0f);
-        std::fill_n(iop->wanyl, ep->oh, 1.0f);
-        std::fill_n(iop->wanyr, ep->oh, 1.0f);
-        std::fill_n(iop->wsynyl, ep->oh, 1.0f);
-        std::fill_n(iop->wsynyr, ep->oh, 1.0f);
+        std::fill_n(iop->wanxl.data(), ep->ow, 1.0f);
+        std::fill_n(iop->wanxr.data(), ep->ow, 1.0f);
+        std::fill_n(iop->wsynxl.data(), ep->ow, 1.0f);
+        std::fill_n(iop->wsynxr.data(), ep->ow, 1.0f);
+        std::fill_n(iop->wanyl.data(), ep->oh, 1.0f);
+        std::fill_n(iop->wanyr.data(), ep->oh, 1.0f);
+        std::fill_n(iop->wsynyl.data(), ep->oh, 1.0f);
+        std::fill_n(iop->wsynyr.data(), ep->oh, 1.0f);
 
         // put source bytes to float array of overlapped blocks
         // cur frame
-        FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
-        CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, !ep->vi.Format.IsFamilyRGB);
+        FrameToCover(ep.get(), plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
+        CoverToOverlap(ep.get(), iop.get(), in, coverbuf, coverwidth, coverpitch, !ep->vi.Format.IsFamilyRGB);
         // make FFT 2D
         plan->Execute(in, reinterpret_cast<std::complex<float>*>(outrez), howmanyblocks);
 
@@ -553,8 +522,8 @@ public:
         planinv->Execute(reinterpret_cast<std::complex<float>*>(outrez), in, howmanyblocks);
 
         // make destination frame plane from current overlaped blocks
-        OverlapToCover(ep, iop, in, norm, coverbuf, coverwidth, coverpitch, !ep->vi.Format.IsFamilyRGB);
-        CoverToFrame(ep, plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
+        OverlapToCover(ep.get(), iop.get(), in, norm, coverbuf, coverwidth, coverpitch, !ep->vi.Format.IsFamilyRGB);
+        CoverToFrame(ep.get(), plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
         int psigmaint = ((int)(10 * psigma)) / 10;
         int psigmadec = (int)((psigma - psigmaint) * 10);
         wsprintf(messagebuf, " frame=%d, px=%d, py=%d, sigma=%d.%d", n, pxf, pyf, psigmaint, psigmadec);
@@ -590,33 +559,34 @@ public:
       howmanyblocks,
       btcur * ep->sigma * ep->sigma / norm,
       ep->pfactor,
-      pattern2d,
-      pattern3d,
+      pattern2d.data(),
+      pattern3d.data(),
       ep->beta,
       ep->degrid,
-      gridsample,
+      as_fftw(gridsample.data()),
       ep->sharpen,
       sigmaSquaredSharpenMinNormed,
       sigmaSquaredSharpenMaxNormed,
-      wsharpen,
+      wsharpen.data(),
       ep->dehalo,
-      wdehalo,
+      wdehalo.data(),
       ht2n,
-      covar,
-      covarProcess,
+      as_fftw(covar.data()),
+      as_fftw(covarProcess.data()),
       sigmaSquaredNoiseNormed2D,
       ep->kratio * ep->kratio
     };
 
-    fftwf_complex* apply_in[5]{};
+    std::shared_ptr<AlignedVector<std::complex<float>>> apply_in_lease[5];
+    fftwf_complex* apply_in_ptr[5] {nullptr};
 
     if (btcur > 0) // Wiener
     {
       if (btcur == 1) // 2D
       {
         // cur frame
-        FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
-        CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
+        FrameToCover(ep.get(), plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
+        CoverToOverlap(ep.get(), iop.get(), in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
         plan->Execute(in, reinterpret_cast<std::complex<float>*>(outrez), howmanyblocks);
         ffp.Apply2D(outrez, sfp);
         if (ep->pfactor != 0)
@@ -627,7 +597,7 @@ public:
         if (!pattern3d_initialized) {
           std::lock_guard<std::mutex> lock(init3d_mutex);
           if (!pattern3d_initialized)
-            Pattern2Dto3D(pattern2d, ep->bh, outwidth, outpitch, (float)btcur, pattern3d);
+            Pattern2Dto3D(pattern2d.data(), ep->bh, outwidth, outpitch, (float)btcur, pattern3d.data());
           pattern3d_initialized = true;
         }
 
@@ -646,37 +616,56 @@ public:
         */
 
         {
-          std::lock_guard<std::mutex> lock1(cache_mutex);
+          // We can't hold the lock during the entire loop because plan->Execute takes a long time.
+          // We need a two-phase "reserve" then "publish" to prevent other threads from reading half-written data.
           for (auto i = from; i <= to; i++)
           {
-            if (auto* cached_data = fftcache->get_read(n+i)) {
-              apply_in[2+i] = cached_data;
+            bool needs_compute = false;
+            {
+              std::lock_guard<std::mutex> lock1(cache_mutex);
+              if (auto cached_lease = fftcache->get_read(n+i)) {
+                apply_in_lease[2+i] = cached_lease;
+                apply_in_ptr[2+i] = as_fftw(cached_lease);
+              }
+              else {
+                // Get a write slot but do NOT publish the key yet!
+                apply_in_lease[2+i] = fftcache->get_write(n+i);
+                apply_in_ptr[2+i] = as_fftw(apply_in_lease[2+i]);
+                needs_compute = true;
+              }
             }
-            else {
+
+            if (needs_compute) {
               DSFrame frame;
               DSFrame* pframe;
-              apply_in[2+i] = fftcache->get_write(n+i);
               if (in_frames.find(n+i) == in_frames.end())
                 pframe = &(frame = (*fetch_frame)(n+i));
               else
                 pframe = &in_frames[n+i];
-              FrameToCover(ep, plane, pframe->SrcPointers[plane], coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
-              CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
+              FrameToCover(ep.get(), plane, pframe->SrcPointers[plane], coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
+              CoverToOverlap(ep.get(), iop.get(), in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
 
-              plan->Execute(in, reinterpret_cast<std::complex<float>*>(apply_in[2+i]), howmanyblocks);
+              // Execute FFT OUTSIDE the cache lock
+              plan->Execute(in, as_complex(apply_in_ptr[2+i]), howmanyblocks);
+
+              // Publish the key now that the data is ready
+              {
+                std::lock_guard<std::mutex> lock1(cache_mutex);
+                fftcache->publish(apply_in_lease[2+i], n+i);
+              }
             }
           }
         }
 
-        ffp.Apply3D(apply_in, outrez, sfp);
+        ffp.Apply3D(apply_in_ptr, outrez, sfp);
         ffp.Sharpen(outrez, sfp);
       }
 
       // do inverse FFT, get filtered 'in' array
       planinv->Execute(reinterpret_cast<std::complex<float>*>(outrez), in, howmanyblocks);
       // make destination frame plane from current overlaped blocks
-      OverlapToCover(ep, iop, in, norm, coverbuf, coverwidth, coverpitch, ep->IsChroma);
-      CoverToFrame(ep, plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
+      OverlapToCover(ep.get(), iop.get(), in, norm, coverbuf, coverwidth, coverpitch, ep->IsChroma);
+      CoverToFrame(ep.get(), plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
     }
     else if (ep->bt == 0) //Kalman filter
     {
@@ -695,34 +684,34 @@ public:
 
       // put source bytes to float array of overlapped blocks
       // cur frame
-      FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
-      CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
+      FrameToCover(ep.get(), plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
+      CoverToOverlap(ep.get(), iop.get(), in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
       plan->Execute(in, reinterpret_cast<std::complex<float>*>(outrez), howmanyblocks);
-      ffp.Kalman(outrez, outLast, sfp);
+      ffp.Kalman(outrez, as_fftw(outLast.data()), sfp);
 
       // copy outLast to outrez
-      memcpy(outrez, outLast, outsize * sizeof(fftwf_complex));  //v.0.9.2
+      memcpy(outrez, outLast.data(), outsize * sizeof(fftwf_complex));  //v.0.9.2
       ffp.Sharpen(outrez, sfp);
       // do inverse FFT 2D, get filtered 'in' array
       // note: input "out" array is destroyed by execute algo.
       // that is why we must have its copy in "outLast" array
       planinv->Execute(reinterpret_cast<std::complex<float>*>(outrez), in, howmanyblocks);
       // make destination frame plane from current overlaped blocks
-      OverlapToCover(ep, iop, in, norm, coverbuf, coverwidth, coverpitch, ep->IsChroma);
-      CoverToFrame(ep, plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
+      OverlapToCover(ep.get(), iop.get(), in, norm, coverbuf, coverwidth, coverpitch, ep->IsChroma);
+      CoverToFrame(ep.get(), plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
 
     }
     else if (ep->bt == -1) /// sharpen only
     {
-      FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
-      CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
+      FrameToCover(ep.get(), plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
+      CoverToOverlap(ep.get(), iop.get(), in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
       plan->Execute(in, reinterpret_cast<std::complex<float>*>(outrez), howmanyblocks);
       ffp.Sharpen(outrez, sfp);
       // do inverse FFT 2D, get filtered 'in' array
       planinv->Execute(reinterpret_cast<std::complex<float>*>(outrez), in, howmanyblocks);
       // make destination frame plane from current overlaped blocks
-      OverlapToCover(ep, iop, in, norm, coverbuf, coverwidth, coverpitch, ep->IsChroma);
-      CoverToFrame(ep, plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
+      OverlapToCover(ep.get(), iop.get(), in, norm, coverbuf, coverwidth, coverpitch, ep->IsChroma);
+      CoverToFrame(ep.get(), plane, coverbuf, coverwidth, coverheight, coverpitch, dptr, mirw, mirh);
 
     }
 
