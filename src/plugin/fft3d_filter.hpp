@@ -7,13 +7,13 @@
 #include <dualsynth/video_filter.hpp>
 
 #include "version.hpp"
-#include "dualsynth_compat.hpp"
+#include "engine/engine_params.hpp"
 #include "fft/fft_backend.hpp"
 
+#include <array>
 #include <memory>
 
 class FFT3DEngine;
-struct EngineParams;
 struct FFTFunctionPointers;
 
 namespace neo_fft3d {
@@ -32,17 +32,13 @@ struct FFT3DCore {
     State(const State&) = delete;
     State& operator=(const State&) = delete;
 
-    int process[4] {2, 2, 2, 2};
-    FFT3DEngine* engine[4] {nullptr, nullptr, nullptr, nullptr};
-    int plane_index[4] {0, 0, 0, 0};
+    std::array<int, 4> process {2, 2, 2, 2};
+    std::array<std::unique_ptr<FFT3DEngine>, 4> engine {};
     int engine_count {0};
-    int copy_count {0};
-    EngineParams* ep {nullptr};
+    std::unique_ptr<EngineParams> ep;
     std::shared_ptr<neo_fft3d::fft::FFTBackend> fft_backend;
-    std::unique_ptr<FetchFrameFunctor> fetch_frame_func;
     int fft_threads {2};
     bool mt {false};
-    bool crop {false};
   };
 
   static ds::Result<ds::VideoInitStateResult<State>> init(ds::VideoInitContext& context);

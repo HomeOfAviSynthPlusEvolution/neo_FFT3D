@@ -12,20 +12,23 @@
 
 #include "fft3d_common.h"
 #include "fft/fft_backend.hpp"
+#include "fft/fftw_lock.hpp"
 #include "functions.h"
 #include "helper.h"
 #include "buffer.h"
 #include "cache.hpp"
+
+#include <dualsynth/video_filter.hpp>
+
 #include <atomic>
+#include <stdexcept>
 #include <thread>
-#include <unordered_map>
 
 class FFT3DEngine {
 public:
   std::unique_ptr<EngineParams> ep;
   std::unique_ptr<IOParams> iop;
   int plane; // color plane
-  FetchFrameFunctor* fetch_frame;
   std::shared_ptr<neo_fft3d::fft::FFTBackend> fft_backend;
 
   std::unique_ptr<neo_fft3d::fft::FFTPlan> plan, planinv, plan1;
@@ -84,9 +87,55 @@ public:
   bool pattern3d_initialized {false};
   std::mutex init3d_mutex;
 
+private:
+  class ThreadSlotGuard {
+  public:
+    ThreadSlotGuard(FFT3DEngine& owner, unsigned int thread_id) noexcept
+      : owner_(&owner), thread_id_(thread_id) {}
+
+    ~ThreadSlotGuard() {
+      if (owner_) {
+        owner_->release_thread_slot(thread_id_);
+      }
+    }
+
+    ThreadSlotGuard(const ThreadSlotGuard&) = delete;
+    ThreadSlotGuard& operator=(const ThreadSlotGuard&) = delete;
+
+  private:
+    FFT3DEngine* owner_;
+    unsigned int thread_id_;
+  };
+
+  void release_thread_slot(unsigned int thread_id) noexcept {
+    std::lock_guard<std::mutex> lock(thread_check_mutex);
+    if (thread_id < thread_id_store.size()) {
+      thread_id_store[thread_id] = 0;
+    }
+  }
+
+  ds::VideoFrameView fetch_frame(ds::VideoFrameProvider& provider, int frame_num) const {
+    auto frame = provider.get(0, frame_num);
+    if (!frame.has_value()) {
+      throw std::runtime_error("neo_fft3d: failed to fetch frame " + std::to_string(frame_num) + ": " + frame.error().message);
+    }
+    return frame.value().frame;
+  }
+
+  static void copy_plane_pixels(const ds::PlaneView& src, const ds::MutablePlaneView& dst, int bytes_per_sample) {
+    const auto row_bytes = static_cast<std::size_t>(src.width) * static_cast<std::size_t>(bytes_per_sample);
+    auto src_ptr = static_cast<const byte*>(src.data);
+    auto dst_ptr = static_cast<byte*>(dst.data);
+    for (int y = 0; y < src.height; ++y) {
+      std::memcpy(dst_ptr, src_ptr, row_bytes);
+      src_ptr += src.stride_bytes;
+      dst_ptr += dst.stride_bytes;
+    }
+  }
+
 public:
-  FFT3DEngine(EngineParams _ep, int _plane, FetchFrameFunctor* _fetch_frame, std::shared_ptr<neo_fft3d::fft::FFTBackend> _fft_backend) :
-  ep(std::make_unique<EngineParams>(_ep)), iop(std::make_unique<IOParams>()), plane(_plane), fetch_frame(_fetch_frame), fft_backend(_fft_backend) {
+  FFT3DEngine(EngineParams _ep, int _plane, std::shared_ptr<neo_fft3d::fft::FFTBackend> _fft_backend) :
+  ep(std::make_unique<EngineParams>(_ep)), iop(std::make_unique<IOParams>()), plane(_plane), fft_backend(_fft_backend) {
     int i, j;
 
     float factor;
@@ -162,7 +211,7 @@ public:
     //	*onembed = NULL;
 
     {
-      GlobalLockGuard fftw_lock(ep->avs_env, "fftw", ep->has_at_least_v12);
+      neo_fft3d::fft::GlobalLockGuard fftw_lock;
 
       plan = fft_backend->CreatePlan(
         ep->bh,
@@ -380,7 +429,7 @@ public:
     // but use one block only for speed
     // Attention: other block could be the same, but we do not calculate them!
     {
-      GlobalLockGuard fftw_lock(ep->avs_env, "fftw", ep->has_at_least_v12);
+      neo_fft3d::fft::GlobalLockGuard fftw_lock;
 
       plan1 = fft_backend->CreatePlan(
         ep->bh,
@@ -410,16 +459,15 @@ public:
   }
   ~FFT3DEngine() {
     {
-      GlobalLockGuard fftw_lock(ep->avs_env, "fftw", ep->has_at_least_v12);
+      neo_fft3d::fft::GlobalLockGuard fftw_lock;
       plan.reset();
       plan1.reset();
       planinv.reset();
     }
   }
 
-  DSFrame GetFrame(int n, std::unordered_map<int, DSFrame> in_frames) {
+  void ProcessFrame(int n, ds::VideoFrameProvider& provider, ds::MutableVideoFrameView dst) {
     unsigned int thread_id;
-    DSFrame src, psrc, dst;
     int pxf, pyf;
 
     byte* coverbuf {nullptr};
@@ -451,6 +499,7 @@ public:
       in = mt_in[thread_id].data();
       outrez = as_fftw(mt_out[thread_id].data());
     }
+    ThreadSlotGuard thread_slot_guard(*this, thread_id);
 
     if (fftcache) {
       std::lock_guard<std::mutex> lock_cache(cache_mutex);
@@ -458,15 +507,13 @@ public:
     }
 
     if (ep->pfactor != 0) {
-      GlobalLockGuard fftw_lock(ep->avs_env, "fftw", ep->has_at_least_v12);
+      neo_fft3d::fft::GlobalLockGuard fftw_lock;
       if (ep->pfactor != 0 && isPatternSet == false && ep->pshow == false) // get noise pattern
       {
-        if (in_frames.find(ep->pframe) == in_frames.end())
-          psrc = (*fetch_frame)(ep->pframe);
-        else
-          psrc = in_frames[ep->pframe];
-        auto sptr = psrc.SrcPointers[plane];
-        ep->framepitch = psrc.StrideBytes[plane] / ep->vi.Format.BytesPerSample;
+        auto psrc = fetch_frame(provider, ep->pframe);
+        const auto& psrc_plane = psrc.plane(plane);
+        auto sptr = static_cast<const byte*>(psrc_plane.data);
+        ep->framepitch = static_cast<int>(psrc_plane.stride_bytes) / ep->vi.Format.BytesPerSample;
 
         // put source bytes to float array of overlapped blocks
         FrameToCover(ep.get(), plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
@@ -480,15 +527,13 @@ public:
       else if (ep->pfactor != 0 && ep->pshow == true)
       {
         // show noise pattern window
-        if (in_frames.find(n) == in_frames.end())
-          src = (*fetch_frame)(n);
-        else
-          src = in_frames[n];
-        dst = src.Create(true);
-        auto sptr = src.SrcPointers[plane];
-        auto dptr = dst.DstPointers[plane];
-        ep->framepitch = src.StrideBytes[plane] / ep->vi.Format.BytesPerSample;
-        ep->framepitch_dst = dst.StrideBytes[plane] / ep->vi.Format.BytesPerSample;
+        auto src = fetch_frame(provider, n);
+        const auto& src_plane = src.plane(plane);
+        auto& dst_plane = dst.plane(plane);
+        auto sptr = static_cast<const byte*>(src_plane.data);
+        auto dptr = static_cast<byte*>(dst_plane.data);
+        ep->framepitch = static_cast<int>(src_plane.stride_bytes) / ep->vi.Format.BytesPerSample;
+        ep->framepitch_dst = static_cast<int>(dst_plane.stride_bytes) / ep->vi.Format.BytesPerSample;
 
         // put source bytes to float array of overlapped blocks
         FrameToCover(ep.get(), plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
@@ -532,24 +577,18 @@ public:
         int psigmadec = (int)((psigma - psigmaint) * 10);
         wsprintf(messagebuf, " frame=%d, px=%d, py=%d, sigma=%d.%d", n, pxf, pyf, psigmaint, psigmadec);
         // TODO: DrawString(dst, vi, 0, 0, messagebuf);
-        {
-          std::lock_guard<std::mutex> lock(thread_check_mutex);
-          thread_id_store[thread_id] = 0;
-        }
-        return dst; // return pattern frame to show
+        return; // return pattern frame to show
       }
     }
 
     // Request frame 'n' from the child (source) clip.
-    if (in_frames.find(n) == in_frames.end())
-      src = (*fetch_frame)(n);
-    else
-      src = in_frames[n];
-    dst = src.Create(false);
-    auto sptr = src.SrcPointers[plane];
-    auto dptr = dst.DstPointers[plane];
-    ep->framepitch = src.StrideBytes[plane] / ep->vi.Format.BytesPerSample;
-    ep->framepitch_dst = dst.StrideBytes[plane] / ep->vi.Format.BytesPerSample;
+    auto src = fetch_frame(provider, n);
+    const auto& src_plane = src.plane(plane);
+    auto& dst_plane = dst.plane(plane);
+    auto sptr = static_cast<const byte*>(src_plane.data);
+    auto dptr = static_cast<byte*>(dst_plane.data);
+    ep->framepitch = static_cast<int>(src_plane.stride_bytes) / ep->vi.Format.BytesPerSample;
+    ep->framepitch_dst = static_cast<int>(dst_plane.stride_bytes) / ep->vi.Format.BytesPerSample;
 
     int btcur = ep->bt; // bt used for current frame
   //	if ( (bt/2 > n) || bt==3 && n==vi.num_frames-1 )
@@ -640,13 +679,9 @@ public:
             }
 
             if (needs_compute) {
-              DSFrame frame;
-              DSFrame* pframe;
-              if (in_frames.find(n+i) == in_frames.end())
-                pframe = &(frame = (*fetch_frame)(n+i));
-              else
-                pframe = &in_frames[n+i];
-              FrameToCover(ep.get(), plane, pframe->SrcPointers[plane], coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
+              auto frame = fetch_frame(provider, n + i);
+              const auto& frame_plane = frame.plane(plane);
+              FrameToCover(ep.get(), plane, static_cast<const byte*>(frame_plane.data), coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh);
               CoverToOverlap(ep.get(), iop.get(), in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
 
               // Execute FFT OUTSIDE the cache lock
@@ -674,11 +709,8 @@ public:
     else if (ep->bt == 0) //Kalman filter
     {
       if (n == 0) {
-       {
-         std::lock_guard<std::mutex> lock(thread_check_mutex);
-         thread_id_store[thread_id] = 0;
-       }
-       return src; // first frame  not processed
+        copy_plane_pixels(src_plane, dst_plane, ep->vi.Format.BytesPerSample);
+        return; // first frame  not processed
       }
       /* PF 170302 comment: accumulated error?
         orig = BlankClip(...)
@@ -719,13 +751,7 @@ public:
 
     }
 
-    {
-      std::lock_guard<std::mutex> lock(thread_check_mutex);
-      thread_id_store[thread_id] = 0;
-    }
-
-    // As we now are finished processing the image, we return the destination image.
-    return dst;
+    // As we now are finished processing the image, the destination image has been written in place.
   }
 
   bool CacheRefresh(int n) {

@@ -1,57 +1,12 @@
 #include "plugin/fft3d_filter.hpp"
 
-#include "dualsynth_compat.hpp"
-#include "fft3d_engine.h"
-#include "fftwlite.h"
+#include "engine/fft3d_engine.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 #include <stdexcept>
 #include <utility>
-
-DSFrame::DSFrame(const ds::VideoFrameView& vsView) {
-  Format.IsFamilyYUV = (vsView.format.color_family == ds::ColorFamily::Yuv);
-  Format.IsFamilyRGB = (vsView.format.color_family == ds::ColorFamily::Rgb);
-  Format.IsFamilyGray = (vsView.format.color_family == ds::ColorFamily::Gray);
-  Format.Planes = vsView.plane_count;
-  Format.BytesPerSample = ds::bytes_per_sample(vsView.format.sample_format);
-  Format.BitsPerSample = ds::bits_per_sample(vsView.format.sample_format);
-  Format.SSW = vsView.format.subsampling_w;
-  Format.SSH = vsView.format.subsampling_h;
-
-  FrameWidth = vsView.plane(0).width;
-  FrameHeight = vsView.plane(0).height;
-
-  SrcPointers = new const unsigned char*[Format.Planes];
-  StrideBytes = new int[Format.Planes];
-  for (int i = 0; i < Format.Planes; i++) {
-    SrcPointers[i] = static_cast<const unsigned char*>(vsView.plane(i).data);
-    StrideBytes[i] = static_cast<int>(vsView.plane(i).stride_bytes);
-  }
-}
-
-DSFrame::DSFrame(const ds::MutableVideoFrameView& vsView) {
-  Format.IsFamilyYUV = (vsView.format.color_family == ds::ColorFamily::Yuv);
-  Format.IsFamilyRGB = (vsView.format.color_family == ds::ColorFamily::Rgb);
-  Format.IsFamilyGray = (vsView.format.color_family == ds::ColorFamily::Gray);
-  Format.Planes = vsView.plane_count;
-  Format.BytesPerSample = ds::bytes_per_sample(vsView.format.sample_format);
-  Format.BitsPerSample = ds::bits_per_sample(vsView.format.sample_format);
-  Format.SSW = vsView.format.subsampling_w;
-  Format.SSH = vsView.format.subsampling_h;
-
-  FrameWidth = vsView.plane(0).width;
-  FrameHeight = vsView.plane(0).height;
-
-  SrcPointers = new const unsigned char*[Format.Planes];
-  DstPointers = new unsigned char*[Format.Planes];
-  StrideBytes = new int[Format.Planes];
-  for (int i = 0; i < Format.Planes; i++) {
-    SrcPointers[i] = static_cast<const unsigned char*>(vsView.plane(i).data);
-    DstPointers[i] = static_cast<unsigned char*>(vsView.plane(i).data);
-    StrideBytes[i] = static_cast<int>(vsView.plane(i).stride_bytes);
-  }
-}
 
 namespace neo_fft3d {
 
@@ -74,46 +29,30 @@ float get_param_val(const ds::Result<double>& res, float /* fallback */) {
   }
   return static_cast<float>(res.value());
 }
+
+EngineVideoInfo make_engine_video_info(const ds::VideoInputInfo& input) {
+  EngineVideoInfo vi;
+  vi.Width = input.width;
+  vi.Height = input.height;
+  vi.Frames = input.num_frames;
+  vi.FPSNum = static_cast<int>(input.fps.numerator);
+  vi.FPSDen = static_cast<int>(input.fps.denominator);
+  vi.Format.IsFamilyYUV = (input.format.color_family == ds::ColorFamily::Yuv);
+  vi.Format.IsFamilyRGB = (input.format.color_family == ds::ColorFamily::Rgb);
+  vi.Format.IsFamilyGray = (input.format.color_family == ds::ColorFamily::Gray);
+  vi.Format.Planes = input.format.plane_count;
+  vi.Format.BytesPerSample = ds::bytes_per_sample(input.format.sample_format);
+  vi.Format.BitsPerSample = ds::bits_per_sample(input.format.sample_format);
+  vi.Format.SSW = input.format.subsampling_w;
+  vi.Format.SSH = input.format.subsampling_h;
+  return vi;
+}
 } // namespace
 
-FFT3DCore::State::State() {
-  fetch_frame_func = std::make_unique<FetchFrameFunctor>();
-}
-
-FFT3DCore::State::~State() {
-  for (int i = 0; i < 4; i++) {
-    delete engine[i];
-  }
-  delete ep;
-}
-
-FFT3DCore::State::State(State&& old) noexcept {
-  *this = std::move(old);
-}
-
-FFT3DCore::State& FFT3DCore::State::operator=(State&& old) noexcept {
-  if (this != &old) {
-    for (int i = 0; i < 4; i++) {
-      delete engine[i];
-      engine[i] = old.engine[i];
-      old.engine[i] = nullptr;
-    }
-    delete ep;
-    ep = old.ep;
-    old.ep = nullptr;
-
-    std::memcpy(process, old.process, sizeof(process));
-    std::memcpy(plane_index, old.plane_index, sizeof(plane_index));
-    engine_count = old.engine_count;
-    copy_count = old.copy_count;
-    fft_backend = std::move(old.fft_backend);
-    fetch_frame_func = std::move(old.fetch_frame_func);
-    fft_threads = old.fft_threads;
-    mt = old.mt;
-    crop = old.crop;
-  }
-  return *this;
-}
+FFT3DCore::State::State() = default;
+FFT3DCore::State::~State() = default;
+FFT3DCore::State::State(State&& old) noexcept = default;
+FFT3DCore::State& FFT3DCore::State::operator=(State&& old) noexcept = default;
 
 ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
   ds::VideoInitContext& context
@@ -133,24 +72,11 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
 
     State state;
 
-    DSVideoInfo in_vi;
-    in_vi.Width = input.width;
-    in_vi.Height = input.height;
-    in_vi.Frames = input.num_frames;
-    in_vi.FPSNum = input.fps.numerator;
-    in_vi.FPSDen = input.fps.denominator;
-    in_vi.Format.IsFamilyYUV = (input.format.color_family == ds::ColorFamily::Yuv);
-    in_vi.Format.IsFamilyRGB = (input.format.color_family == ds::ColorFamily::Rgb);
-    in_vi.Format.IsFamilyGray = (input.format.color_family == ds::ColorFamily::Gray);
-    in_vi.Format.Planes = input.format.plane_count;
-    in_vi.Format.BytesPerSample = ds::bytes_per_sample(input.format.sample_format);
-    in_vi.Format.BitsPerSample = ds::bits_per_sample(input.format.sample_format);
-    in_vi.Format.SSW = input.format.subsampling_w;
-    in_vi.Format.SSH = input.format.subsampling_h;
+    EngineVideoInfo in_vi = make_engine_video_info(input);
 
     float default_sigma = get_param_val(context.params->get_double("sigma", 2.0));
 
-    state.ep = new EngineParams {
+    state.ep = std::make_unique<EngineParams>(EngineParams {
       default_sigma, 1.0f,
       32, 32,
       3,
@@ -174,10 +100,8 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
       2.0f, 50.0f,
       0, 0, 0, 0,
       0,
-      in_vi,
-      nullptr, // avs_env
-      false // IsAVS12
-    };
+      in_vi
+    });
 
     state.ep->beta = get_param_val(context.params->get_double("beta", state.ep->beta), state.ep->beta);
     state.ep->bw = get_param_val(context.params->get_int("bw", state.ep->bw));
@@ -233,8 +157,6 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
       fft_backend_name = get_param_val(context.params->get_string("fft_backend", "fftw"));
       explicit_backend = true;
     }
-
-    state.crop = state.ep->l > 0 || state.ep->r > 0 || state.ep->t > 0 || state.ep->b > 0;
 
     if (state.ep->l + state.ep->r >= state.ep->vi.Width) {
       throw "Width cannot be cropped to zero or below";
@@ -309,31 +231,13 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
       state.fft_backend->SetThreadCount(state.fft_threads);
     }
 
-    int planes_y[4] = { PLANAR_Y, PLANAR_U, PLANAR_V, PLANAR_A };
-    int planes_r[4] = { PLANAR_R, PLANAR_G, PLANAR_B, PLANAR_A };
-    int* planes = (state.ep->vi.Format.IsFamilyYUV) ? planes_y : planes_r;
-
-    auto fetch_frame_bridge = [](void* opaque, int frame_num) -> DSFrame {
-      auto* ctx = static_cast<ds::VideoProcessContext*>(opaque);
-      auto res = ctx->frames.get(0, frame_num);
-      if (!res.has_value()) {
-        throw std::runtime_error("neo_fft3d: failed to fetch frame " + std::to_string(frame_num));
-      }
-      return DSFrame(res.value().frame);
-    };
-    state.fetch_frame_func->Fn = fetch_frame_bridge;
-    state.fetch_frame_func->Opaque = nullptr;
-
     for (int i = 0; i < state.ep->vi.Format.Planes; i++) {
-      state.plane_index[i] = planes[i];
       if (state.process[i] == 3) {
         state.ep->IsChroma = state.ep->vi.Format.IsFamilyYUV && i != 0;
         state.ep->framewidth = state.ep->IsChroma ? state.ep->vi.Width >> state.ep->vi.Format.SSW : state.ep->vi.Width;
         state.ep->frameheight = state.ep->IsChroma ? state.ep->vi.Height >> state.ep->vi.Format.SSH : state.ep->vi.Height;
-        state.engine[i] = new FFT3DEngine(*state.ep, i, state.fetch_frame_func.get(), state.fft_backend);
+        state.engine[i] = std::make_unique<FFT3DEngine>(*state.ep, i, state.fft_backend);
         state.engine_count++;
-      } else if (state.process[i] == 2) {
-        state.copy_count++;
       }
     }
 
@@ -379,82 +283,27 @@ ds::Result<ds::VideoRequestResult> FFT3DCore::request(ds::VideoRequestContext& c
   }
 }
 
-template<bool slow>
-static void copy_frame(DSFrame& dst, DSFrame& src, int plane, bool chroma, EngineParams* ep) {
-  auto height = ep->vi.Height;
-  auto src_stride = src.StrideBytes[plane];
-  auto dst_stride = dst.StrideBytes[plane];
-  auto src_ptr = src.SrcPointers[plane];
-  auto dst_ptr = dst.DstPointers[plane];
-  if (chroma) {
-    height >>= ep->vi.Format.SSH;
-  }
-  if constexpr (slow) {
-    for (int i = 0; i < height; i++) {
-      std::memcpy(dst_ptr, src_ptr, dst_stride);
-      src_ptr += src_stride;
-      dst_ptr += dst_stride;
-    }
-  } else {
-    std::memcpy(dst_ptr, src_ptr, dst_stride * height);
+static void copy_plane_pixels(
+  const ds::VideoFrameView& src,
+  ds::MutableVideoFrameView& dst,
+  int plane,
+  int bytes_per_sample
+) {
+  const auto& src_plane = src.plane(plane);
+  auto& dst_plane = dst.plane(plane);
+  const auto row_bytes = static_cast<std::size_t>(src_plane.width) * static_cast<std::size_t>(bytes_per_sample);
+  auto src_ptr = static_cast<const std::uint8_t*>(src_plane.data);
+  auto dst_ptr = static_cast<std::uint8_t*>(dst_plane.data);
+
+  for (int y = 0; y < src_plane.height; ++y) {
+    std::memcpy(dst_ptr, src_ptr, row_bytes);
+    src_ptr += src_plane.stride_bytes;
+    dst_ptr += dst_plane.stride_bytes;
   }
 }
 
-template<bool slow>
-static void copy_frame(DSFrame& dst, DSFrame& src, DSFrame& processed, int plane, bool chroma, int l, int t, int r, int b, EngineParams* ep) {
-  auto width = ep->vi.Width * ep->vi.Format.BytesPerSample;
-  auto height = ep->vi.Height;
-  auto src_stride = src.StrideBytes[plane];
-  auto dst_stride = dst.StrideBytes[plane];
-  auto pcs_stride = processed.StrideBytes[plane];
-  auto src_ptr = src.SrcPointers[plane];
-  auto dst_ptr = dst.DstPointers[plane];
-  auto pcs_ptr = processed.SrcPointers[plane];
-  if (chroma) {
-    width >>= ep->vi.Format.SSW;
-    height >>= ep->vi.Format.SSH;
-  }
-  auto left_b = l * ep->vi.Format.BytesPerSample;
-  auto right_b = r * ep->vi.Format.BytesPerSample;
-  if constexpr (slow) {
-    for (int i = 0; i < height; i++) {
-      if (i < t || i >= height - b) {
-        std::memcpy(dst_ptr, src_ptr, dst_stride);
-      } else {
-        if (l > 0) {
-          std::memcpy(dst_ptr, src_ptr, left_b);
-        }
-        std::memcpy(dst_ptr + left_b, pcs_ptr + left_b, width - left_b - right_b);
-        if (r > 0) {
-          std::memcpy(dst_ptr + width - right_b, src_ptr + width - right_b, right_b);
-        }
-      }
-      src_ptr += src_stride;
-      dst_ptr += dst_stride;
-      pcs_ptr += pcs_stride;
-    }
-  } else {
-    if (l > 0 || r > 0 || t > 0 || b > 0) {
-      for (int i = 0; i < height; i++) {
-        if (i < t || i >= height - b) {
-          std::memcpy(dst_ptr, src_ptr, dst_stride);
-        } else {
-          if (l > 0) {
-            std::memcpy(dst_ptr, src_ptr, left_b);
-          }
-          std::memcpy(dst_ptr + left_b, pcs_ptr + left_b, width - left_b - right_b);
-          if (r > 0) {
-            std::memcpy(dst_ptr + width - right_b, src_ptr + width - right_b, right_b);
-          }
-        }
-        src_ptr += src_stride;
-        dst_ptr += dst_stride;
-        pcs_ptr += pcs_stride;
-      }
-    } else {
-      std::memcpy(dst_ptr, pcs_ptr, dst_stride * height);
-    }
-  }
+static bool has_crop(const EngineParams& ep) {
+  return ep.l > 0 || ep.r > 0 || ep.t > 0 || ep.b > 0;
 }
 
 ds::Result<ds::VideoProcessResult> FFT3DCore::process(ds::VideoProcessContext& context) {
@@ -466,10 +315,7 @@ ds::Result<ds::VideoProcessResult> FFT3DCore::process(ds::VideoProcessContext& c
     if (!src_res.has_value()) {
       return ds::Result<ds::VideoProcessResult>::failure(invalid_argument("Failed to get source frame"));
     }
-    DSFrame src = DSFrame(src_res.value().frame);
-    DSFrame dst = DSFrame(context.dst);
-
-    state.fetch_frame_func->Opaque = &context;
+    const ds::VideoFrameView& src = src_res.value().frame;
 
     for (int i = 0; i < state.ep->vi.Format.Planes; i++) {
       if (state.process[i] == 3 && state.engine[i]) {
@@ -483,38 +329,14 @@ ds::Result<ds::VideoProcessResult> FFT3DCore::process(ds::VideoProcessContext& c
       }
     }
 
-    std::unordered_map<int, DSFrame> empty_map;
-
-    if (state.engine_count == 1 && state.copy_count == 0 && !state.crop) {
-      for (int i = 0; i < state.ep->vi.Format.Planes; i++) {
-        if (state.process[i] == 3) {
-          DSFrame frame = state.engine[i]->GetFrame(n, empty_map);
-          copy_frame<false>(dst, src, frame, i, false, 0, 0, 0, 0, state.ep);
-          return ds::Result<ds::VideoProcessResult>::success(ds::VideoProcessResult{});
-        }
-      }
-    }
-
     auto core_process = [&](int i) {
-      bool chroma = state.ep->vi.Format.IsFamilyYUV && i > 0 && i < 3;
-
       if (state.process[i] == 3) {
-        auto l = chroma ? (state.ep->l >> state.ep->vi.Format.SSW) : state.ep->l;
-        auto r = chroma ? (state.ep->r >> state.ep->vi.Format.SSW) : state.ep->r;
-        auto t = chroma ? (state.ep->t >> state.ep->vi.Format.SSH) : state.ep->t;
-        auto b = chroma ? (state.ep->b >> state.ep->vi.Format.SSH) : state.ep->b;
-        DSFrame frame = state.engine[i]->GetFrame(n, empty_map);
-        if (src.StrideBytes[i] == dst.StrideBytes[i]) {
-          copy_frame<false>(dst, src, frame, i, chroma, l, t, r, b, state.ep);
-        } else {
-          copy_frame<true>(dst, src, frame, i, chroma, l, t, r, b, state.ep);
+        if (has_crop(*state.ep)) {
+          copy_plane_pixels(src, context.dst, i, state.ep->vi.Format.BytesPerSample);
         }
+        state.engine[i]->ProcessFrame(n, context.frames, context.dst);
       } else if (state.process[i] == 2) {
-        if (src.StrideBytes[i] == dst.StrideBytes[i]) {
-          copy_frame<false>(dst, src, i, chroma, state.ep);
-        } else {
-          copy_frame<true>(dst, src, i, chroma, state.ep);
-        }
+        copy_plane_pixels(src, context.dst, i, state.ep->vi.Format.BytesPerSample);
       }
     };
 
