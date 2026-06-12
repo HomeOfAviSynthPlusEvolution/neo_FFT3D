@@ -15,7 +15,7 @@
 template <bool pattern, bool degrid, bool sharpen, bool dehalo>
 static inline void Apply2D_C_impl(fftwf_complex *out, SharedFunctionParams sfp)
 {
-  fftwf_complex * dummy[5] = {0, 0, out, 0, 0};
+  fftwf_complex * dummy[5] = {nullptr, nullptr, out, nullptr, nullptr};
   loop_wrapper_C(dummy, out, sfp,
     [&](LambdaFunctionParams lfp) {
       float gridcorrection0 = 0.0f;

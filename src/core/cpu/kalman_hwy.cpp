@@ -12,8 +12,7 @@
 #include <cstddef>
 
 HWY_BEFORE_NAMESPACE();
-namespace neo_fft3d::cpu {
-namespace HWY_NAMESPACE {
+namespace neo_fft3d::cpu::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 
@@ -111,8 +110,8 @@ void Kalman_Hwy_Wrap(fftwf_complex* outcur, fftwf_complex* outLast, SharedFuncti
   const int size = sfp.outpitch;
   for (int block = 0; block < sfp.howmanyblocks; block++) {
     const auto block_offset = complex_block_offset(sfp, block);
-    float* outcur_block = reinterpret_cast<float*>(outcur + block_offset);
-    float* outLast_block = reinterpret_cast<float*>(outLast + block_offset);
+    auto outcur_block = reinterpret_cast<float*>(outcur + block_offset);
+    auto outLast_block = reinterpret_cast<float*>(outLast + block_offset);
 
     auto outcur_view = ds::make_plane_view(
       outcur_block,
@@ -139,8 +138,7 @@ void Kalman_Hwy_Wrap(fftwf_complex* outcur, fftwf_complex* outLast, SharedFuncti
 void Kalman_Hwy_Wrap_t(fftwf_complex* outcur, fftwf_complex* outLast, SharedFunctionParams sfp) { Kalman_Hwy_Wrap<true>(outcur, outLast, sfp); }
 void Kalman_Hwy_Wrap_f(fftwf_complex* outcur, fftwf_complex* outLast, SharedFunctionParams sfp) { Kalman_Hwy_Wrap<false>(outcur, outLast, sfp); }
 
-} // namespace HWY_NAMESPACE
-} // namespace neo_fft3d::cpu
+} // namespace neo_fft3d::cpu::HWY_NAMESPACE
 HWY_AFTER_NAMESPACE();
 
 #if HWY_ONCE

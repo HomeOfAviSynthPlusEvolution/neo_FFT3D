@@ -12,8 +12,7 @@
 #include <cstddef>
 
 HWY_BEFORE_NAMESPACE();
-namespace neo_fft3d::cpu {
-namespace HWY_NAMESPACE {
+namespace neo_fft3d::cpu::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 
@@ -463,8 +462,7 @@ DEFINE_3D_WRAP(5, false, false, ff)
 
 #undef DEFINE_3D_WRAP
 
-} // namespace HWY_NAMESPACE
-} // namespace neo_fft3d::cpu
+} // namespace neo_fft3d::cpu::HWY_NAMESPACE
 HWY_AFTER_NAMESPACE();
 
 #if HWY_ONCE

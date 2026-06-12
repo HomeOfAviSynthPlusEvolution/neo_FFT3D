@@ -13,7 +13,7 @@
 template <bool pattern>
 void Kalman_C(fftwf_complex *outcur, fftwf_complex *outLast, SharedFunctionParams sfp)
 {
-  fftwf_complex * dummy[5] = {0, outLast, outcur, 0, 0};
+  fftwf_complex * dummy[5] = {nullptr, outLast, outcur, nullptr, nullptr};
   loop_wrapper_C(dummy, outLast, sfp,
     [&](LambdaFunctionParams lfp) {
       float GainRe, GainIm;

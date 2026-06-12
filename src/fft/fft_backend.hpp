@@ -32,13 +32,13 @@ struct FFTPlan {
 class FFTBackend {
 public:
   virtual ~FFTBackend() = default;
-  virtual const char* Name() const = 0;
+  [[nodiscard]] virtual const char* Name() const = 0;
   virtual bool Load() = 0;
   virtual void Unload() noexcept = 0;
-  virtual bool Loaded() const noexcept = 0;
-  virtual bool HasThreading() const noexcept = 0;
+  [[nodiscard]] virtual bool Loaded() const noexcept = 0;
+  [[nodiscard]] virtual bool HasThreading() const noexcept = 0;
   virtual void SetThreadCount(int nthreads) = 0;
-  virtual std::unique_ptr<FFTPlan> CreatePlan(
+  [[nodiscard]] virtual std::unique_ptr<FFTPlan> CreatePlan(
     int bh,
     int bw,
     int outpitch,

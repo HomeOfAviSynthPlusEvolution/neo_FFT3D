@@ -11,7 +11,7 @@ namespace neo_fft3d {
 
 namespace {
 ds::Error invalid_argument(std::string message) {
-  return ds::Error{ds::ErrorCode::InvalidArgument, std::move(message)};
+  return ds::Error{.code = ds::ErrorCode::InvalidArgument, .message = std::move(message)};
 }
 
 template <class T>
@@ -102,7 +102,7 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
 ) {
   try {
     auto has_param = [](const ds::ParamValues& params, const char* name) {
-      return std::any_of(params.entries.begin(), params.entries.end(), [name](const ds::ParamEntry& entry) {
+      return std::ranges::any_of(params.entries, [name](const ds::ParamEntry& entry) {
         return entry.name == name;
       });
     };
@@ -265,8 +265,14 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
 
     return ds::Result<ds::VideoInitStateResult<State>>::success(
       ds::VideoInitStateResult<State>{
-        ds::VideoOutputInfo{input.width, input.height, input.num_frames, input.format, input.fps},
-        std::move(state)
+        .output = ds::VideoOutputInfo{
+          .width = input.width,
+          .height = input.height,
+          .num_frames = input.num_frames,
+          .format = input.format,
+          .fps = input.fps
+        },
+        .state = std::move(state)
       }
     );
   } catch (const char* error) {

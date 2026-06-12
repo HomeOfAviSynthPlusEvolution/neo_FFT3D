@@ -18,11 +18,11 @@ public:
     }
   }
 
-  const char* Name() const noexcept override {
+  [[nodiscard]] const char* Name() const noexcept override {
     return "cpu";
   }
 
-  std::unique_ptr<fft::FFTPlan> CreatePlan(
+  [[nodiscard]] std::unique_ptr<fft::FFTPlan> CreatePlan(
     int bh,
     int bw,
     int outpitch,

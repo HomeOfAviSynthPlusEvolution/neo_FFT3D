@@ -56,7 +56,7 @@ static void CoverToOverlap_impl(EngineParams * ep, IOParams * iop, float *dst_pt
   // pitch is pixel_t granularity, can be used directly as scrp+=pitch
   int w, h;
   int ihx, ihy;
-  const pixel_t *srcp = reinterpret_cast<const pixel_t *>(src_ptr);// + (hrest/2)*src_pitch + wrest/2; // centered
+  const auto *srcp = reinterpret_cast<const pixel_t *>(src_ptr);// + (hrest/2)*src_pitch + wrest/2; // centered
   float ftmp;
   int xoffset = ep->bh*ep->bw - (ep->bw - ep->ow); // skip frames
   int yoffset = ep->bw*iop->nox*ep->bh - ep->bw*(ep->bh - ep->oh); // vertical offset of same block (overlap)
@@ -65,7 +65,7 @@ static void CoverToOverlap_impl(EngineParams * ep, IOParams * iop, float *dst_pt
   //	char debugbuf[1536];
   //	wsprintf(debugbuf,"FFT3DFilter: InitOverlapPlane");
   //	OutputDebugString(debugbuf);
-  typedef typename std::conditional<sizeof(pixel_t) == 4, float, int>::type cast_t;
+  using cast_t = std::conditional_t<sizeof(pixel_t) == 4, float, int>;
   // for float: chroma center is also 0.0
   constexpr cast_t planeBase = sizeof(pixel_t) == 4 ? 0 : cast_t(chroma ? (1 << (_bits_per_pixel - 1)) : 0); // anti warning
 
@@ -295,7 +295,7 @@ static void CoverToOverlap_impl(EngineParams * ep, IOParams * iop, float *dst_pt
       {
         for (w = 0; w < ep->ow; w++)   // half line of block
         {
-          float ftmp = float(iop->wanyr[h] * (srcp[w] - planeBase));   // Copy each byte from source to float array
+          auto ftmp = float(iop->wanyr[h] * (srcp[w] - planeBase));   // Copy each byte from source to float array
           inp[w] = ftmp * iop->wanxr[w];
           inp[w + xoffset] = ftmp *iop->wanxl[w];   // overlapped Copy
         }
@@ -328,11 +328,11 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
 {
   int w, h;
   int ihx, ihy;
-  pixel_t *dstp = reinterpret_cast<pixel_t *>(dst_ptr);// + (hrest/2)*dst_pitch + wrest/2; // centered
+  auto *dstp = reinterpret_cast<pixel_t *>(dst_ptr);// + (hrest/2)*dst_pitch + wrest/2; // centered
   float *inp = src_ptr;
   int xoffset = ep->bh*ep->bw - (ep->bw - ep->ow);
   int yoffset = ep->bw*iop->nox*ep->bh - ep->bw*(ep->bh - ep->oh); // vertical offset of same block (overlap)
-  typedef typename std::conditional<sizeof(pixel_t) == 4, float, int>::type cast_t;
+  using cast_t = std::conditional_t<sizeof(pixel_t) == 4, float, int>;
 
   constexpr float rounder = sizeof(pixel_t) == 4 ? 0.0f : 0.5f; // v2.6
 

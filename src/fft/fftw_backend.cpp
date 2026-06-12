@@ -53,7 +53,7 @@ public:
     Unload();
   }
 
-  const char* Name() const override { return "fftw"; }
+  [[nodiscard]] const char* Name() const override { return "fftw"; }
 
   bool Load() override {
     try {
@@ -70,11 +70,11 @@ public:
     }
   }
 
-  bool Loaded() const noexcept override {
+  [[nodiscard]] bool Loaded() const noexcept override {
     return api_->library != nullptr;
   }
 
-  bool HasThreading() const noexcept override {
+  [[nodiscard]] bool HasThreading() const noexcept override {
     return api_->has_threading();
   }
 
@@ -85,7 +85,7 @@ public:
     }
   }
 
-  std::unique_ptr<FFTPlan> CreatePlan(
+  [[nodiscard]] std::unique_ptr<FFTPlan> CreatePlan(
     int bh,
     int bw,
     int outpitch,

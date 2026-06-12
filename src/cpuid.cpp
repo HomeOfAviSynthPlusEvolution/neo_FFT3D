@@ -20,7 +20,7 @@
 
 #include <avs/cpuid.h>
 #include <avs/config.h>
-#include <stdint.h>
+#include <cstdint>
 #ifdef AVS_WINDOWS
 #include <intrin.h>
 #else
@@ -28,14 +28,14 @@
 #include <cpuid.h>
 #endif
 
-static inline void cpuid_leaf(uint32_t cpuinfo[4], uint32_t leaf) {
+static inline void cpuid_leaf(std::uint32_t cpuinfo[4], std::uint32_t leaf) {
 #ifdef AVS_WINDOWS
   int raw[4] {};
   __cpuid(raw, static_cast<int>(leaf));
-  cpuinfo[0] = static_cast<uint32_t>(raw[0]);
-  cpuinfo[1] = static_cast<uint32_t>(raw[1]);
-  cpuinfo[2] = static_cast<uint32_t>(raw[2]);
-  cpuinfo[3] = static_cast<uint32_t>(raw[3]);
+  cpuinfo[0] = static_cast<std::uint32_t>(raw[0]);
+  cpuinfo[1] = static_cast<std::uint32_t>(raw[1]);
+  cpuinfo[2] = static_cast<std::uint32_t>(raw[2]);
+  cpuinfo[3] = static_cast<std::uint32_t>(raw[3]);
 #else
   unsigned int eax, ebx, ecx, edx;
   // for deeper leaves __get_cpuid is not enough
@@ -49,14 +49,14 @@ static inline void cpuid_leaf(uint32_t cpuinfo[4], uint32_t leaf) {
 
 #define IS_BIT_SET(bitfield, bit) (((bitfield) & (1U << (bit))) != 0U)
 
-static uint32_t get_xcr0()
+static std::uint32_t get_xcr0()
 {
-    uint32_t xcr0;
+    std::uint32_t xcr0;
     // _XCR_XFEATURE_ENABLED_MASK: 0
 #if defined(GCC) || defined(CLANG)
     __asm__("xgetbv" : "=a" (xcr0) : "c" (0) : "%edx");
 #else
-    xcr0 = (uint32_t)_xgetbv(0);
+    xcr0 = static_cast<std::uint32_t>(_xgetbv(0));
 #endif
     return xcr0;
 }
@@ -64,7 +64,7 @@ static uint32_t get_xcr0()
 static int CPUCheckForExtensions()
 {
   int result = 0;
-  uint32_t cpuinfo[4] {};
+  std::uint32_t cpuinfo[4] {};
 
   cpuid_leaf(cpuinfo, 1U);
   if (IS_BIT_SET(cpuinfo[3], 0))
@@ -96,7 +96,7 @@ static int CPUCheckForExtensions()
   bool avx_supported = IS_BIT_SET(cpuinfo[2], 28);
   if (xgetbv_supported && avx_supported)
   {
-    uint32_t xgetbv0_32 = get_xcr0();
+    std::uint32_t xgetbv0_32 = get_xcr0();
     if ((xgetbv0_32 & 0x6U) == 0x6U) {
       result |= CPUF_AVX;
       if (IS_BIT_SET(cpuinfo[2], 12))

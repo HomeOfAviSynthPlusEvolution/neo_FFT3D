@@ -70,14 +70,14 @@ private:
 class PocketFFTBackend final : public FFTBackend {
 public:
   PocketFFTBackend() = default;
-  const char* Name() const override { return "pocketfft"; }
+  [[nodiscard]] const char* Name() const override { return "pocketfft"; }
   bool Load() override { return true; }
   void Unload() noexcept override {}
-  bool Loaded() const noexcept override { return true; }
-  bool HasThreading() const noexcept override { return false; }
+  [[nodiscard]] bool Loaded() const noexcept override { return true; }
+  [[nodiscard]] bool HasThreading() const noexcept override { return false; }
   void SetThreadCount(int) override {}
 
-  std::unique_ptr<FFTPlan> CreatePlan(
+  [[nodiscard]] std::unique_ptr<FFTPlan> CreatePlan(
     int bh,
     int bw,
     int outpitch,

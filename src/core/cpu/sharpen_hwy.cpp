@@ -12,8 +12,7 @@
 #include <cstddef>
 
 HWY_BEFORE_NAMESPACE();
-namespace neo_fft3d::cpu {
-namespace HWY_NAMESPACE {
+namespace neo_fft3d::cpu::HWY_NAMESPACE {
 
 namespace hn = hwy::HWY_NAMESPACE;
 
@@ -146,8 +145,7 @@ void Sharpen_Hwy_Wrap(fftwf_complex* out, SharedFunctionParams sfp) {
 void Sharpen_Hwy_Wrap_t(fftwf_complex* out, SharedFunctionParams sfp) { Sharpen_Hwy_Wrap<true>(out, sfp); }
 void Sharpen_Hwy_Wrap_f(fftwf_complex* out, SharedFunctionParams sfp) { Sharpen_Hwy_Wrap<false>(out, sfp); }
 
-} // namespace HWY_NAMESPACE
-} // namespace neo_fft3d::cpu
+} // namespace neo_fft3d::cpu::HWY_NAMESPACE
 HWY_AFTER_NAMESPACE();
 
 #if HWY_ONCE

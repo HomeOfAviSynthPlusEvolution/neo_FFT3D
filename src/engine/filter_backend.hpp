@@ -12,9 +12,9 @@ class FilterBackend {
 public:
   virtual ~FilterBackend() = default;
 
-  virtual const char* Name() const noexcept = 0;
+  [[nodiscard]] virtual const char* Name() const noexcept = 0;
 
-  virtual std::unique_ptr<fft::FFTPlan> CreatePlan(
+  [[nodiscard]] virtual std::unique_ptr<fft::FFTPlan> CreatePlan(
     int bh,
     int bw,
     int outpitch,

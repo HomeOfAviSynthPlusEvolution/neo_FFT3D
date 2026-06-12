@@ -53,7 +53,7 @@ std::complex<float>* EngineWorkspace::initial_spectrum() {
 
 EngineWorkspace::Lease EngineWorkspace::acquire() {
   std::lock_guard<std::mutex> lock(mutex_);
-  auto it = std::find(slot_in_use_.begin(), slot_in_use_.end(), 0);
+  auto it = std::ranges::find(slot_in_use_, 0);
   const auto slot = static_cast<unsigned int>(std::distance(slot_in_use_.begin(), it));
   if (it == slot_in_use_.end()) {
     slot_in_use_.push_back(1);
@@ -64,11 +64,11 @@ EngineWorkspace::Lease EngineWorkspace::acquire() {
 
   ensure_slot(slot);
   return Lease(*this, EngineWorkspaceSlot{
-    slot,
-    cover_buffers_[slot].data(),
-    overlap_buffers_[slot].data(),
-    spectrum_buffers_[slot].data(),
-    slot_in_use_.size()
+    .id = slot,
+    .cover = cover_buffers_[slot].data(),
+    .overlap = overlap_buffers_[slot].data(),
+    .spectrum = spectrum_buffers_[slot].data(),
+    .slot_count = slot_in_use_.size()
   });
 }
 
