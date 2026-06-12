@@ -1,5 +1,7 @@
 #include "engine/frame_buffer.hpp"
 #include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <numeric>
 #pragma warning (disable: 26451)
 
@@ -46,6 +48,16 @@ std::ptrdiff_t byte_offset_for_sample(int row, int pitch, int column, int bytes_
          static_cast<std::ptrdiff_t>(bytes_per_sample);
 }
 
+template <typename Pixel>
+const Pixel* pixel_ptr(const byte* data) {
+  return reinterpret_cast<const Pixel*>(data);
+}
+
+template <typename Pixel>
+Pixel* pixel_ptr(byte* data) {
+  return reinterpret_cast<Pixel*>(data);
+}
+
 } // namespace
 
 template<typename pixel_t>
@@ -65,7 +77,7 @@ static void FrameToCover_impl(const pixel_t *srcp, int src_width, int src_height
   {
     for (h = mirh; h < src_height + mirh; h++)
     {
-      memcpy((byte *)(coverbuf1 + mirw), (const byte *)srcp, src_line_bytes);
+      std::memcpy(coverbuf1 + mirw, srcp, src_line_bytes);
       for (w = 0; w < mirw; w++)
       {
         coverbuf1[w] = coverbuf1[mirw + mirw - w]; // mirror left border
@@ -82,7 +94,7 @@ static void FrameToCover_impl(const pixel_t *srcp, int src_width, int src_height
   {
     for (h = mirh; h < src_height / 2 + mirh; h++) // first field
     {
-      memcpy((byte *)(coverbuf1 + mirw), (const byte *)srcp, src_line_bytes); // copy line
+      std::memcpy(coverbuf1 + mirw, srcp, src_line_bytes); // copy line
       for (w = 0; w < mirw; w++)
       {
         coverbuf1[w] = coverbuf1[mirw + mirw - w]; // mirror left border
@@ -98,7 +110,7 @@ static void FrameToCover_impl(const pixel_t *srcp, int src_width, int src_height
     srcp -= src_pitch;
     for (h = src_height / 2 + mirh; h < src_height + mirh; h++) // flip second field
     {
-      memcpy((byte *)(coverbuf1 + mirw), (const byte *)srcp, src_line_bytes); // copy line
+      std::memcpy(coverbuf1 + mirw, srcp, src_line_bytes); // copy line
       for (w = 0; w < mirw; w++)
       {
         coverbuf1[w] = coverbuf1[mirw + mirw - w]; // mirror left border
@@ -115,7 +127,7 @@ static void FrameToCover_impl(const pixel_t *srcp, int src_width, int src_height
   pixel_t * pmirror = coverbuf1 - (coverpitch * 2); // pointer to vertical mirror
   for (h = src_height + mirh; h < coverheight; h++)
   {
-    memcpy((byte *)coverbuf1, (const byte *)pmirror, cover_line_bytes); // mirror bottom line by line
+    std::memcpy(coverbuf1, pmirror, cover_line_bytes); // mirror bottom line by line
     coverbuf1 += coverpitch;
     pmirror -= coverpitch;
   }
@@ -123,7 +135,7 @@ static void FrameToCover_impl(const pixel_t *srcp, int src_width, int src_height
   pmirror = coverbuf1 + coverpitch*mirh * 2; // pointer to vertical mirror
   for (h = 0; h < mirh; h++)
   {
-    memcpy((byte *)coverbuf1, (const byte *)pmirror, cover_line_bytes); // mirror bottom line by line
+    std::memcpy(coverbuf1, pmirror, cover_line_bytes); // mirror bottom line by line
     coverbuf1 += coverpitch;
     pmirror -= coverpitch;
   }
@@ -142,7 +154,7 @@ static void CoverToFrame_impl(const pixel_t *coverbuf, int coverwidth, int cover
   {
     for (h = 0; h < dst_height; h++)
     {
-      memcpy((byte *)dstp, (const byte *)coverbuf1, dst_line_bytes); // copy pure frame size only
+      std::memcpy(dstp, coverbuf1, dst_line_bytes); // copy pure frame size only
       dstp += dst_pitch;
       coverbuf1 += coverpitch;
     }
@@ -151,7 +163,7 @@ static void CoverToFrame_impl(const pixel_t *coverbuf, int coverwidth, int cover
   {
     for (h = 0; h < dst_height; h += 2)
     {
-      memcpy((byte *)dstp, (const byte *)coverbuf1, dst_line_bytes); // copy pure frame size only
+      std::memcpy(dstp, coverbuf1, dst_line_bytes); // copy pure frame size only
       dstp += dst_pitch * 2;
       coverbuf1 += coverpitch;
     }
@@ -159,61 +171,61 @@ static void CoverToFrame_impl(const pixel_t *coverbuf, int coverwidth, int cover
     dstp -= dst_pitch;
     for (h = 0; h < dst_height; h += 2)
     {
-      memcpy((byte *)dstp, (const byte *)coverbuf1, dst_line_bytes); // copy pure frame size only
+      std::memcpy(dstp, coverbuf1, dst_line_bytes); // copy pure frame size only
       dstp -= dst_pitch * 2;
       coverbuf1 += coverpitch;
     }
   }
 }
 
-void FrameToCover(EngineParams * ep, int plane, neo_fft3d::BytePlaneView src, neo_fft3d::MutableBytePlaneView cover, int mirw, int mirh)
+void FrameToCover(const EngineParams& ep, int plane, neo_fft3d::BytePlaneView src, neo_fft3d::MutableBytePlaneView cover, int mirw, int mirh)
 {
-  auto l = ep->IsChroma ? (ep->l >> ep->vi.Format.SSW) : ep->l;
-  auto r = ep->IsChroma ? (ep->r >> ep->vi.Format.SSW) : ep->r;
-  auto t = ep->IsChroma ? (ep->t >> ep->vi.Format.SSH) : ep->t;
-  auto b = ep->IsChroma ? (ep->b >> ep->vi.Format.SSH) : ep->b;
-  auto width = ep->framewidth - l - r;
-  auto height = ep->frameheight - t - b;
-  const int bytes_per_sample = ep->vi.Format.BytesPerSample;
+  auto l = ep.IsChroma ? (ep.l >> ep.vi.Format.SSW) : ep.l;
+  auto r = ep.IsChroma ? (ep.r >> ep.vi.Format.SSW) : ep.r;
+  auto t = ep.IsChroma ? (ep.t >> ep.vi.Format.SSH) : ep.t;
+  auto b = ep.IsChroma ? (ep.b >> ep.vi.Format.SSH) : ep.b;
+  auto width = ep.framewidth - l - r;
+  auto height = ep.frameheight - t - b;
+  const int bytes_per_sample = ep.vi.Format.BytesPerSample;
   const int src_pitch = view_stride_samples(src, bytes_per_sample);
   const int coverwidth = view_width_samples(cover, bytes_per_sample);
   const int coverheight = view_height(cover);
   const int coverpitch = view_stride_samples(cover, bytes_per_sample);
   const auto *new_src_ptr = src.data_handle() + byte_offset_for_sample(t, src_pitch, l, bytes_per_sample);
-  switch (ep->vi.Format.BitsPerSample)
+  switch (ep.vi.Format.BitsPerSample)
   {
-  case 8: FrameToCover_impl<uint8_t>(new_src_ptr, width, height, src_pitch, cover.data_handle(), coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
+  case 8: FrameToCover_impl<std::uint8_t>(new_src_ptr, width, height, src_pitch, cover.data_handle(), coverwidth, coverheight, coverpitch, mirw, mirh, ep.interlaced); break;
   case 10:
   case 12:
   case 14:
-  case 16: FrameToCover_impl<uint16_t>((uint16_t *)new_src_ptr, width, height, src_pitch, (uint16_t *)cover.data_handle(), coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
-  case 32: FrameToCover_impl<float>((float *)new_src_ptr, width, height, src_pitch, (float *)cover.data_handle(), coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
+  case 16: FrameToCover_impl<std::uint16_t>(pixel_ptr<std::uint16_t>(new_src_ptr), width, height, src_pitch, pixel_ptr<std::uint16_t>(cover.data_handle()), coverwidth, coverheight, coverpitch, mirw, mirh, ep.interlaced); break;
+  case 32: FrameToCover_impl<float>(pixel_ptr<float>(new_src_ptr), width, height, src_pitch, pixel_ptr<float>(cover.data_handle()), coverwidth, coverheight, coverpitch, mirw, mirh, ep.interlaced); break;
   default: break;
   }
 }
 
-void CoverToFrame(EngineParams * ep, int plane, neo_fft3d::BytePlaneView cover, neo_fft3d::MutableBytePlaneView dst, int mirw, int mirh)
+void CoverToFrame(const EngineParams& ep, int plane, neo_fft3d::BytePlaneView cover, neo_fft3d::MutableBytePlaneView dst, int mirw, int mirh)
 {
-  auto l = ep->IsChroma ? (ep->l >> ep->vi.Format.SSW) : ep->l;
-  auto r = ep->IsChroma ? (ep->r >> ep->vi.Format.SSW) : ep->r;
-  auto t = ep->IsChroma ? (ep->t >> ep->vi.Format.SSH) : ep->t;
-  auto b = ep->IsChroma ? (ep->b >> ep->vi.Format.SSH) : ep->b;
-  auto width = ep->framewidth - l - r;
-  auto height = ep->frameheight - t - b;
-  const int bytes_per_sample = ep->vi.Format.BytesPerSample;
+  auto l = ep.IsChroma ? (ep.l >> ep.vi.Format.SSW) : ep.l;
+  auto r = ep.IsChroma ? (ep.r >> ep.vi.Format.SSW) : ep.r;
+  auto t = ep.IsChroma ? (ep.t >> ep.vi.Format.SSH) : ep.t;
+  auto b = ep.IsChroma ? (ep.b >> ep.vi.Format.SSH) : ep.b;
+  auto width = ep.framewidth - l - r;
+  auto height = ep.frameheight - t - b;
+  const int bytes_per_sample = ep.vi.Format.BytesPerSample;
   const int coverwidth = view_width_samples(cover, bytes_per_sample);
   const int coverheight = view_height(cover);
   const int coverpitch = view_stride_samples(cover, bytes_per_sample);
   const int dst_pitch = view_stride_samples(dst, bytes_per_sample);
   auto *new_dst_ptr = dst.data_handle() + byte_offset_for_sample(t, dst_pitch, l, bytes_per_sample);
-  switch (ep->vi.Format.BitsPerSample)
+  switch (ep.vi.Format.BitsPerSample)
   {
-  case 8: CoverToFrame_impl<uint8_t>(cover.data_handle(), coverwidth, coverheight, coverpitch, new_dst_ptr, width, height, dst_pitch, mirw, mirh, ep->interlaced); break;
+  case 8: CoverToFrame_impl<std::uint8_t>(cover.data_handle(), coverwidth, coverheight, coverpitch, new_dst_ptr, width, height, dst_pitch, mirw, mirh, ep.interlaced); break;
   case 10:
   case 12:
   case 14:
-  case 16: CoverToFrame_impl<uint16_t>((uint16_t *)cover.data_handle(), coverwidth, coverheight, coverpitch, (uint16_t *)new_dst_ptr, width, height, dst_pitch, mirw, mirh, ep->interlaced); break;
-  case 32: CoverToFrame_impl<float>((float *)cover.data_handle(), coverwidth, coverheight, coverpitch, (float *)new_dst_ptr, width, height, dst_pitch, mirw, mirh, ep->interlaced); break;
+  case 16: CoverToFrame_impl<std::uint16_t>(pixel_ptr<std::uint16_t>(cover.data_handle()), coverwidth, coverheight, coverpitch, pixel_ptr<std::uint16_t>(new_dst_ptr), width, height, dst_pitch, mirw, mirh, ep.interlaced); break;
+  case 32: CoverToFrame_impl<float>(pixel_ptr<float>(cover.data_handle()), coverwidth, coverheight, coverpitch, pixel_ptr<float>(new_dst_ptr), width, height, dst_pitch, mirw, mirh, ep.interlaced); break;
   default: break;
   }
 }

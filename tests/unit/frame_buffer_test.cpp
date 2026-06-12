@@ -45,7 +45,7 @@ TEST_CASE("FrameToCover mirrors a cropped progressive 8-bit plane", "[frame_buff
   std::array<std::uint8_t, 16> cover {};
 
   FrameToCover(
-    &ep,
+    ep,
     0,
     byte_view(source.data(), 4, 3, 4),
     mutable_byte_view(cover.data(), 4, 4, 4),
@@ -78,7 +78,7 @@ TEST_CASE("CoverToFrame writes only the cropped center from a progressive 8-bit 
   destination.fill(0xee);
 
   CoverToFrame(
-    &ep,
+    ep,
     0,
     byte_view(cover.data(), 4, 4, 4),
     mutable_byte_view(destination.data(), 4, 3, 4),
@@ -107,8 +107,8 @@ TEST_CASE("CoverToOverlap and OverlapToCover round trip an 8-bit chroma plane wi
   std::array<float, 4> overlap {};
 
   CoverToOverlap(
-    &ep,
-    &iop,
+    ep,
+    iop,
     neo_fft3d::FloatSpan{overlap.data(), overlap.size()},
     byte_view(cover.data(), 2, 2, 2),
     true
@@ -121,8 +121,8 @@ TEST_CASE("CoverToOverlap and OverlapToCover round trip an 8-bit chroma plane wi
 
   std::array<std::uint8_t, 4> destination {};
   OverlapToCover(
-    &ep,
-    &iop,
+    ep,
+    iop,
     neo_fft3d::FloatSpan{overlap.data(), overlap.size()},
     1.0f,
     mutable_byte_view(destination.data(), 2, 2, 2),

@@ -475,12 +475,12 @@ private:
     switch (ep->vi.Format.BytesPerSample) {
     case 1: std::memset(coverbuf.data(), 255, coverbuf.size());
       break;
-    case 2: std::fill_n(reinterpret_cast<uint16_t*>(coverbuf.data()), coverheight*coverpitch, (1 << ep->vi.Format.BitsPerSample) - 1);
+    case 2: std::fill_n(reinterpret_cast<std::uint16_t*>(coverbuf.data()), coverheight*coverpitch, (1 << ep->vi.Format.BitsPerSample) - 1);
       break; // 255
     case 4: std::fill_n(reinterpret_cast<float*>(coverbuf.data()), coverheight*coverpitch, 1.0F);
       break; // 255
     }
-    CoverToOverlap(ep.get(), iop.get(), views.Overlap(in), views.Cover(coverbuf.data()), false);
+    CoverToOverlap(*ep, *iop, views.Overlap(in), views.Cover(coverbuf.data()), false);
     // make FFT 2D
     plan1->Execute(in, gridsample.data(), 1);
   }
@@ -502,8 +502,8 @@ private:
     std::complex<float>* spectrum,
     bool chroma
   ) {
-    FrameToCover(ep.get(), plane, views.Source(src_plane), views.MutableCover(coverbuf), mirw, mirh);
-    CoverToOverlap(ep.get(), iop.get(), views.Overlap(in), views.Cover(coverbuf), chroma);
+    FrameToCover(*ep, plane, views.Source(src_plane), views.MutableCover(coverbuf), mirw, mirh);
+    CoverToOverlap(*ep, *iop, views.Overlap(in), views.Cover(coverbuf), chroma);
     plan->Execute(in, spectrum, howmanyblocks);
   }
 
@@ -516,8 +516,8 @@ private:
     bool chroma
   ) {
     planinv->Execute(spectrum, in, howmanyblocks);
-    OverlapToCover(ep.get(), iop.get(), views.Overlap(in), norm, views.MutableCover(coverbuf), chroma);
-    CoverToFrame(ep.get(), plane, views.Cover(coverbuf), views.Destination(dst_plane), mirw, mirh);
+    OverlapToCover(*ep, *iop, views.Overlap(in), norm, views.MutableCover(coverbuf), chroma);
+    CoverToFrame(*ep, plane, views.Cover(coverbuf), views.Destination(dst_plane), mirw, mirh);
   }
 
   void show_pattern_frame(
@@ -548,8 +548,8 @@ private:
     neo_fft3d::PutPatternOnly(kernel_complex_blocks(outrez, howmanyblocks), outwidth, iop->nox, iop->noy, pxf, pyf);
     // do inverse 2D FFT, get filtered 'in' array
     write_spectrum_to_destination(outrez, in, coverbuf, views, dst_plane, !ep->vi.Format.IsFamilyRGB);
-    int psigmaint = ((int)(10 * psigma)) / 10;
-    int psigmadec = (int)((psigma - psigmaint) * 10);
+    int psigmaint = static_cast<int>(10 * psigma) / 10;
+    int psigmadec = static_cast<int>((psigma - psigmaint) * 10);
     wsprintf(messagebuf, " frame=%d, px=%d, py=%d, sigma=%d.%d", n, pxf, pyf, psigmaint, psigmadec);
     // TODO: DrawString(dst, vi, 0, 0, messagebuf);
   }
@@ -651,7 +651,7 @@ private:
     if (!pattern3d_initialized) {
       std::lock_guard<std::mutex> lock(init3d_mutex);
       if (!pattern3d_initialized) {
-        neo_fft3d::Pattern2Dto3D(kernel_float_view(pattern2d), (float)btcur, kernel_float_view(pattern3d));
+        neo_fft3d::Pattern2Dto3D(kernel_float_view(pattern2d), static_cast<float>(btcur), kernel_float_view(pattern3d));
       }
       pattern3d_initialized = true;
     }

@@ -31,7 +31,7 @@ static inline void Apply2D_C_impl(fftwf_complex *out, SharedFunctionParams sfp)
       float ci = out[lfp.w][1] - gridcorrection1;
 
       float psd = (cr * cr) + (ci * ci) + 1e-15F;
-      float factor = MAX((psd - (pattern ? lfp.pattern2d[lfp.w] : sfp.sigmaSquaredNoiseNormed) ) / psd, lfp.lowlimit); // limited Wiener filter
+      float factor = std::max((psd - (pattern ? lfp.pattern2d[lfp.w] : sfp.sigmaSquaredNoiseNormed) ) / psd, lfp.lowlimit); // limited Wiener filter
 
       if constexpr (!pattern) {
         // Skip sharpen and dehalo for ApplyPattern family
