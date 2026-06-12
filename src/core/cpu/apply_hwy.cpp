@@ -118,13 +118,14 @@ void Apply2D_Hwy_Wrap(fftwf_complex* out, SharedFunctionParams sfp) {
   const int size = sfp.outpitch;
   for (int block = 0; block < sfp.howmanyblocks; block++) {
     fftwf_complex* out_block = out + block * sfp.outpitch * sfp.bh;
-    const float gridfraction = degrid ? sfp.degrid * out_block[0][0] / sfp.gridsample[0][0] : 0.0f;
+    const fftwf_complex* gridsample = sfp.gridsample.fftw_data();
+    const float gridfraction = degrid ? sfp.degrid * out_block[0][0] / gridsample[0][0] : 0.0f;
 
     auto out_view = ds::make_plane_view(reinterpret_cast<float*>(out_block), sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
-    auto gs_view = ds::make_plane_view(reinterpret_cast<float*>(sfp.gridsample), sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
-    auto pat_view = ds::make_plane_view(sfp.pattern2d, sfp.outpitch, sfp.bh, sfp.outpitch * sizeof(float));
-    auto ws_view = ds::make_plane_view(sfp.wsharpen, sfp.outpitch, sfp.bh, sfp.outpitch * sizeof(float));
-    auto wd_view = ds::make_plane_view(sfp.wdehalo, sfp.outpitch, sfp.bh, sfp.outpitch * sizeof(float));
+    auto gs_view = sfp.gridsample.block_float_view(0);
+    auto pat_view = sfp.pattern2d;
+    auto ws_view = sfp.wsharpen;
+    auto wd_view = sfp.wdehalo;
 
     for (int h = 0; h < sfp.bh; h++) {
       if (sfp.sharpen == 0.0f && sfp.dehalo == 0.0f) {
@@ -382,11 +383,12 @@ void Apply3D_Hwy_Wrap(fftwf_complex** in, fftwf_complex* out, SharedFunctionPara
   const int size = sfp.outpitch;
   for (int block = 0; block < sfp.howmanyblocks; block++) {
     fftwf_complex* out_block = out + block * sfp.outpitch * sfp.bh;
-    const float gridfraction = degrid ? sfp.degrid * (in[2] + block * sfp.outpitch * sfp.bh)[0][0] / sfp.gridsample[0][0] : 0.0f;
+    const fftwf_complex* gridsample = sfp.gridsample.fftw_data();
+    const float gridfraction = degrid ? sfp.degrid * (in[2] + block * sfp.outpitch * sfp.bh)[0][0] / gridsample[0][0] : 0.0f;
 
     auto out_view = ds::make_plane_view(reinterpret_cast<float*>(out_block), sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
-    auto gs_view = ds::make_plane_view(reinterpret_cast<float*>(sfp.gridsample), sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
-    auto pat_view = ds::make_plane_view(sfp.pattern3d, sfp.outpitch, sfp.bh, sfp.outpitch * sizeof(float));
+    auto gs_view = sfp.gridsample.block_float_view(0);
+    auto pat_view = sfp.pattern3d;
 
     ds::PlaneView2D<float> in_views[5];
     for (int k = 0; k < 5; k++) {

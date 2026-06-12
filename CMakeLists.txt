@@ -273,6 +273,7 @@ if (NEO_FFT3D_BUILD_TEST_TOOLS)
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
   )
+  target_link_libraries(neo-fft3d_c_apply_null_slots_test PRIVATE DualSynth::dualsynth)
 
   add_test(
     NAME neo-fft3d_c_apply_null_slots_test

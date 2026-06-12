@@ -48,19 +48,19 @@ inline void loop_wrapper_C(fftwf_complex** in, fftwf_complex* &out, SharedFuncti
   lfp.lowlimit = (sfp.beta - 1) / sfp.beta;
   lfp.sigmaSquaredNoiseNormed = sfp.sigmaSquaredNoiseNormed;
   // Kalman
-  lfp.covar = sfp.covar;
-  lfp.covarProcess = sfp.covarProcess;
+  lfp.covar = sfp.covar.fftw_data();
+  lfp.covarProcess = sfp.covarProcess.fftw_data();
 
   for (lfp.block = 0; lfp.block < sfp.howmanyblocks; lfp.block++)
   {
     // Pattern
-    lfp.pattern2d = sfp.pattern2d;
-    lfp.pattern3d = sfp.pattern3d;
+    lfp.pattern2d = sfp.pattern2d.data_handle();
+    lfp.pattern3d = sfp.pattern3d.data_handle();
     // Wiener
-    lfp.wsharpen = sfp.wsharpen;
-    lfp.wdehalo = sfp.wdehalo;
+    lfp.wsharpen = sfp.wsharpen.data_handle();
+    lfp.wdehalo = sfp.wdehalo.data_handle();
     // Grid
-    lfp.gridsample = sfp.gridsample;
+    lfp.gridsample = sfp.gridsample.fftw_data();
     lfp.gridfraction = sfp.degrid * in[2][0][0] / lfp.gridsample[0][0];
 
     for (lfp.h = 0; lfp.h < sfp.bh; lfp.h++)

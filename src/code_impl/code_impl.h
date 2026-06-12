@@ -10,6 +10,7 @@
 #define __CODE_IMPL_H__
 
 #include "../fft3d_common.h"
+#include "common/fft3d_views.hpp"
 
 #pragma warning(disable:4101)
 
@@ -20,20 +21,20 @@ struct SharedFunctionParams {
     int howmanyblocks;
     float sigmaSquaredNoiseNormed;
     float pfactor;
-    float *pattern2d;
-    float *pattern3d;
+    neo_fft3d::FloatPlaneView pattern2d;
+    neo_fft3d::FloatPlaneView pattern3d;
     float beta;
     float degrid;
-    fftwf_complex *gridsample;
+    neo_fft3d::ComplexBlockView gridsample;
     float sharpen;
     float sigmaSquaredSharpenMinNormed;
     float sigmaSquaredSharpenMaxNormed;
-    float *wsharpen;
+    neo_fft3d::FloatPlaneView wsharpen;
     float dehalo;
-    float *wdehalo;
+    neo_fft3d::FloatPlaneView wdehalo;
     float ht2n;
-    fftwf_complex *covar;
-    fftwf_complex *covarProcess;
+    neo_fft3d::ComplexBlockView covar;
+    neo_fft3d::ComplexBlockView covarProcess;
     float sigmaSquaredNoiseNormed2D;
     float kratio2;
 };

@@ -94,14 +94,12 @@ void Kalman_Hwy_Wrap(fftwf_complex* outcur, fftwf_complex* outLast, SharedFuncti
   for (int block = 0; block < sfp.howmanyblocks; block++) {
     float* outcur_block = reinterpret_cast<float*>(outcur + block * sfp.outpitch * sfp.bh);
     float* outLast_block = reinterpret_cast<float*>(outLast + block * sfp.outpitch * sfp.bh);
-    float* cov_block = reinterpret_cast<float*>(sfp.covar + block * sfp.outpitch * sfp.bh);
-    float* covP_block = reinterpret_cast<float*>(sfp.covarProcess + block * sfp.outpitch * sfp.bh);
 
     auto outcur_view = ds::make_plane_view(outcur_block, sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
     auto outLast_view = ds::make_plane_view(outLast_block, sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
-    auto cov_view = ds::make_plane_view(cov_block, sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
-    auto covP_view = ds::make_plane_view(covP_block, sfp.outpitch * 2, sfp.bh, sfp.outpitch * 2 * sizeof(float));
-    auto pat_view = ds::make_plane_view(sfp.pattern2d, sfp.outpitch, sfp.bh, sfp.outpitch * sizeof(float));
+    auto cov_view = sfp.covar.block_float_view(block);
+    auto covP_view = sfp.covarProcess.block_float_view(block);
+    auto pat_view = sfp.pattern2d;
 
     for (int h = 0; h < sfp.bh; h++) {
       Kalman_Hwy_Impl<pattern>(&outcur_view[h, 0], &outLast_view[h, 0], &pat_view[h, 0], &cov_view[h, 0], &covP_view[h, 0], sfp, size);

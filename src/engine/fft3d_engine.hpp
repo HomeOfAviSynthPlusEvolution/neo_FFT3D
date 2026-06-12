@@ -173,6 +173,19 @@ private:
     return neo_fft3d::FloatSpan{data, static_cast<std::size_t>(insize)};
   }
 
+  neo_fft3d::FloatPlaneView kernel_float_view(AlignedVector<float>& data) const {
+    return neo_fft3d::make_float_plane_view(
+      data.data(),
+      outpitch,
+      ep->bh,
+      static_cast<std::ptrdiff_t>(outpitch) * static_cast<std::ptrdiff_t>(sizeof(float))
+    );
+  }
+
+  neo_fft3d::ComplexBlockView kernel_complex_blocks(AlignedVector<std::complex<float>>& data, int block_count) const {
+    return neo_fft3d::make_complex_block_view(data.data(), outpitch, ep->bh, block_count);
+  }
+
 public:
   FFT3DEngine(EngineParams _ep, int _plane, std::shared_ptr<neo_fft3d::fft::FFTBackend> _fft_backend) :
   ep(std::make_unique<EngineParams>(_ep)), iop(std::make_unique<IOParams>()), plane(_plane), fft_backend(_fft_backend) {
@@ -637,20 +650,20 @@ public:
       howmanyblocks,
       btcur * ep->sigma * ep->sigma / norm,
       ep->pfactor,
-      pattern2d.data(),
-      pattern3d.data(),
+      kernel_float_view(pattern2d),
+      kernel_float_view(pattern3d),
       ep->beta,
       ep->degrid,
-      as_fftw(gridsample.data()),
+      kernel_complex_blocks(gridsample, 1),
       ep->sharpen,
       sigmaSquaredSharpenMinNormed,
       sigmaSquaredSharpenMaxNormed,
-      wsharpen.data(),
+      kernel_float_view(wsharpen),
       ep->dehalo,
-      wdehalo.data(),
+      kernel_float_view(wdehalo),
       ht2n,
-      as_fftw(covar.data()),
-      as_fftw(covarProcess.data()),
+      kernel_complex_blocks(covar, howmanyblocks),
+      kernel_complex_blocks(covarProcess, howmanyblocks),
       sigmaSquaredNoiseNormed2D,
       ep->kratio * ep->kratio
     };
