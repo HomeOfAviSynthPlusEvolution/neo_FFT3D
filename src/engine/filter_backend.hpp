@@ -2,7 +2,6 @@
 
 #include "code_impl/code_impl.h"
 #include "engine/engine_params.hpp"
-#include "fft/fft_backend.hpp"
 
 #include <memory>
 
@@ -14,16 +13,6 @@ public:
 
   [[nodiscard]] virtual const char* Name() const noexcept = 0;
 
-  [[nodiscard]] virtual std::unique_ptr<fft::FFTPlan> CreatePlan(
-    int bh,
-    int bw,
-    int outpitch,
-    fft::Direction dir,
-    int max_batch,
-    fft::PlanOptions options,
-    fft::PlanBuffers buffers
-  ) = 0;
-
   virtual void Configure(const EngineParams& params) = 0;
 
   virtual void Apply2D(ComplexBlockView out, SharedFunctionParams sfp) const = 0;
@@ -32,6 +21,6 @@ public:
   virtual void Kalman(ComplexBlockView curr, ComplexBlockView prev, SharedFunctionParams sfp) const = 0;
 };
 
-std::unique_ptr<FilterBackend> CreateCpuFilterBackend(std::shared_ptr<fft::FFTBackend> fft_backend);
+std::unique_ptr<FilterBackend> CreateCpuFilterBackend();
 
 } // namespace neo_fft3d::engine

@@ -18,6 +18,7 @@
 #include "engine/frame_buffer.hpp"
 #include "engine/frame_views.hpp"
 #include "engine/pattern_analysis.hpp"
+#include "fft/fft_backend.hpp"
 
 #include <algorithm>
 #include <dualsynth/video_filter.hpp>
@@ -33,6 +34,7 @@ public:
   std::unique_ptr<EngineParams> ep;
   std::unique_ptr<IOParams> iop;
   int plane; // color plane
+  std::shared_ptr<neo_fft3d::fft::FFTBackend> fft_backend;
   std::unique_ptr<neo_fft3d::engine::FilterBackend> backend;
 
   std::unique_ptr<neo_fft3d::fft::FFTPlan> plan, planinv, plan1;
@@ -127,6 +129,9 @@ private:
   }
 
   void validate_backend() const {
+    if (!fft_backend) {
+      throw std::invalid_argument("neo_fft3d: FFT backend is required");
+    }
     if (!backend) {
       throw std::invalid_argument("neo_fft3d: filter backend is required");
     }
@@ -222,7 +227,7 @@ private:
   void create_main_plans(const neo_fft3d::fft::PlanOptions& plan_options, const neo_fft3d::fft::PlanBuffers& plan_buffers) {
     neo_fft3d::fft::GlobalLockGuard fftw_lock;
 
-    plan = backend->CreatePlan(
+    plan = fft_backend->CreatePlan(
       ep->bh,
       ep->bw,
       outpitch,
@@ -232,7 +237,7 @@ private:
       plan_buffers
     );
 
-    planinv = backend->CreatePlan(
+    planinv = fft_backend->CreatePlan(
       ep->bh,
       ep->bw,
       outpitch,
@@ -454,7 +459,7 @@ private:
   void create_grid_plan(const neo_fft3d::fft::PlanOptions& plan_options, const neo_fft3d::fft::PlanBuffers& plan_buffers) {
     neo_fft3d::fft::GlobalLockGuard fftw_lock;
 
-    plan1 = backend->CreatePlan(
+    plan1 = fft_backend->CreatePlan(
       ep->bh,
       ep->bw,
       outpitch,
@@ -809,8 +814,10 @@ private:
   }
 
 public:
-  FFT3DEngine(EngineParams _ep, int _plane, std::unique_ptr<neo_fft3d::engine::FilterBackend> _backend) :
-  ep(std::make_unique<EngineParams>(_ep)), iop(std::make_unique<IOParams>()), plane(_plane), backend(std::move(_backend)) {
+  FFT3DEngine(EngineParams _ep, int _plane, std::shared_ptr<neo_fft3d::fft::FFTBackend> _fft_backend,
+              std::unique_ptr<neo_fft3d::engine::FilterBackend> _backend) :
+  ep(std::make_unique<EngineParams>(_ep)), iop(std::make_unique<IOParams>()), plane(_plane),
+  fft_backend(std::move(_fft_backend)), backend(std::move(_backend)) {
     validate_backend();
     normalize_params_for_sample_format();
     validate_overlap_params_and_apply_defaults();

@@ -253,7 +253,8 @@ ds::Result<ds::VideoInitStateResult<FFT3DCore::State>> FFT3DCore::init(
         state.engine[i] = std::make_unique<FFT3DEngine>(
           *state.ep,
           i,
-          neo_fft3d::engine::CreateCpuFilterBackend(state.fft_backend)
+          state.fft_backend,
+          neo_fft3d::engine::CreateCpuFilterBackend()
         );
         state.engine_count++;
       }
