@@ -6,7 +6,6 @@
 #include "hwy/contrib/math/math-inl.h"
 
 #include "fft3d_common.h"
-#include "functions.h"
 #include "core/cpu/core_hwy.h"
 #include <dualsynth/mdspan.hpp>
 

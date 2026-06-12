@@ -1,5 +1,6 @@
 #pragma once
-#include "fft3d_common.h"
+
+#include "code_impl/code_impl.h"
 
 namespace neo_fft3d::cpu {
 

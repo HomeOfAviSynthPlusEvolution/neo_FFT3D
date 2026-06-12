@@ -140,7 +140,6 @@ set(NEO_FFT3D_ENGINE_SOURCES
   src/engine/pattern_analysis.hpp
   src/fft3d_common.h
   src/fftwlite.h
-  src/functions.h
   src/neo_fft3d.hpp
 )
 
@@ -154,6 +153,8 @@ set(NEO_FFT3D_FFT_SOURCES
 
 set(NEO_FFT3D_CPU_SOURCES
   src/core/cpu/apply_hwy.cpp
+  src/core/cpu/cpu_dispatch.cpp
+  src/core/cpu/cpu_dispatch.hpp
   src/core/cpu/core_hwy.h
   src/core/cpu/kalman_hwy.cpp
   src/core/cpu/sharpen_hwy.cpp
