@@ -238,7 +238,7 @@ public:
       for (i = 0; i < ep->ow; i++)
       {
         iop->wanxl[i] = sqrt(cosf(pi*(i - ep->ow + 0.5f) / (ep->ow * 2)));
-        iop->wanxr[i] = sqrt(cosf(pi*(i + 0.5f) / (ep->oh * 2)));
+        iop->wanxr[i] = sqrt(cosf(pi*(i + 0.5f) / (ep->ow * 2)));
       }
       for (i = 0; i < ep->oh; i++)
       {
@@ -354,7 +354,7 @@ public:
         fh2 = ((ep->bh - 1 - j)*2.0f / ep->bh)*((ep->bh - 1 - j)*2.0f / ep->bh);
       for (i = 0; i < outwidth; i++)
       {
-        fw2 = (i*2.0f / ep->bw)*(j*2.0f / ep->bw);
+        fw2 = (i*2.0f / ep->bw)*(i*2.0f / ep->bw);
         pwin[i] = (fh2 + fw2) / (fh2 + fw2 + ep->pcutoff*ep->pcutoff);
       }
       pwin += outpitch;
