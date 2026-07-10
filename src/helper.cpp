@@ -60,14 +60,15 @@ void FindPatternBlock(fftwf_complex *outcur0, int outwidth, int outpitch, int bh
     {
       outcur = outcur0 + nox*by*bh*outpitch + bx*bh*outpitch;
       sigmaSquaredcur = 0;
-      float gcur = degrid*outcur[0][0] / gridsample[0][0]; // grid (windowing) correction factor
+      const fftwf_complex *gridrow = gridsample;
+      float gcur = degrid*outcur[0][0] / gridrow[0][0]; // grid (windowing) correction factor
       for (h = 0; h < bh; h++)
       {
         for (w = 0; w < outwidth; w++)
         {
           //					psd = outcur[w][0]*outcur[w][0] + outcur[w][1]*outcur[w][1];
-          float grid0 = gcur*gridsample[w][0];
-          float grid1 = gcur*gridsample[w][1];
+          float grid0 = gcur*gridrow[w][0];
+          float grid1 = gcur*gridrow[w][1];
           float corrected0 = outcur[w][0] - grid0;
           float corrected1 = outcur[w][1] - grid1;
           psd = corrected0*corrected0 + corrected1*corrected1;
@@ -75,7 +76,7 @@ void FindPatternBlock(fftwf_complex *outcur0, int outwidth, int outpitch, int bh
         }
         outcur += outpitch;
         pwin += outpitch;
-        gridsample += outpitch;
+        gridrow += outpitch;
       }
       pwin -= outpitch*bh; // restore
       if (sigmaSquaredcur < sigmaSquared)
