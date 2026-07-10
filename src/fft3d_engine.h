@@ -345,13 +345,12 @@ public:
 
     pwin = new float[ep->bh*outpitch]; // pattern window array
 
-    float fw2, fh2;
+    float fw2;
     for (j = 0; j < ep->bh; j++)
     {
-      if (j < ep->bh / 2)
-        fh2 = (j*2.0f / ep->bh)*(j*2.0f / ep->bh);
-      else
-        fh2 = ((ep->bh - 1 - j)*2.0f / ep->bh)*((ep->bh - 1 - j)*2.0f / ep->bh);
+      const int dj = std::min(j, ep->bh - j);
+      const float fh = dj*2.0f / ep->bh;
+      const float fh2 = fh*fh;
       for (i = 0; i < outwidth; i++)
       {
         fw2 = (i*2.0f / ep->bw)*(i*2.0f / ep->bw);
