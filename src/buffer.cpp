@@ -559,7 +559,7 @@ static void OverlapToCover_impl(EngineParams * ep, IOParams * iop, float *src_pt
   }
 }
 
-void FrameToCover(EngineParams * ep, int plane, const byte *src_ptr, byte *coverbuf, int coverwidth, int coverheight, int coverpitch, int mirw, int mirh)
+void FrameToCover(EngineParams* ep, int plane, const byte* src_ptr, byte* coverbuf, int coverwidth, int coverheight, int coverpitch, int mirw, int mirh, int src_pitch)
 {
   auto l = ep->IsChroma ? (ep->l >> ep->vi.Format.SSW) : ep->l;
   auto r = ep->IsChroma ? (ep->r >> ep->vi.Format.SSW) : ep->r;
@@ -567,19 +567,19 @@ void FrameToCover(EngineParams * ep, int plane, const byte *src_ptr, byte *cover
   auto b = ep->IsChroma ? (ep->b >> ep->vi.Format.SSH) : ep->b;
   auto width = ep->framewidth - l - r;
   auto height = ep->frameheight - t - b;
-  auto new_src_ptr = src_ptr + (t * ep->framepitch + l) * ep->vi.Format.BytesPerSample;
+  auto new_src_ptr = src_ptr + (t * src_pitch + l) * ep->vi.Format.BytesPerSample;
   switch (ep->vi.Format.BitsPerSample)
   {
-  case 8: FrameToCover_impl<uint8_t>(new_src_ptr, width, height, ep->framepitch, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
+  case 8: FrameToCover_impl<uint8_t>(new_src_ptr, width, height, src_pitch, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
   case 10:
   case 12:
   case 14:
-  case 16: FrameToCover_impl<uint16_t>((uint16_t *)new_src_ptr, width, height, ep->framepitch, (uint16_t *)coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
-  case 32: FrameToCover_impl<float>((float *)new_src_ptr, width, height, ep->framepitch, (float *)coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
+  case 16: FrameToCover_impl<uint16_t>((uint16_t*)new_src_ptr, width, height, src_pitch, (uint16_t*)coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
+  case 32: FrameToCover_impl<float>((float*)new_src_ptr, width, height, src_pitch, (float*)coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, ep->interlaced); break;
   }
 }
 
-void CoverToFrame(EngineParams * ep, int plane, const byte *coverbuf, int coverwidth, int coverheight, int coverpitch, byte *dst_ptr, int mirw, int mirh)
+void CoverToFrame(EngineParams* ep, int plane, const byte* coverbuf, int coverwidth, int coverheight, int coverpitch, byte* dst_ptr, int mirw, int mirh, int dst_pitch)
 {
   auto l = ep->IsChroma ? (ep->l >> ep->vi.Format.SSW) : ep->l;
   auto r = ep->IsChroma ? (ep->r >> ep->vi.Format.SSW) : ep->r;
@@ -587,15 +587,15 @@ void CoverToFrame(EngineParams * ep, int plane, const byte *coverbuf, int coverw
   auto b = ep->IsChroma ? (ep->b >> ep->vi.Format.SSH) : ep->b;
   auto width = ep->framewidth - l - r;
   auto height = ep->frameheight - t - b;
-  auto new_dst_ptr = dst_ptr + (t * ep->framepitch_dst + l) * ep->vi.Format.BytesPerSample;
+  auto new_dst_ptr = dst_ptr + (t * dst_pitch + l) * ep->vi.Format.BytesPerSample;
   switch (ep->vi.Format.BitsPerSample)
   {
-  case 8: CoverToFrame_impl<uint8_t>(coverbuf, coverwidth, coverheight, coverpitch, new_dst_ptr, width, height, ep->framepitch_dst, mirw, mirh, ep->interlaced); break;
+  case 8: CoverToFrame_impl<uint8_t>(coverbuf, coverwidth, coverheight, coverpitch, new_dst_ptr, width, height, dst_pitch, mirw, mirh, ep->interlaced); break;
   case 10:
   case 12:
   case 14:
-  case 16: CoverToFrame_impl<uint16_t>((uint16_t *)coverbuf, coverwidth, coverheight, coverpitch, (uint16_t *)new_dst_ptr, width, height, ep->framepitch_dst, mirw, mirh, ep->interlaced); break;
-  case 32: CoverToFrame_impl<float>((float *)coverbuf, coverwidth, coverheight, coverpitch, (float *)new_dst_ptr, width, height, ep->framepitch_dst, mirw, mirh, ep->interlaced); break;
+  case 16: CoverToFrame_impl<uint16_t>((uint16_t*)coverbuf, coverwidth, coverheight, coverpitch, (uint16_t*)new_dst_ptr, width, height, dst_pitch, mirw, mirh, ep->interlaced); break;
+  case 32: CoverToFrame_impl<float>((float*)coverbuf, coverwidth, coverheight, coverpitch, (float*)new_dst_ptr, width, height, dst_pitch, mirw, mirh, ep->interlaced); break;
   }
 }
 
