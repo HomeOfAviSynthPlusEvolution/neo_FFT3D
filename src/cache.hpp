@@ -13,39 +13,49 @@
 #include <unordered_map>
 #include <list>
 #include <cstddef>
+#include <memory>
+#include <mutex>
+#include <type_traits>
 
 template<typename value_t>
 class cache {
   public:
-    typedef typename std::pair<int32_t, value_t*> key_value_pair_t;
+    using element_t = typename std::remove_extent<value_t>::type;
+    struct Item {
+      std::shared_ptr<element_t> data;
+      std::shared_ptr<std::mutex> mtx;
+    };
+    typedef typename std::pair<int32_t, Item> key_value_pair_t;
     typedef typename std::list<key_value_pair_t>::iterator list_iterator_t;
 
     cache(size_t vault_size, size_t data_size) {
       auto alignment_size = 64 / sizeof(value_t);
       _data_size = (data_size + alignment_size - 1) & (~alignment_size);
-      resize(vault_size);
+      _max_size = vault_size;
     }
 
-    ~cache() {
-      for (auto &&i : _internal_vault)
-        _aligned_free(i);
-    }
+    ~cache() {}
 
-    value_t* get_write(const int32_t key) {
-      auto last = _cache_items_list.end();
-      last--;
-      auto data = last->second;
-      _cache_items_map.erase(last->first);
-      _cache_items_list.pop_back();
-      _cache_items_list.push_front(key_value_pair_t(key, data));
+    Item get_write(const int32_t key) {
+      if (_cache_items_list.size() >= _max_size) {
+        auto last = _cache_items_list.end();
+        last--;
+        _cache_items_map.erase(last->first);
+        _cache_items_list.pop_back();
+      }
+      auto deleter = [](element_t* ptr) { _aligned_free(ptr); };
+      std::shared_ptr<element_t> mem((element_t*)_aligned_malloc(sizeof(value_t) * _data_size, FRAME_ALIGN), deleter);
+      Item item{mem, std::make_shared<std::mutex>()};
+        
+      _cache_items_list.push_front(key_value_pair_t(key, item));
       _cache_items_map[key] = _cache_items_list.begin();
-      return data;
+      return item;
     }
 
-    value_t* get_read(const int32_t key) {
+    Item get_read(const int32_t key) {
       auto it = _cache_items_map.find(key);
       if (it == _cache_items_map.end())
-        return NULL;
+        return {nullptr, nullptr};
 
       _cache_items_list.splice(_cache_items_list.begin(), _cache_items_list, it->second);
       return it->second->second;
@@ -63,18 +73,14 @@ class cache {
     }
 
     void resize(size_t new_vault_size) {
-      while (_internal_vault.size() < new_vault_size) {
-        auto mem = (value_t*)_aligned_malloc(sizeof(value_t) * _data_size, FRAME_ALIGN);
-        _internal_vault.push_back(mem);
-        _cache_items_list.push_back(key_value_pair_t(-1, mem));
-      }
+      _max_size = new_vault_size;
     }
 
   private:
     std::list<key_value_pair_t> _cache_items_list;
     std::unordered_map<int32_t, list_iterator_t> _cache_items_map;
-    std::vector<value_t*> _internal_vault;
-    size_t _data_size {0};
+    size_t _data_size{0};
+    size_t _max_size{0};
 };
 
 #endif

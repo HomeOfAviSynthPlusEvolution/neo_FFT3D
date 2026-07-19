@@ -175,6 +175,7 @@ struct FFT3D final : Filter {
     fftfp.load();
 
     if (fft_threads > 1 && fftfp.has_threading()) {
+      GlobalLockGuard fftw_lock(ep->avs_env, "fftw", ep->has_at_least_v12);
       fftfp.fftwf_init_threads();
       fftfp.fftwf_plan_with_nthreads(fft_threads);
     }
