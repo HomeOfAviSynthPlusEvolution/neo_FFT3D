@@ -82,8 +82,10 @@ class FFT3DEngine {
   std::vector<byte *> mt_coverbuf;
 
   struct FilterFunctionPointers ffp;
-  bool pattern3d_initialized {false};
+  std::atomic<bool> pattern3d_initialized {false};
   std::mutex init3d_mutex;
+
+  std::mutex kalman_mutex;
 
 public:
   FFT3DEngine(EngineParams _ep, int _plane, FetchFrameFunctor* _fetch_frame, FFTFunctionPointers &_fftfp) :
@@ -630,7 +632,7 @@ public:
       if (btcur == 1) // 2D
       {
         // cur frame
-          FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, src_pitch);
+        FrameToCover(ep, plane, sptr, coverbuf, coverwidth, coverheight, coverpitch, mirw, mirh, src_pitch);
         CoverToOverlap(ep, iop, in, coverbuf, coverwidth, coverpitch, ep->IsChroma);
         fftfp.fftwf_execute_dft_r2c(plan, in, outrez);
         ffp.Apply2D(outrez, sfp);
@@ -639,11 +641,12 @@ public:
       }
       else // 3D
       {
-        if (!pattern3d_initialized) {
+        if (!pattern3d_initialized.load(std::memory_order_acquire)) {
           std::lock_guard<std::mutex> lock(init3d_mutex);
-          if (!pattern3d_initialized)
+          if (!pattern3d_initialized.load(std::memory_order_relaxed)) {
             Pattern2Dto3D(pattern2d, ep->bh, outwidth, outpitch, (float)btcur, pattern3d);
-          pattern3d_initialized = true;
+            pattern3d_initialized.store(true, std::memory_order_release);
+          }
         }
 
         int from = -btcur / 2;
@@ -715,6 +718,10 @@ public:
         new = orig.FFT3DFilter(sigma = 3, plane = 4, bt = 0, degrid = 0)
         Subtract(orig,new).Levels(120, 1, 255 - 120, 0, 255, coring = false)
       */
+
+      // Serialize Kalman state updates to prevent data races on outLast/covar.
+      // Mathematically, IIR filters require sequential processing anyway.
+      std::lock_guard<std::mutex> kalman_lock(kalman_mutex);
 
       // put source bytes to float array of overlapped blocks
       // cur frame
